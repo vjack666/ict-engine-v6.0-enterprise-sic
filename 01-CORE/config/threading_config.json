@@ -1,0 +1,24 @@
+{
+  "strategy": "ENTERPRISE_PARALLEL",
+  "max_workers": 15,
+  "thread_distribution": {
+    "download_threads": 6,
+    "analysis_threads": 4,
+    "cache_threads": 2,
+    "io_threads": 2,
+    "background_threads": 1
+  },
+  "queue_size": 1000,
+  "timeout_seconds": 30,
+  "priority_scheduling": true,
+  "affinity_optimization": true,
+  "load_balancing": "INTELLIGENT",
+  "resource_monitoring": true,
+  "adaptive_scaling": true,
+  "thread_pools": {
+    "download_pool": 6,
+    "analysis_pool": 4,
+    "cache_pool": 2,
+    "io_pool": 2
+  }
+}

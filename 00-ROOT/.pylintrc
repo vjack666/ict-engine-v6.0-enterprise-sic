@@ -1,0 +1,74 @@
+[MASTER]
+# Python code to execute, usually for sys.path manipulation such as
+# pygtk.require().
+init-hook='import sys; sys.path.append(".")'
+
+[MESSAGES CONTROL]
+# Disable specific pylint warnings that are too strict for development
+disable=
+    C0103,  # Invalid name (snake_case, etc.)
+    C0114,  # Missing module docstring
+    C0115,  # Missing class docstring
+    C0116,  # Missing function docstring
+    C0301,  # Line too long
+    C0303,  # Trailing whitespace
+    R0903,  # Too few public methods
+    R0913,  # Too many arguments
+    R0914,  # Too many local variables
+    R0915,  # Too many statements
+    W0613,  # Unused argument
+    W0622,  # Redefining built-in
+    W0718,  # Catching too general exception
+    W0719,  # Raising too general exception
+    W0212,  # Access to protected member
+    W0511,  # TODO/FIXME comments
+    R0801,  # Similar lines in files
+    R0902,  # Too many instance attributes
+    R0912,  # Too many branches
+    C0302,  # Too many lines in module
+    W0102,  # Dangerous default value
+    W0107,  # Unnecessary pass statement
+    W0611,  # Unused import (NUEVO)
+    W0612,  # Unused variable (NUEVO)
+    W0614,  # Unused import from wildcard (NUEVO)
+    W0621,  # Redefining name from outer scope (NUEVO)
+    W0401,  # Wildcard import (NUEVO)
+
+# Only show errors and critical warnings
+confidence=HIGH
+
+[FORMAT]
+# Maximum number of characters on a single line
+max-line-length=120
+
+[DESIGN]
+# Maximum number of arguments for function / method
+max-args=10
+
+# Maximum number of locals for function / method body
+max-locals=20
+
+# Maximum number of return / yield for function / method body
+max-returns=8
+
+# Maximum number of branch for function / method body
+max-branches=15
+
+# Maximum number of statements in function / method body
+max-statements=60
+
+# Maximum number of parents for a class (see R0901).
+max-parents=7
+
+# Maximum number of attributes for a class (see R0902).
+max-attributes=15
+
+# Minimum number of public methods for a class (see R0903).
+min-public-methods=1
+
+# Maximum number of public methods for a class (see R0904).
+max-public-methods=25
+
+[BASIC]
+# Good variable names which should always be accepted, separated by a comma
+good-names=i,j,k,ex,Run,_,df,tf,logger,e,f

@@ -1,0 +1,47 @@
+# ICT Engine v6.0 Enterprise SIC - Dependencias
+# ================================================
+
+# Sistema de Monitoreo y Performance
+psutil>=5.9.0              # Monitoreo de sistema para SIC v3.1
+
+# Core Trading Dependencies
+pandas>=2.0.0              # Análisis de datos financieros
+numpy>=1.24.0              # Computación numérica
+requests>=2.31.0           # HTTP requests para APIs
+
+# Logging y Debugging
+colorlog>=6.7.0            # Logging colorizado para SLUC v2.1
+rich>=13.0.0               # Output rico para debugging
+
+# Dashboard y UI (si se requiere)
+# tkinter                  # Interface gráfica (incluido en Python)
+# matplotlib>=3.7.0        # Gráficos (opcional)
+
+# Testing y Development
+pytest>=7.4.0             # Testing framework
+pytest-cov>=4.1.0         # Coverage testing
+
+# Utilities
+python-dateutil>=2.8.0    # Utilidades de fecha/hora
+pytz>=2023.3              # Zona horaria
+
+# Optional: Async support para performance enterprise
+# aiohttp>=3.8.0          # HTTP asíncrono
+# asyncio                 # Programación asíncrona (incluido en Python)
+
+# Development Tools
+black>=23.0.0             # Code formatting
+flake8>=6.0.0             # Linting
+mypy>=1.5.0               # Type checking
+
+# ================================================
+# Notas de Instalación:
+# 
+# Para instalación básica:
+# pip install -r requirements.txt
+# 
+# Para desarrollo:
+# pip install -r requirements.txt
+# pip install -e .
+# 
+# ================================================

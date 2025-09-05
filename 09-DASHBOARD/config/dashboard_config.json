@@ -1,0 +1,82 @@
+{
+    "dashboard": {
+        "title": "ICT Engine V6.0 Enterprise SIC",
+        "version": "6.0.0",
+        "refresh_interval": 1000,
+        "layout_mode": "tabbed",
+        "enable_real_time": true,
+        "max_history_entries": 1000
+    },
+    "display": {
+        "theme": "dark",
+        "colors": {
+            "primary": "cyan",
+            "secondary": "green", 
+            "warning": "yellow",
+            "error": "red",
+            "success": "bright_green"
+        },
+        "formats": {
+            "currency": "€{:.2f}",
+            "percentage": "{:.2f}%",
+            "time": "%H:%M:%S",
+            "date": "%Y-%m-%d"
+        }
+    },
+    "data_sources": {
+        "fvg_manager": {
+            "module": "core.analysis.fvg_memory_manager",
+            "class": "FVGMemoryManager",
+            "update_interval": 500
+        },
+        "pattern_detector": {
+            "module": "core.analysis.pattern_detector", 
+            "class": "PatternDetector",
+            "update_interval": 1000
+        },
+        "market_data": {
+            "module": "core.data.market_data_manager",
+            "class": "MarketDataManager",
+            "update_interval": 2000
+        }
+    },
+    "tabs": {
+        "dashboard": {
+            "title": "📊 Dashboard Principal",
+            "enabled": true,
+            "widgets": ["status", "summary", "alerts", "performance"]
+        },
+        "fvg": {
+            "title": "📈 FVG Statistics",
+            "enabled": true,
+            "widgets": ["fvg_count", "fvg_history", "fvg_efficiency", "fvg_trends"]
+        },
+        "market": {
+            "title": "💹 Market Data",
+            "enabled": true,
+            "widgets": ["price_action", "volume", "volatility", "trends"]
+        },
+        "coherence": {
+            "title": "🧠 Coherence Analysis",
+            "enabled": true,
+            "widgets": ["coherence_score", "analysis_results", "recommendations"]
+        },
+        "alerts": {
+            "title": "🚨 Alerts & Reports",
+            "enabled": true,
+            "widgets": ["active_alerts", "reports", "logs", "notifications"]
+        }
+    },
+    "performance": {
+        "max_fps": 30,
+        "enable_caching": true,
+        "cache_ttl": 30,
+        "enable_compression": false
+    },
+    "logging": {
+        "level": "INFO",
+        "file": "05-LOGS/application/dashboard.log",
+        "max_size": "10MB",
+        "backup_count": 5
+    }
+}

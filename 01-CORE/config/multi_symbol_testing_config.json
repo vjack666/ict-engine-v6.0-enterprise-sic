@@ -1,0 +1,66 @@
+{
+  "multi_symbol_testing": {
+    "description": "Configuración para Testing Multi-Símbolo Extensivo - Opción A",
+    "version": "1.0.0",
+    "date_created": "2025-09-05",
+    "testing_mode": "production_data_real_market",
+    
+    "symbols": {
+      "primary": ["EURUSD", "GBPUSD", "USDJPY", "GBPJPY", "XAUUSD"],
+      "description": "Símbolos principales para testing extensivo",
+      "total_count": 5
+    },
+    
+    "timeframes": {
+      "all": ["M5", "M15", "M30", "H1", "H4"],
+      "description": "Timeframes completos para testing escalabilidad",
+      "total_count": 5
+    },
+    
+    "testing_matrix": {
+      "total_combinations": 25,
+      "expected_analysis_time_per_combination": "< 0.050s",
+      "max_total_testing_time": "< 5.0s"
+    },
+    
+    "success_criteria": {
+      "performance_target": {
+        "max_analysis_time_per_symbol_timeframe": 0.050,
+        "description": "Cada análisis debe completarse en menos de 50ms"
+      },
+      "consistency_target": {
+        "min_success_rate": 90.0,
+        "description": "Al menos 90% de análisis deben completarse exitosamente"
+      },
+      "pattern_detection_target": {
+        "min_patterns_detected": 1,
+        "description": "Al menos 1 patrón debe detectarse en el testing"
+      },
+      "memory_integration_target": {
+        "unified_memory_active": true,
+        "description": "UnifiedMemorySystem debe estar activo"
+      }
+    },
+    
+    "data_sources": {
+      "preferred": "MT5_PROFESSIONAL",
+      "fallback": "YAHOO_FINANCE", 
+      "real_data_only": true,
+      "no_synthetic_data": true
+    },
+    
+    "reporting": {
+      "generate_detailed_report": true,
+      "save_individual_analyses": true,
+      "performance_metrics": true,
+      "export_path": "04-DATA/reports/multi_symbol_testing/"
+    },
+    
+    "system_validation": {
+      "silver_bullet_optimizations": "active",
+      "unified_memory_system": "v6.1",
+      "pattern_detection": "enterprise_grade",
+      "logging": "comprehensive"
+    }
+  }
+}

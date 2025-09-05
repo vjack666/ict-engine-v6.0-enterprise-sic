@@ -1,0 +1,31 @@
+{
+  "connection_strategy": "ENTERPRISE_ROBUST",
+  "timeout_seconds": 10,
+  "retry_attempts": 5,
+  "retry_backoff": "EXPONENTIAL",
+  "connection_pooling": true,
+  "keep_alive": true,
+  "compression": "FAST",
+  "batch_requests": true,
+  "concurrent_connections": 3,
+  "buffer_size_kb": 64,
+  "tcp_optimization": {
+    "tcp_nodelay": true,
+    "tcp_keepalive": true,
+    "send_buffer_kb": 32,
+    "recv_buffer_kb": 32
+  },
+  "mt5_optimization": {
+    "symbol_refresh_interval": 300,
+    "data_request_batching": true,
+    "parallel_symbol_requests": true,
+    "cache_symbol_info": true,
+    "preload_critical_symbols": true
+  },
+  "error_handling": {
+    "circuit_breaker": true,
+    "graceful_degradation": true,
+    "automatic_reconnection": true,
+    "health_monitoring": true
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "priority_patterns": [
+    "liquidity_sweep",
+    "order_block",
+    "fair_value_gap",
+    "breaker_block",
+    "mitigation_block",
+    "balanced_price_range",
+    "optimal_trade_entry",
+    "change_of_character",
+    "break_of_structure",
+    "shift_in_market_structure"
+  ],
+  "critical_timeframes": {
+    "M1": {
+      "priority": 5,
+      "cache_duration_hours": 2
+    },
+    "M5": {
+      "priority": 4,
+      "cache_duration_hours": 4
+    },
+    "M15": {
+      "priority": 2,
+      "cache_duration_hours": 8
+    },
+    "M30": {
+      "priority": 3,
+      "cache_duration_hours": 12
+    },
+    "H1": {
+      "priority": 1,
+      "cache_duration_hours": 24
+    },
+    "H4": {
+      "priority": 1,
+      "cache_duration_hours": 48
+    },
+    "D1": {
+      "priority": 2,
+      "cache_duration_hours": 168
+    }
+  },
+  "ict_symbols": {
+    "EURUSD": {
+      "priority": 1,
+      "session_focus": [
+        "London",
+        "New_York"
+      ]
+    },
+    "GBPUSD": {
+      "priority": 2,
+      "session_focus": [
+        "London"
+      ]
+    },
+    "XAUUSD": {
+      "priority": 1,
+      "session_focus": [
+        "New_York",
+        "Asian"
+      ]
+    },
+    "USDJPY": {
+      "priority": 3,
+      "session_focus": [
+        "Asian",
+        "New_York"
+      ]
+    },
+    "AUDUSD": {
+      "priority": 4,
+      "session_focus": [
+        "Asian"
+      ]
+    },
+    "USDCAD": {
+      "priority": 4,
+      "session_focus": [
+        "New_York"
+      ]
+    },
+    "USDCHF": {
+      "priority": 5,
+      "session_focus": [
+        "London"
+      ]
+    },
+    "NZDUSD": {
+      "priority": 5,
+      "session_focus": [
+        "Asian"
+      ]
+    }
+  },
+  "analysis_depth": {
+    "lookback_bars": {
+      "M1": 1440,
+      "M5": 2016,
+      "M15": 2016,
+      "M30": 1440,
+      "H1": 720,
+      "H4": 720,
+      "D1": 365
+    },
+    "pattern_recognition": "DEEP_LEARNING",
+    "confluence_analysis": true,
+    "multi_timeframe": true,
+    "session_analysis": true
+  },
+  "optimization": {
+    "parallel_analysis": true,
+    "vectorized_calculations": true,
+    "cython_acceleration": false,
+    "gpu_acceleration": false,
+    "just_in_time_compilation": true
+  }
+}

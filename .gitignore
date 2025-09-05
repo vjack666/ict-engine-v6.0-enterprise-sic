@@ -1,0 +1,130 @@
+# ========================================
+# ICT ENGINE v6.0 ENTERPRISE - .gitignore
+# ========================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ========================================
+# ICT ENGINE SPECIFIC
+# ========================================
+
+# Data files (keep structure but ignore content)
+04-DATA/cache/
+04-DATA/candles/
+04-DATA/exports/
+04-DATA/memory_persistence/
+04-DATA/reports/
+04-DATA/status/
+!04-DATA/README.md
+!04-DATA/*/.gitkeep
+
+# Log files
+05-LOGS/application/
+!05-LOGS/README.md
+!05-LOGS/*/.gitkeep
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# MT5 specific files
+*.ex5
+*.ex4
+*.mq5
+*.mq4
+
+# Configuration files with sensitive data
+**/config_secret.json
+**/api_keys.json
+**/credentials.json
+
+# Trading reports (keep templates)
+**/trading_reports_*.json
+**/backtest_results_*.json
+**/performance_*.json
+
+# Archive files
+08-ARCHIVE/
+!08-ARCHIVE/README.md
+
+# Local development
+local_test.py
+test_*.py
+debug_*.py

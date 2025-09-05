@@ -1,0 +1,37 @@
+{
+  "mode": "FULL_STORAGE_ENTERPRISE",
+  "compression": "SMART_GZIP",
+  "partitioning": "TIMEFRAME_SYMBOL",
+  "indexing": "B_TREE_OPTIMIZED",
+  "cache_strategy": "PREDICTIVE_PRELOAD",
+  "backup_rotation": 7,
+  "archive_after_days": 30,
+  "max_file_size_mb": 100,
+  "concurrent_writes": 4,
+  "memory_mapping": true,
+  "critical_timeframes": [
+    "M1",
+    "M5",
+    "M15",
+    "M30",
+    "H1",
+    "H4",
+    "D1"
+  ],
+  "ict_symbols": [
+    "EURUSD",
+    "GBPUSD",
+    "XAUUSD",
+    "USDJPY",
+    "AUDUSD",
+    "USDCAD",
+    "USDCHF",
+    "NZDUSD"
+  ],
+  "paths": {
+    "cache_dir": "data/candles/cache",
+    "archive_dir": "data/candles/archive",
+    "realtime_dir": "data/candles/realtime",
+    "analysis_dir": "data/candles/analysis"
+  }
+}

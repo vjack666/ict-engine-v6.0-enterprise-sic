@@ -1,0 +1,35 @@
+{
+  "total_size_mb": 2048,
+  "distribution": {
+    "candle_data": 819,
+    "ict_patterns": 512,
+    "analysis_results": 307,
+    "predictions": 204,
+    "metadata": 102,
+    "buffer": 102
+  },
+  "strategy": "LRU_INTELLIGENT",
+  "preload_symbols": [
+    "EURUSD",
+    "GBPUSD",
+    "XAUUSD"
+  ],
+  "preload_timeframes": [
+    "M15",
+    "H1",
+    "H4"
+  ],
+  "compression": "LZ4_FAST",
+  "eviction_policy": "ICT_PRIORITY",
+  "persistence": true,
+  "threads": 2,
+  "memory_mapping": true,
+  "predictive_loading": true,
+  "cleanup_interval_minutes": 30,
+  "max_age_hours": 24,
+  "cache_layers": {
+    "L1_memory": 409,
+    "L2_ssd": 409,
+    "L3_disk": "unlimited"
+  }
+}

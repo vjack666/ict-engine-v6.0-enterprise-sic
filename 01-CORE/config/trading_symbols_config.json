@@ -1,0 +1,100 @@
+{
+  "trading_symbols": {
+    "critical_symbols": {
+      "description": "Símbolos más importantes para análisis ICT inmediato",
+      "symbols": ["EURUSD", "GBPUSD"],
+      "priority": 1,
+      "analysis_frequency": "real_time"
+    },
+    "important_symbols": {
+      "description": "Símbolos importantes para portafolio diversificado",
+      "symbols": ["USDJPY", "XAUUSD", "USDCHF", "AUDUSD"],
+      "priority": 2,
+      "analysis_frequency": "every_5_minutes"
+    },
+    "extended_symbols": {
+      "description": "Símbolos adicionales para oportunidades específicas",
+      "symbols": ["NZDUSD", "USDCAD", "EURGBP", "EURJPY"],
+      "priority": 3,
+      "analysis_frequency": "every_15_minutes"
+    },
+    "exotic_symbols": {
+      "description": "Pares exóticos para traders avanzados",
+      "symbols": ["GBPJPY", "AUDCAD", "GBPAUD", "EURCHF"],
+      "priority": 4,
+      "analysis_frequency": "hourly"
+    }
+  },
+  "symbol_configurations": {
+    "EURUSD": {
+      "pip_value": 0.0001,
+      "spread_typical": 0.8,
+      "volatility": "medium",
+      "best_sessions": ["London", "New_York"],
+      "ict_priority": 1
+    },
+    "GBPUSD": {
+      "pip_value": 0.0001,
+      "spread_typical": 1.2,
+      "volatility": "high",
+      "best_sessions": ["London"],
+      "ict_priority": 2
+    },
+    "USDJPY": {
+      "pip_value": 0.01,
+      "spread_typical": 0.9,
+      "volatility": "medium",
+      "best_sessions": ["Asian", "New_York"],
+      "ict_priority": 3
+    },
+    "XAUUSD": {
+      "pip_value": 0.01,
+      "spread_typical": 3.5,
+      "volatility": "very_high",
+      "best_sessions": ["New_York", "London"],
+      "ict_priority": 1
+    },
+    "USDCHF": {
+      "pip_value": 0.0001,
+      "spread_typical": 1.8,
+      "volatility": "low",
+      "best_sessions": ["London"],
+      "ict_priority": 4
+    },
+    "AUDUSD": {
+      "pip_value": 0.0001,
+      "spread_typical": 1.5,
+      "volatility": "medium",
+      "best_sessions": ["Asian", "London"],
+      "ict_priority": 4
+    }
+  },
+  "analysis_settings": {
+    "max_concurrent_symbols": 6,
+    "default_timeframes": ["M15", "H1", "H4"],
+    "priority_timeframes": ["M15", "H4"],
+    "analysis_depth": {
+      "critical": "deep",
+      "important": "standard", 
+      "extended": "basic",
+      "exotic": "minimal"
+    }
+  },
+  "risk_management": {
+    "max_exposure_per_symbol": 2.0,
+    "correlation_limits": {
+      "high_correlation_threshold": 0.8,
+      "max_correlated_positions": 2
+    },
+    "symbol_specific_risk": {
+      "XAUUSD": {
+        "max_risk_per_trade": 1.0,
+        "volatility_multiplier": 1.5
+      },
+      "GBPJPY": {
+        "max_risk_per_trade": 0.8,
+        "volatility_multiplier": 2.0
+      }
+    }
+  }
+}
