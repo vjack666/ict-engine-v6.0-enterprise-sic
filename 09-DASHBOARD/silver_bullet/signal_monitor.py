@@ -33,8 +33,10 @@ try:
     from smart_money_concepts.smart_money_analyzer import SmartMoneyAnalyzer  
     from data_management.mt5_data_manager import MT5DataManager
     from data_management.ict_data_manager import ICTDataManager
+    from analysis.unified_memory_system import UnifiedMemorySystem
+    
     REAL_MODULES_AVAILABLE = True
-    print("✅ [SignalMonitor] Módulos reales conectados")
+    print("✅ [SignalMonitor] Módulos reales conectados (con UnifiedMemorySystem)")
 except ImportError as e:
     # Type stubs para evitar errores de Pylance
     from typing import TYPE_CHECKING
@@ -43,11 +45,17 @@ except ImportError as e:
         from smart_money_concepts.smart_money_analyzer import SmartMoneyAnalyzer
         from data_management.mt5_data_manager import MT5DataManager
         from data_management.ict_data_manager import ICTDataManager
+        from analysis.unified_memory_system import UnifiedMemorySystem
     else:
         SilverBulletDetectorEnterprise = None
         SmartMoneyAnalyzer = None
         MT5DataManager = None
         ICTDataManager = None
+        UnifiedMemorySystem = None
+    
+    # Fallback logger simplificado
+    def log_trading_decision_smart_v6_fallback(event_type, data, **kwargs):
+        print(f"🔄 [SignalMonitor] {event_type}: {data}")
     REAL_MODULES_AVAILABLE = False
     print(f"⚠️ [SignalMonitor] Módulos reales no disponibles: {e}")
     print("🔄 [SignalMonitor] Usando modo simulación")
@@ -82,15 +90,20 @@ class SignalMonitor:
         self.smart_money_analyzer: Optional['SmartMoneyAnalyzer'] = None
         self.mt5_manager: Optional['MT5DataManager'] = None
         self.data_manager: Optional['ICTDataManager'] = None  # Alias para ict_data_manager
+        self.memory_system: Optional['UnifiedMemorySystem'] = None
         
         # Usar variable global
         global REAL_MODULES_AVAILABLE
         
         if REAL_MODULES_AVAILABLE:
             try:
-                # Inicializar SilverBulletDetectorEnterprise real
-                self.silver_bullet_engine = SilverBulletDetectorEnterprise()
-                print("✅ [SignalMonitor] SilverBulletDetectorEnterprise inicializado")
+                # Inicializar UnifiedMemorySystem PRIMERO
+                self.memory_system = UnifiedMemorySystem()
+                print("✅ [SignalMonitor] UnifiedMemorySystem inicializado")
+                
+                # Inicializar SilverBulletDetectorEnterprise real con memoria
+                self.silver_bullet_engine = SilverBulletDetectorEnterprise(memory_system=self.memory_system)
+                print("✅ [SignalMonitor] SilverBulletDetectorEnterprise inicializado con memoria")
                 
                 # Inicializar SmartMoneyAnalyzer real
                 self.smart_money_analyzer = SmartMoneyAnalyzer()

@@ -43,13 +43,24 @@ try:
 except ImportError as e:
     print(f"⚠️ Textual no disponible: {e}")
 
-# Imports de módulos Silver Bullet enhanced
+# Imports de módulos Silver Bullet enhanced con imports dinámicos para evitar circular imports
+SILVER_BULLET_MODULES_AVAILABLE = False
 try:
-    from trading_controls import TradingControls, TradingState
-    from signal_monitor import SignalMonitor
-    from performance_analyzer import PerformanceAnalyzer
-    from quality_scorer import QualityScorer
+    # Imports dinámicos para evitar circular imports
+    import importlib
+    trading_controls_module = importlib.import_module('trading_controls')
+    signal_monitor_module = importlib.import_module('signal_monitor')
+    performance_analyzer_module = importlib.import_module('performance_analyzer')
+    quality_scorer_module = importlib.import_module('quality_scorer')
+    
+    TradingControls = getattr(trading_controls_module, 'TradingControls')
+    TradingState = getattr(trading_controls_module, 'TradingState')
+    SignalMonitor = getattr(signal_monitor_module, 'SignalMonitor')
+    PerformanceAnalyzer = getattr(performance_analyzer_module, 'PerformanceAnalyzer')
+    QualityScorer = getattr(quality_scorer_module, 'QualityScorer')
+    
     SILVER_BULLET_MODULES_AVAILABLE = True
+    print("✅ [SilverBulletTab] Módulos Silver Bullet cargados dinámicamente")
 except ImportError as e:
     print(f"⚠️ Módulos Silver Bullet no disponibles: {e}")
     SILVER_BULLET_MODULES_AVAILABLE = False
@@ -64,11 +75,13 @@ except ImportError as e:
 try:
     from risk_management import RiskManager
     from data_management.ict_data_manager import ICTDataManager
+    from analysis.unified_memory_system import UnifiedMemorySystem
     REAL_SYSTEM_AVAILABLE = True
     print("✅ [SilverBulletTab] Sistema real conectado")
 except ImportError:
     RiskManager = None
     ICTDataManager = None
+    UnifiedMemorySystem = None
     REAL_SYSTEM_AVAILABLE = False
     print("⚠️ [SilverBulletTab] Sistema real no disponible")
 
@@ -88,12 +101,14 @@ class SilverBulletTab:
         # Sistema real integrado
         self.risk_manager = None
         self.data_manager = None
+        self.memory_system = None
         
-        if REAL_SYSTEM_AVAILABLE and RiskManager and ICTDataManager:
+        if REAL_SYSTEM_AVAILABLE and RiskManager and ICTDataManager and UnifiedMemorySystem:
             try:
                 self.risk_manager = RiskManager(mode='live')
                 self.data_manager = ICTDataManager()
-                print("✅ Sistema real integrado al Silver Bullet Dashboard")
+                self.memory_system = UnifiedMemorySystem()
+                print("✅ Sistema real integrado al Silver Bullet Dashboard (con UnifiedMemorySystem)")
             except Exception as e:
                 print(f"⚠️ Error inicializando sistema real: {e}")
         
