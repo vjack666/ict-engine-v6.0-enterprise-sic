@@ -116,6 +116,34 @@ class ImportManager:
             print(f"❌ Error cargando ICTPatternDetector: {e}")
             return None
     
+    def get_order_blocks_detector(self):
+        """Obtener OrderBlocksPatternDetector híbrido"""
+        try:
+            if self.import_center:
+                # Usar ImportCenter si está disponible
+                module = self.import_center.safe_import('ict_engine.patterns.order_blocks_integration')
+                if module:
+                    return module.OrderBlocksPatternDetector
+            
+            # Fallback directo con importación dinámica
+            import importlib.util
+            order_blocks_path = CORE_PATH / "ict_engine" / "patterns" / "order_blocks_integration.py"
+            
+            if order_blocks_path.exists():
+                spec = importlib.util.spec_from_file_location("order_blocks_integration", order_blocks_path)
+                if spec and spec.loader:
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
+                    return module.OrderBlocksPatternDetector
+                else:
+                    raise ImportError("No se pudo crear spec para order_blocks_integration")
+            else:
+                raise ImportError(f"No se encontró order_blocks_integration.py en {order_blocks_path}")
+            
+        except Exception as e:
+            print(f"❌ Error cargando OrderBlocksPatternDetector: {e}")
+            return None
+
     def get_smart_money_analyzer(self):
         """Obtener SmartMoneyAnalyzer"""
         try:
@@ -149,6 +177,7 @@ class ImportManager:
         components = {
             'mt5_data_manager': self.get_mt5_data_manager() is not None,
             'pattern_detector': self.get_pattern_detector() is not None,
+            'order_blocks_detector': self.get_order_blocks_detector() is not None,
             'smart_money_analyzer': self.get_smart_money_analyzer() is not None
         }
         
@@ -165,6 +194,10 @@ def get_mt5_data_manager():
 def get_pattern_detector():
     """Función de conveniencia para obtener ICTPatternDetector"""
     return IMPORT_MANAGER.get_pattern_detector()
+
+def get_order_blocks_detector():
+    """Función de conveniencia para obtener OrderBlocksPatternDetector"""
+    return IMPORT_MANAGER.get_order_blocks_detector()
 
 def get_smart_money_analyzer():
     """Función de conveniencia para obtener SmartMoneyAnalyzer"""
