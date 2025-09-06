@@ -33,6 +33,9 @@ class RecentStructureBreakDashboard(BasePatternDashboard):
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__("recent_structure_break", config)
+
+        # Configurar project_root para resolver warnings
+        self.project_root = Path(__file__).parent.parent.parent.parent.absolute()
         
         # Variables para conexión con sistema real
         self.real_pattern_detector = None
@@ -79,7 +82,7 @@ class RecentStructureBreakDashboard(BasePatternDashboard):
             print(f"✅ {self.pattern_name}: ICTDataManager real conectado")
         except ImportError:
             try:
-                from utils.mt5_data_manager import MT5DataManager
+                from data_management.mt5_data_manager import MT5DataManager
                 self.real_data_manager = MT5DataManager()
                 print(f"✅ {self.pattern_name}: MT5DataManager real conectado")
             except ImportError as e:

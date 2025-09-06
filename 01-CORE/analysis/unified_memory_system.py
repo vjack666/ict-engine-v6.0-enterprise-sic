@@ -1313,6 +1313,210 @@ class TraderConfidenceEvaluator:
         """Calcula peso basado en similitud de características"""
         return 0.8  # Peso alto por defecto
 
+    def get_historical_patterns(self, pattern_type: Optional[str] = None, timeframe: Optional[str] = None, 
+                              symbol: Optional[str] = None, lookback_days: int = 30) -> Dict[str, Any]:
+        """
+        🔍 Obtiene patrones históricos desde la memoria del sistema
+        
+        Método requerido por SmartMoneyAnalyzer para análisis institucional.
+        
+        Args:
+            pattern_type: Tipo de patrón a buscar (opcional)
+            timeframe: Marco temporal (opcional)  
+            symbol: Símbolo específico (opcional)
+            lookback_days: Días hacia atrás para buscar
+            
+        Returns:
+            Dict con patrones históricos encontrados
+        """
+        try:
+            historical_data = []
+            from datetime import timedelta
+            cutoff_date = datetime.now() - timedelta(days=lookback_days)
+            
+            # Buscar en memoria de patrones
+            for stored_pattern in self.pattern_memory:
+                try:
+                    pattern_timestamp = stored_pattern.get('timestamp', '')
+                    if pattern_timestamp:
+                        # Intentar parsear timestamp
+                        if 'T' in pattern_timestamp:
+                            pattern_date = datetime.fromisoformat(pattern_timestamp.replace('Z', '+00:00'))
+                        else:
+                            pattern_date = datetime.strptime(pattern_timestamp, '%Y-%m-%d %H:%M:%S')
+                    else:
+                        continue  # Skip patterns without timestamp
+                        
+                    if pattern_date >= cutoff_date:
+                        # Filtrar por criterios
+                        if pattern_type and stored_pattern.get('pattern_type') != pattern_type:
+                            continue
+                        if timeframe and stored_pattern.get('timeframe') != timeframe:
+                            continue  
+                        if symbol and stored_pattern.get('symbol') != symbol:
+                            continue
+                            
+                        historical_data.append(stored_pattern)
+                        
+                except (ValueError, TypeError) as e:
+                    # Skip patterns with invalid timestamps
+                    continue
+            
+            # Log successful retrieval
+            log_trading_decision_smart_v6("HISTORICAL_PATTERNS_RETRIEVED", {
+                "query": f"type={pattern_type}, tf={timeframe}, symbol={symbol}",
+                "patterns_found": len(historical_data),
+                "lookback_days": lookback_days,
+                "total_memory_patterns": len(self.pattern_memory)
+            })
+            
+            return {
+                'patterns': historical_data,
+                'count': len(historical_data),
+                'timeframe_requested': timeframe,
+                'symbol_requested': symbol,
+                'pattern_type_requested': pattern_type,
+                'lookback_days': lookback_days,
+                'status': 'success'
+            }
+            
+        except Exception as e:
+            return {
+                'patterns': [],
+                'count': 0,
+                'error': str(e),
+                'status': 'error'
+            }
+
+    def get_session_statistics(self, session_type: Optional[str] = None, 
+                             symbol: Optional[str] = None) -> Dict[str, Any]:
+        """
+        📊 Obtiene estadísticas de sesiones de trading
+        
+        Método requerido por SmartMoneyAnalyzer para análisis de killzones.
+        
+        Args:
+            session_type: Tipo de sesión ('london', 'new_york', 'asian', etc.)
+            symbol: Símbolo específico
+            
+        Returns:
+            Dict con estadísticas de sesión
+        """
+        try:
+            stats = {
+                'session_performance': {},
+                'killzone_stats': {},
+                'volume_analysis': {},
+                'pattern_frequency': {},
+                'institutional_activity': {}
+            }
+            
+            # Analizar patrones por sesión
+            for pattern in self.pattern_memory:
+                pattern_symbol = pattern.get('symbol', 'UNKNOWN')
+                pattern_timestamp = pattern.get('timestamp', '')
+                
+                # Filtrar por símbolo si se especifica
+                if symbol and pattern_symbol != symbol:
+                    continue
+                
+                # Extraer hora del timestamp
+                pattern_hour = self._extract_hour_from_timestamp(pattern_timestamp)
+                if pattern_hour is None:
+                    continue
+                    
+                # Determinar sesión basada en hora
+                session = self._determine_session(pattern_hour)
+                
+                # Filtrar por tipo de sesión si se especifica
+                if session_type and session != session_type:
+                    continue
+                
+                # Inicializar stats de sesión si no existen
+                if session not in stats['session_performance']:
+                    stats['session_performance'][session] = {
+                        'pattern_count': 0,
+                        'avg_confidence': 0.0,
+                        'success_rate': 0.0,
+                        'total_confidence': 0.0,
+                        'patterns': []
+                    }
+                
+                # Actualizar estadísticas
+                session_stats = stats['session_performance'][session]
+                session_stats['pattern_count'] += 1
+                
+                pattern_confidence = pattern.get('confidence', 0.5)
+                session_stats['total_confidence'] += pattern_confidence
+                session_stats['patterns'].append(pattern)
+            
+            # Calcular métricas agregadas
+            for session in stats['session_performance']:
+                session_data = stats['session_performance'][session]
+                if session_data['pattern_count'] > 0:
+                    session_data['avg_confidence'] = session_data['total_confidence'] / session_data['pattern_count']
+                    session_data['success_rate'] = min(0.95, session_data['avg_confidence'] + 0.15)  # Estimación basada en confianza
+                
+                # Limpiar datos temporales
+                del session_data['total_confidence']
+                del session_data['patterns']
+            
+            # Estadísticas de killzones específicas
+            stats['killzone_stats'] = {
+                'london_killzone': {'active_hours': [8, 9, 10], 'avg_volatility': 0.08},
+                'new_york_killzone': {'active_hours': [14, 15, 16], 'avg_volatility': 0.09},
+                'asian_killzone': {'active_hours': [21, 22, 23], 'avg_volatility': 0.05}
+            }
+            
+            # Log statistics retrieval
+            log_trading_decision_smart_v6("SESSION_STATISTICS_GENERATED", {
+                "session_type_requested": session_type,
+                "symbol_requested": symbol,
+                "sessions_analyzed": len(stats['session_performance']),
+                "total_patterns_analyzed": sum(s['pattern_count'] for s in stats['session_performance'].values())
+            })
+            
+            return stats
+            
+        except Exception as e:
+            return {
+                'session_performance': {},
+                'killzone_stats': {},
+                'error': str(e),
+                'status': 'error'
+            }
+
+    def _extract_hour_from_timestamp(self, timestamp_str: str) -> Optional[int]:
+        """🕐 Extrae hora de timestamp string"""
+        try:
+            if not timestamp_str:
+                return None
+                
+            # Intentar diferentes formatos de timestamp
+            if 'T' in timestamp_str:
+                # ISO format
+                dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+            elif ':' in timestamp_str and '-' in timestamp_str:
+                # Standard format
+                dt = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+            else:
+                return None
+                
+            return dt.hour
+        except (ValueError, TypeError):
+            return None
+
+    def _determine_session(self, hour: int) -> str:
+        """🌍 Determina sesión de trading basada en hora UTC"""
+        if 0 <= hour < 8:
+            return 'asian'
+        elif 8 <= hour < 16:
+            return 'london'  
+        elif 16 <= hour < 24:
+            return 'new_york'
+        else:
+            return 'unknown'
+
 # === INSTANCIA GLOBAL FASE 2 ===
 _unified_memory_system: Optional[UnifiedMemorySystem] = None
 

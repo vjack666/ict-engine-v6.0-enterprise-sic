@@ -199,6 +199,9 @@ class ICTEngineProductionSystem:
                     # Crear instancia del manager
                     mt5_manager = MT5DataManager()
                     
+                    # Pequeño delay para asegurar que MT5 esté completamente listo
+                    time.sleep(0.5)
+                    
                     # Intentar conexión
                     if mt5_manager.connect():
                         # Mapear timeframes ICT a formato del manager
@@ -213,15 +216,15 @@ class ICTEngineProductionSystem:
                         bars = 500
                         
                         # Obtener datos históricos usando el manager
-                        mt5_result = mt5_manager.get_historical_data(
+                        mt5_result = mt5_manager.get_direct_market_data(
                             symbol=symbol,
                             timeframe=mapped_tf,
                             count=bars
                         )
                         
                         if mt5_result is not None and len(mt5_result) > 20:
-                            # Extraer DataFrame del objeto MT5HistoricalData
-                            df = mt5_result.to_dataframe()
+                            # mt5_result ya es un DataFrame
+                            df = mt5_result
                             
                             if df is not None and len(df) > 20:
                                 # Agregar información adicional
@@ -229,8 +232,6 @@ class ICTEngineProductionSystem:
                                 df['data_source'] = 'MT5_PROFESSIONAL'
                                 
                                 print(f"   🏆 DATOS MT5 OBTENIDOS: {len(df)} velas profesionales")
-                                print(f"       📊 Cache: {'Sí' if mt5_result.from_cache else 'No'}")
-                                print(f"       ⏱️ Tiempo: {mt5_result.processing_time:.3f}s")
                                 
                                 # Desconectar limpiamente
                                 mt5_manager.disconnect()
@@ -1116,11 +1117,48 @@ class DashboardBridge:
         except Exception as e:
             print(f"⚠️ Error durante cierre: {e}")
     
+    def wait_for_mt5_startup(self):
+        """Esperar a que MT5 esté disponible antes de iniciar"""
+        if self.data_sources.get('mt5_available', False):
+            print("🕐 Verificando disponibilidad de MT5...")
+            
+            # Dar tiempo para que MT5 se abra si no está disponible
+            max_wait_time = 10  # máximo 10 segundos
+            wait_interval = 2   # verificar cada 2 segundos
+            
+            for attempt in range(max_wait_time // wait_interval):
+                try:
+                    # Intentar importar MT5 para verificar si está disponible
+                    import MetaTrader5 as mt5
+                    
+                    # Intentar inicializar MT5
+                    if mt5.initialize():
+                        print("✅ MT5 disponible y listo")
+                        mt5.shutdown()
+                        break
+                    else:
+                        if attempt == 0:
+                            print("⏳ Esperando a que MT5 se inicie...")
+                        time.sleep(wait_interval)
+                        
+                except ImportError:
+                    print("⚠️ MT5 no está instalado o no disponible")
+                    break
+                except Exception as e:
+                    if attempt == 0:
+                        print(f"⏳ MT5 no responde aún, esperando... ({e})")
+                    time.sleep(wait_interval)
+            else:
+                print("⚠️ MT5 no respondió en el tiempo esperado, continuando con Yahoo Finance")
+    
     def run(self):
         """Ejecutar sistema principal de producción"""
         try:
             self.is_running = True
             self.print_banner()
+            
+            # Verificar y esperar a que MT5 esté disponible si es necesario
+            self.wait_for_mt5_startup()
             
             while self.is_running:
                 self.print_menu()
