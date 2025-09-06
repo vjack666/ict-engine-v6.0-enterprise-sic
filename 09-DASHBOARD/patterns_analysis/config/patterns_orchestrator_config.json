@@ -1,0 +1,23 @@
+{
+  "priority_patterns": [
+    "fair_value_gap",
+    "judas_swing",
+    "silver_bullet",
+    "liquidity_grab",
+    "optimal_trade_entry",
+    "order_block"
+  ],
+  "enabled_patterns": [],
+  "update_frequencies": {
+    "silver_bullet": 60,
+    "judas_swing": 120,
+    "liquidity_grab": 90,
+    "optimal_trade_entry": 180,
+    "order_block": 240,
+    "fair_value_gap": 180,
+    "power_of_three": 300,
+    "morning_reversal": 240,
+    "mitigation_block": 300
+  },
+  "last_updated": "2025-09-06T12:09:29.698373"
+}

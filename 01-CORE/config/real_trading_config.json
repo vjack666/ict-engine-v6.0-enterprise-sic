@@ -1,0 +1,290 @@
+{
+  "real_trading_config": {
+    "description": "ICT Engine v6.0 Enterprise - Real Trading Configuration",
+    "version": "6.0.0",
+    "environment": "demo_account",
+    "last_updated": "2025-01-09",
+    
+    "safety_limits": {
+      "description": "Safety limits for real trading operations",
+      "daily_limits": {
+        "max_trades_per_day": 10,
+        "max_daily_loss": 1000.0,
+        "max_daily_risk_percent": 5.0,
+        "max_position_size": 0.5,
+        "max_open_positions": 3
+      },
+      "account_limits": {
+        "min_account_balance": 1000.0,
+        "max_risk_per_trade_percent": 2.0,
+        "min_margin_level_percent": 200.0,
+        "stop_trading_below_equity": 500.0
+      },
+      "emergency_triggers": {
+        "max_consecutive_losses": 5,
+        "max_drawdown_percent": 10.0,
+        "connection_timeout_seconds": 30,
+        "execution_timeout_seconds": 10
+      }
+    },
+    
+    "execution_settings": {
+      "description": "Trade execution configuration",
+      "order_settings": {
+        "magic_number": 12345,
+        "max_slippage_points": 20,
+        "default_deviation": 20,
+        "order_timeout_seconds": 30,
+        "retry_attempts": 3,
+        "retry_delay_seconds": 1
+      },
+      "position_management": {
+        "use_dynamic_stops": true,
+        "trail_stop_distance": 50,
+        "break_even_trigger": 30,
+        "partial_close_enabled": false,
+        "scale_out_levels": []
+      },
+      "risk_management": {
+        "use_position_sizing": true,
+        "use_correlation_check": true,
+        "max_correlation_threshold": 0.7,
+        "use_volatility_adjustment": true,
+        "volatility_lookback_periods": 20
+      }
+    },
+    
+    "validation_settings": {
+      "description": "Trade validation configuration",
+      "signal_validation": {
+        "min_confidence_threshold": 0.6,
+        "require_poi_confirmation": true,
+        "check_market_hours": true,
+        "avoid_news_events": true,
+        "news_buffer_minutes": 30
+      },
+      "account_validation": {
+        "check_connection_before_trade": true,
+        "validate_symbol_trading": true,
+        "check_margin_requirements": true,
+        "verify_account_permissions": true
+      },
+      "technical_validation": {
+        "check_spread_limits": true,
+        "max_spread_points": 30,
+        "check_market_volatility": true,
+        "max_volatility_threshold": 100,
+        "require_liquidity_check": true
+      }
+    },
+    
+    "dashboard_integration": {
+      "description": "Dashboard integration settings",
+      "real_time_updates": {
+        "enable_live_updates": true,
+        "update_interval_seconds": 1,
+        "push_notifications": true,
+        "email_alerts": false
+      },
+      "auto_trading": {
+        "default_enabled": false,
+        "require_manual_confirmation": true,
+        "confirmation_timeout_seconds": 60,
+        "auto_enable_on_startup": false
+      },
+      "display_settings": {
+        "show_real_balance": true,
+        "show_demo_warning": true,
+        "highlight_live_trades": true,
+        "use_safety_colors": true
+      }
+    },
+    
+    "logging_config": {
+      "description": "Real trading logging configuration",
+      "log_levels": {
+        "execution_logs": "INFO",
+        "safety_logs": "WARNING",
+        "performance_logs": "INFO",
+        "audit_logs": "INFO",
+        "dashboard_logs": "INFO"
+      },
+      "log_retention": {
+        "execution_logs_days": 90,
+        "safety_logs_days": 365,
+        "performance_logs_days": 30,
+        "audit_logs_days": 365,
+        "dashboard_logs_days": 30
+      },
+      "export_settings": {
+        "auto_export_daily": true,
+        "export_format": "csv",
+        "compress_exports": true,
+        "backup_to_cloud": false
+      }
+    },
+    
+    "mt5_connection": {
+      "description": "MetaTrader 5 connection settings",
+      "connection_settings": {
+        "server": "FTMO-Demo",
+        "login": "1511525932",
+        "password": "6U*ss5@D2RLa",
+        "timeout": 60000,
+        "portable": false
+      },
+      "trading_settings": {
+        "allowed_symbols": [
+          "EURUSD", "GBPUSD", "USDJPY", "USDCHF", 
+          "AUDUSD", "USDCAD", "NZDUSD", "EURJPY",
+          "GBPJPY", "EURGBP"
+        ],
+        "symbol_validation": true,
+        "check_trading_hours": true,
+        "verify_symbol_info": true
+      },
+      "performance_settings": {
+        "connection_pool_size": 1,
+        "max_retry_attempts": 3,
+        "retry_delay_seconds": 2,
+        "health_check_interval": 30
+      }
+    },
+    
+    "silver_bullet_config": {
+      "description": "Silver Bullet specific trading settings",
+      "pattern_settings": {
+        "min_pattern_strength": 0.7,
+        "require_poi_alignment": true,
+        "use_multi_timeframe": true,
+        "confirmation_timeframes": ["M5", "M15", "H1"],
+        "avoid_consolidation": true
+      },
+      "entry_settings": {
+        "use_limit_orders": false,
+        "entry_offset_points": 5,
+        "max_entry_delay_minutes": 15,
+        "require_momentum_confirmation": true
+      },
+      "exit_settings": {
+        "use_dynamic_targets": true,
+        "target_multiplier": 2.0,
+        "use_trailing_stops": false,
+        "break_even_at_half_target": true
+      }
+    },
+    
+    "performance_monitoring": {
+      "description": "Performance monitoring settings",
+      "metrics_tracking": {
+        "track_execution_speed": true,
+        "track_slippage": true,
+        "track_success_rates": true,
+        "track_system_resources": true
+      },
+      "alerts": {
+        "high_slippage_threshold": 5.0,
+        "low_success_rate_threshold": 50.0,
+        "high_cpu_usage_threshold": 80.0,
+        "connection_latency_threshold": 1000
+      },
+      "reporting": {
+        "generate_daily_reports": true,
+        "generate_weekly_summary": true,
+        "include_charts": false,
+        "email_reports": false
+      }
+    },
+    
+    "backup_and_recovery": {
+      "description": "Backup and recovery settings",
+      "data_backup": {
+        "backup_logs": true,
+        "backup_config": true,
+        "backup_trade_history": true,
+        "backup_interval_hours": 24
+      },
+      "recovery_settings": {
+        "auto_recovery_enabled": true,
+        "max_recovery_attempts": 3,
+        "recovery_timeout_minutes": 5,
+        "fallback_to_demo_mode": true
+      }
+    },
+    
+    "compliance_settings": {
+      "description": "Compliance and regulatory settings",
+      "regulatory_checks": {
+        "enable_fifo_compliance": false,
+        "enable_hedging_restrictions": false,
+        "max_leverage_check": true,
+        "position_size_reporting": true
+      },
+      "audit_requirements": {
+        "log_all_actions": true,
+        "require_trade_justification": false,
+        "timestamp_all_events": true,
+        "maintain_audit_trail": true
+      }
+    }
+  },
+  
+  "environment_specific": {
+    "demo_account": {
+      "description": "Demo account specific settings",
+      "safety_overrides": {
+        "allow_higher_risk": true,
+        "extended_trading_hours": true,
+        "relaxed_validation": false
+      },
+      "testing_features": {
+        "enable_backtesting_mode": false,
+        "simulate_slippage": true,
+        "add_execution_delay": false,
+        "test_emergency_stops": true
+      }
+    },
+    "live_account": {
+      "description": "Live account specific settings (FUTURE USE)",
+      "safety_overrides": {
+        "allow_higher_risk": false,
+        "extended_trading_hours": false,
+        "relaxed_validation": false
+      },
+      "additional_checks": {
+        "require_two_factor": true,
+        "require_trade_confirmation": true,
+        "enable_circuit_breakers": true,
+        "mandatory_cooling_periods": true
+      }
+    }
+  },
+  
+  "feature_flags": {
+    "description": "Feature flags for gradual rollout",
+    "trading_features": {
+      "enable_auto_trading": true,
+      "enable_manual_trading": true,
+      "enable_emergency_stops": true,
+      "enable_position_modification": true
+    },
+    "dashboard_features": {
+      "show_real_data": true,
+      "enable_trade_buttons": true,
+      "show_risk_metrics": true,
+      "enable_notifications": true
+    },
+    "logging_features": {
+      "detailed_execution_logs": true,
+      "performance_metrics": true,
+      "audit_trail": true,
+      "export_capabilities": true
+    },
+    "validation_features": {
+      "strict_risk_validation": true,
+      "account_safety_checks": true,
+      "technical_validation": true,
+      "compliance_checks": true
+    }
+  }
+}

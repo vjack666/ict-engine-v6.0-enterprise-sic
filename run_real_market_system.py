@@ -98,15 +98,15 @@ def get_market_status() -> Dict[str, Any]:
     }
 
 if __name__ == "__main__":
-    print("REAL MARKET SYSTEM v6.1 ENTERPRISE - TEST")
-    print("==========================================")
+    print("REAL MARKET SYSTEM v6.1 ENTERPRISE - PRODUCTION")
+    print("===============================================")
     
-    # Test de función principal
+    # Sistema principal de mercado real
     data = get_real_market_data('EURUSD', 'H1')
-    print(f"Test Data: {data}")
+    print(f"Market Data: {data}")
     
-    # Test de estado
+    # Estado del sistema
     status = get_market_status()
-    print(f"Status: {status}")
+    print(f"System Status: {status}")
     
     print("Sistema de mercado real listo")

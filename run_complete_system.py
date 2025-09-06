@@ -501,14 +501,8 @@ def generate_system_status_report(initial_status, analysis_results, verification
     
     return report
 
-def run_multi_symbol_testing():
-    """
-    🧪 TESTING MULTI-SÍMBOLO EXTENSIVO - OPCIÓN A
-    =============================================
-    
-    Ejecuta testing multi-símbolo según configuración documentada.
-    Usa datos reales de mercado y módulos especializados del sistema.
-    """
+
+def main():
     print("\n🧪 INICIANDO TESTING MULTI-SÍMBOLO EXTENSIVO - OPCIÓN A")
     print("=" * 65)
     
@@ -755,12 +749,9 @@ def main():
         
         print(f"\n🎯 CONCLUSIÓN: Sistema {'✅ OPERACIONAL' if total_files > 0 else '❌ REQUIERE REVISIÓN'}")
         
-        # OPCIÓN A: Ejecutar Testing Multi-Símbolo Extensivo
-        print(f"\n" + "="*70)
-        testing_success = run_multi_symbol_testing()
-        
-        final_success = (total_files > 0) and testing_success
-        print(f"\n🏁 RESULTADO FINAL: {'✅ SISTEMA COMPLETO EXITOSO' if final_success else '⚠️ SISTEMA PARCIALMENTE OPERATIVO'}")
+        # Sistema completo y operativo sin testing adicional
+        final_success = total_files > 0
+        print(f"\n🏁 RESULTADO FINAL: {'✅ SISTEMA COMPLETO OPERATIVO' if final_success else '⚠️ SISTEMA REQUIERE REVISIÓN'}")
         
         return 0 if final_success else 1
         

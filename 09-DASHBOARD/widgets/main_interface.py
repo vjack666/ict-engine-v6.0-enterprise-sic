@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-🎯 ICT DASHBOARD - Interfaz Principal con Silver Bullet
-=======================================================
+🎯 ICT DASHBOARD - Interfaz Principal
+=====================================
 
-Dashboard principal que incluye la nueva pestaña Silver Bullet Enterprise.
-Integración completa de controles de trading en vivo y monitoreo.
+Dashboard principal del sistema ICT Engine v6.0 Enterprise.
+Interfaz limpia enfocada en análisis y monitoreo.
 """
 
 import time
@@ -18,7 +18,6 @@ dashboard_root = Path(__file__).parent.parent
 project_root = dashboard_root.parent
 sys.path.insert(0, str(project_root / "01-CORE"))
 sys.path.insert(0, str(dashboard_root))
-sys.path.insert(0, str(dashboard_root / "silver_bullet"))  # Agregar ruta Silver Bullet
 
 from textual.app import App, ComposeResult
 from textual.containers import Container, Vertical, VerticalScroll, Horizontal
@@ -26,32 +25,8 @@ from textual.widgets import Header, Footer, Static, TabbedContent, TabPane, Rich
 from textual.binding import Binding
 from textual.reactive import reactive
 
-# Import Silver Bullet Tab
-try:
-    import sys
-    from pathlib import Path
-    sb_path = Path(__file__).parent.parent / "silver_bullet"
-    if str(sb_path) not in sys.path:
-        sys.path.insert(0, str(sb_path))
-    
-    # Importar después de agregar la ruta
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("silver_bullet_tab", sb_path / "silver_bullet_tab.py")
-    if spec and spec.loader:
-        sb_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(sb_module)
-        SilverBulletTab = sb_module.SilverBulletTab
-        SILVER_BULLET_AVAILABLE = True
-        print("✅ Silver Bullet Tab cargado exitosamente")
-    else:
-        raise ImportError("No se pudo cargar el spec del módulo")
-except Exception as e:
-    SilverBulletTab = None
-    SILVER_BULLET_AVAILABLE = False
-    print(f"⚠️ Silver Bullet Tab no disponible: {e}")
-
 class TextualDashboardApp(App[None]):
-    """Dashboard ICT con Silver Bullet Enterprise"""
+    """Dashboard ICT Enterprise"""
     
     CSS = """
     /* Contenedor principal - altura completa disponible */
@@ -108,55 +83,6 @@ class TextualDashboardApp(App[None]):
         min-height: 100%;
     }
     
-    /* Estilos para Silver Bullet Enterprise */
-    .silver-bullet-content {
-        padding: 1;
-        background: $panel;
-        border: solid $accent;
-        margin: 1;
-        min-height: 100%;
-    }
-    
-    .silver-bullet-controls {
-        height: 6;
-        background: $surface;
-        border: solid $primary;
-        margin: 1;
-        align: center middle;
-    }
-    
-    .silver-bullet-monitor {
-        height: 70%;
-        background: $panel;
-        border: solid $success;
-        margin: 1;
-        scrollbar-size: 1 2;
-    }
-    
-    .trading-button-start {
-        background: $success;
-        color: $text;
-        margin: 1;
-        padding: 1 2;
-        border: solid $success-darken-1;
-    }
-    
-    .trading-button-stop {
-        background: $error;
-        color: $text;
-        margin: 1;
-        padding: 1 2;
-        border: solid $error-darken-1;
-    }
-    
-    .trading-button-emergency {
-        background: $error-darken-2;
-        color: $text;
-        margin: 1;
-        padding: 1 2;
-        border: solid $error-darken-3;
-    }
-
     Static {
         height: auto;
         width: 100%;
@@ -176,10 +102,6 @@ class TextualDashboardApp(App[None]):
         Binding("1", "switch_tab_real_trading", "🎯 Sistema Real", show=True),
         Binding("2", "switch_tab_analysis", "📊 Análisis", show=True), 
         Binding("3", "switch_tab_monitor", "📡 Monitor", show=True),
-        Binding("4", "switch_tab_silver_bullet", "🎯 Silver Bullet", show=True),
-        Binding("F1", "silver_bullet_start", "🚀 Start Trading", show=True),
-        Binding("F2", "silver_bullet_stop", "🛑 Stop Trading", show=True),
-        Binding("F3", "silver_bullet_emergency", "🚨 Emergency Stop", show=True),
         Binding("F5", "refresh_all", "🔄 Refresh", show=True),
         Binding("q", "quit", "Salir", show=True),
     ]
@@ -192,15 +114,6 @@ class TextualDashboardApp(App[None]):
         self.session_id = f"ICT_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         self.start_time = time.time()
         self._refreshing = False
-        
-        # Inicializar Silver Bullet Tab
-        self.silver_bullet_tab = None
-        if SilverBulletTab:
-            try:
-                self.silver_bullet_tab = SilverBulletTab(config, data_collector)
-                print("✅ Silver Bullet Tab inicializada")
-            except Exception as e:
-                print(f"⚠️ Error inicializando Silver Bullet Tab: {e}")
     
     def compose(self) -> ComposeResult:
         yield Header()
@@ -218,19 +131,11 @@ class TextualDashboardApp(App[None]):
                 with TabPane("📡 Monitor", id="tab_monitor"):
                     with VerticalScroll():
                         yield Static(self.render_system_monitor(), id="monitor_display", classes="monitor-content")
-                
-                # Nueva pestaña Silver Bullet
-                if self.silver_bullet_tab:
-                    with TabPane("🎯 Silver Bullet", id="tab_silver_bullet"):
-                        with VerticalScroll():
-                            yield Static(self.render_silver_bullet_tab(), id="silver_bullet_display", classes="silver-bullet-content")
         
         yield Footer()
     
     def on_mount(self):
         self.set_interval(3.0, self.periodic_update)
-        if self.silver_bullet_tab:
-            self.set_interval(2.0, self.update_silver_bullet)
     
     def render_real_trading_system(self) -> str:
         """🎯 Sistema de trading con datos reales"""
@@ -287,7 +192,7 @@ class TextualDashboardApp(App[None]):
 • [bold]Profit Factor:[/bold] [bold blue]2.1[/bold blue]
 
 [bold cyan]{'='*80}[/bold cyan]
-[italic]Presiona [bold]4[/bold] para Silver Bullet Enterprise[/italic]"""
+[italic]Sistema ICT Engine v6.0 Enterprise operativo[/italic]"""
             
             return system_status
             
@@ -320,7 +225,6 @@ class TextualDashboardApp(App[None]):
 [cyan]{'─'*50}[/cyan]
 • [bold]Morning Star:[/bold] EURUSD H1 [green]✓[/green]
 • [bold]Judas Swing:[/bold] GBPUSD M15 [green]✓[/green]
-• [bold]Silver Bullet:[/bold] XAUUSD H1 [yellow]Pending[/yellow]
 • [bold]Power of 3:[/bold] USDJPY H4 [green]✓[/green]
 
 [bold magenta]📈 CONFLUENCIAS[/bold magenta]
@@ -396,16 +300,6 @@ class TextualDashboardApp(App[None]):
         except Exception as e:
             return f"[red]❌ Error en monitor: {e}[/red]"
     
-    def render_silver_bullet_tab(self) -> str:
-        """🎯 Renderizar pestaña Silver Bullet Enterprise"""
-        if not self.silver_bullet_tab:
-            return "[red]❌ Silver Bullet Tab no disponible[/red]"
-        
-        try:
-            return self.silver_bullet_tab.render_silver_bullet_dashboard()
-        except Exception as e:
-            return f"[red]❌ Error en Silver Bullet Tab: {e}[/red]"
-    
     def periodic_update(self):
         """Actualización periódica de todas las pestañas"""
         if self._refreshing:
@@ -427,26 +321,6 @@ class TextualDashboardApp(App[None]):
         finally:
             self._refreshing = False
     
-    def update_silver_bullet(self):
-        """Actualización específica de Silver Bullet"""
-        if not self.silver_bullet_tab:
-            return
-        
-        try:
-            # Actualizar datos de Silver Bullet
-            self.silver_bullet_tab.update_data()
-            self.silver_bullet_tab.simulate_live_activity()
-            
-            # Actualizar display si la pestaña está visible
-            try:
-                silver_bullet_widget = self.query_one("#silver_bullet_display", Static)
-                silver_bullet_widget.update(self.render_silver_bullet_tab())
-            except:
-                pass  # Widget no visible o no existe
-                
-        except Exception as e:
-            print(f"⚠️ Error actualizando Silver Bullet: {e}")
-    
     # Acciones de botones
     def action_switch_tab_real_trading(self):
         """Cambiar a pestaña Sistema Real"""
@@ -460,45 +334,9 @@ class TextualDashboardApp(App[None]):
         """Cambiar a pestaña Monitor"""
         self.query_one("#main_tabs", TabbedContent).active = "tab_monitor"
     
-    def action_switch_tab_silver_bullet(self):
-        """Cambiar a pestaña Silver Bullet"""
-        if self.silver_bullet_tab:
-            self.query_one("#main_tabs", TabbedContent).active = "tab_silver_bullet"
-        else:
-            self.bell()
-    
-    def action_silver_bullet_start(self):
-        """Iniciar trading en Silver Bullet"""
-        if self.silver_bullet_tab:
-            success = self.silver_bullet_tab.start_live_trading()
-            if success:
-                self.bell()  # Sonido de confirmación
-        else:
-            self.bell()
-    
-    def action_silver_bullet_stop(self):
-        """Detener trading en Silver Bullet"""
-        if self.silver_bullet_tab:
-            success = self.silver_bullet_tab.stop_live_trading()
-            if success:
-                self.bell()  # Sonido de confirmación
-        else:
-            self.bell()
-    
-    def action_silver_bullet_emergency(self):
-        """Parada de emergencia en Silver Bullet"""
-        if self.silver_bullet_tab:
-            success = self.silver_bullet_tab.emergency_stop()
-            if success:
-                self.bell()  # Sonido de confirmación
-        else:
-            self.bell()
-    
     def action_refresh_all(self):
         """Actualizar todas las pestañas"""
         self.periodic_update()
-        if self.silver_bullet_tab:
-            self.update_silver_bullet()
         self.bell()
 
 class MainDashboardInterface:
