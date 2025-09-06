@@ -196,20 +196,6 @@ def get_real_market_data(symbol: str = "EURUSD", timeframe: str = "H1") -> Optio
     provider = get_real_data_provider()
     return provider.get_market_data(symbol, timeframe)
 
-def get_market_status() -> Dict[str, Any]:
-    """Obtener estado del mercado y conexión"""
-    provider = get_real_data_provider()
-    status = provider.get_connection_status()
-    
-    # Agregar información adicional
-    status.update({
-        'provider': 'MetaTrader5',
-        'cache_size': len(provider.data_cache),
-        'last_check': datetime.now(timezone.utc).isoformat()
-    })
-    
-    return status
-
 def test_real_data_connection():
     """Probar la conexión de datos reales"""
     print("\n=== TEST CONEXIÓN DATOS REALES ===")

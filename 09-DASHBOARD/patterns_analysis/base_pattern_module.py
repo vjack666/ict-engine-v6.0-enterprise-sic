@@ -175,6 +175,21 @@ class BasePatternDashboard(ABC):
         
         return result
     
+    def analyze_market_data(self, symbol: str = "EURUSD", timeframe: str = "H1", 
+                          force_refresh: bool = False) -> Optional[PatternAnalysisResult]:
+        """
+        Alias para analyze_pattern - Analizar datos de mercado
+        
+        Args:
+            symbol: Símbolo a analizar (ej: "EURUSD")
+            timeframe: Timeframe (ej: "M15", "H1")
+            force_refresh: Forzar análisis sin usar cache
+        
+        Returns:
+            PatternAnalysisResult con análisis completo
+        """
+        return self.analyze_pattern(symbol, timeframe, force_refresh)
+    
     @abstractmethod
     def _perform_pattern_analysis(self, symbol: str, timeframe: str) -> PatternAnalysisResult:
         """

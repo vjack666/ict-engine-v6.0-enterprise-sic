@@ -24,9 +24,20 @@ from dataclasses import dataclass, field
 dashboard_root = Path(__file__).parent.parent
 project_root = dashboard_root.parent
 sys.path.insert(0, str(project_root / "01-CORE"))
+sys.path.insert(0, str(dashboard_root))
+sys.path.insert(0, str(project_root))  # Para acceder a run_real_market_system
 
-from .pattern_factory import PatternFactory, pattern_factory
-from .base_pattern_module import BasePatternDashboard, PatternAnalysisResult
+from patterns_analysis.pattern_factory import PatternFactory
+from patterns_analysis.base_pattern_module import BasePatternDashboard, PatternAnalysisResult
+
+# Importar sistema de datos reales
+try:
+    from run_real_market_system import get_real_market_data, get_market_status
+    REAL_DATA_AVAILABLE = True
+    print("✅ Sistema de datos reales conectado")
+except ImportError as e:
+    print(f"⚠️ Sistema de datos reales no disponible: {e}")
+    REAL_DATA_AVAILABLE = False
 
 
 @dataclass
@@ -74,7 +85,7 @@ class PatternsOrchestrator:
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         self.config = config or {}
-        self.factory = pattern_factory
+        self.factory = PatternFactory()  # Crear instancia de la factory
         
         # Estado del orchestrator
         self.loaded_patterns: Dict[str, BasePatternDashboard] = {}
@@ -95,6 +106,11 @@ class PatternsOrchestrator:
         self.consolidated_cache: Dict[str, PatternsConsolidatedView] = {}
         self.cache_ttl = self.config.get('cache_ttl_seconds', 180)  # 3 minutos
         
+        # Sistema de datos reales
+        self.real_data_available = REAL_DATA_AVAILABLE
+        self.last_data_check: Optional[datetime] = None
+        self.connection_status = {"connected": False, "last_check": None}
+        
         # Inicialización
         self._initialize_orchestrator()
     
@@ -102,8 +118,11 @@ class PatternsOrchestrator:
         """Inicializar el orchestrator"""
         print("🎼 Inicializando Patterns Orchestrator...")
         
-        # Crear módulos faltantes
-        self.factory.create_missing_modules()
+        # Auto-descubrir y generar módulos faltantes
+        self.factory.auto_discover_and_generate()
+        
+        # Verificar conexión de datos reales
+        self._check_real_data_connection()
         
         # Cargar configuración de patrones
         self._load_patterns_config()
@@ -111,7 +130,111 @@ class PatternsOrchestrator:
         # Cargar módulos de patrones
         self._load_pattern_modules()
         
+        # Si no se cargaron patrones, forzar configuración por defecto
+        if len(self.loaded_patterns) == 0:
+            print("⚠️ No se cargaron patrones, forzando configuración por defecto...")
+            self._create_default_config()
+            self._load_pattern_modules()
+        
         print(f"✅ Orchestrator inicializado con {len(self.loaded_patterns)} patrones")
+    
+    def _check_real_data_connection(self):
+        """Verificar conexión con datos reales"""
+        if not self.real_data_available:
+            print("⚠️ Sistema de datos reales no disponible")
+            return False
+        
+        try:
+            status = get_market_status()
+            self.connection_status = {
+                "connected": status.get('connected', False),
+                "last_check": datetime.now(),
+                "provider": status.get('provider', 'Unknown'),
+                "cache_size": status.get('cache_size', 0)
+            }
+            
+            if self.connection_status["connected"]:
+                print(f"✅ Conexión de datos reales verificada: {status.get('provider', 'Unknown')}")
+            else:
+                print("❌ Datos reales no conectados")
+                
+            return self.connection_status["connected"]
+            
+        except Exception as e:
+            print(f"❌ Error verificando conexión de datos reales: {e}")
+            self.connection_status["connected"] = False
+            return False
+    
+    def is_connected_to_real_data(self) -> bool:
+        """Verificar si estamos conectados a datos reales"""
+        return self.connection_status.get("connected", False)
+    
+    def get_real_data(self, symbol: str = "EURUSD", timeframe: str = "H1") -> Optional[Dict[str, Any]]:
+        """Obtener datos de mercado reales"""
+        if not self.real_data_available or not self.is_connected_to_real_data():
+            print(f"⚠️ Datos reales no disponibles para {symbol} {timeframe}")
+            return None
+        
+        try:
+            return get_real_market_data(symbol, timeframe)
+        except Exception as e:
+            print(f"❌ Error obteniendo datos reales: {e}")
+            return None
+    
+    def reconnect_real_data(self):
+        """Intentar reconectar al sistema de datos reales"""
+        print("🔄 Intentando reconectar datos reales...")
+        return self._check_real_data_connection()
+    
+    def get_real_market_data(self, symbol: str, timeframe: str) -> Optional[Dict[str, Any]]:
+        """Obtener datos reales del mercado"""
+        if not self.real_data_available:
+            return None
+        
+        try:
+            # Verificar conexión periódicamente
+            now = datetime.now()
+            if (self.last_data_check is None or 
+                (now - self.last_data_check).total_seconds() > 300):  # 5 minutos
+                self._check_real_data_connection()
+                self.last_data_check = now
+            
+            if not self.connection_status["connected"]:
+                print(f"⚠️ Datos reales no disponibles para {symbol} {timeframe}")
+                return None
+            
+            # Obtener datos reales
+            data = get_real_market_data(symbol, timeframe)
+            if data:
+                print(f"✅ Datos reales obtenidos para {symbol} {timeframe}")
+                return data
+            else:
+                print(f"❌ No se obtuvieron datos para {symbol} {timeframe}")
+                return None
+                
+        except Exception as e:
+            print(f"❌ Error obteniendo datos reales {symbol} {timeframe}: {e}")
+            return None
+    
+    def is_real_data_connected(self) -> bool:
+        """Verificar si los datos reales están conectados"""
+        return self.real_data_available and self.connection_status.get("connected", False)
+    
+    def force_reconnect_real_data(self) -> bool:
+        """Forzar reconexión a datos reales"""
+        print("🔄 Forzando reconexión a datos reales...")
+        return self._check_real_data_connection()
+        
+    def get_system_status(self) -> Dict[str, Any]:
+        """Obtener estado completo del sistema"""
+        return {
+            "real_data_available": self.real_data_available,
+            "connection_status": self.connection_status.copy(),
+            "loaded_patterns": len(self.loaded_patterns),
+            "cache_entries": len(self.consolidated_cache),
+            "last_update": self.last_data_check.isoformat() if self.last_data_check else None,
+            "orchestrator_ready": len(self.loaded_patterns) > 0
+        }
     
     def _load_patterns_config(self):
         """Cargar configuración de patrones"""
@@ -135,6 +258,8 @@ class PatternsOrchestrator:
     
     def _create_default_config(self):
         """Crear configuración por defecto"""
+        print("🔧 Creando configuración por defecto...")
+        
         # Patrones prioritarios (basado en PatternType enum)
         self.priority_patterns = {
             'silver_bullet', 'judas_swing', 'liquidity_grab', 
@@ -142,7 +267,9 @@ class PatternsOrchestrator:
         }
         
         # Habilitar todos los patrones disponibles
-        self.enabled_patterns = set(self.factory.get_available_patterns())
+        available_patterns = self.factory.get_available_patterns()
+        self.enabled_patterns = set(available_patterns)
+        print(f"✅ Habilitados {len(self.enabled_patterns)} patrones por defecto: {list(self.enabled_patterns)[:5]}...")
         
         # Frecuencias por defecto (segundos)
         self.update_frequencies = {
@@ -188,7 +315,7 @@ class PatternsOrchestrator:
         for pattern_name in available_patterns:
             if pattern_name in self.enabled_patterns:
                 try:
-                    pattern_instance = self.factory.create_pattern_instance(pattern_name)
+                    pattern_instance = self.factory.create_pattern_dashboard(pattern_name)
                     if pattern_instance:
                         self.loaded_patterns[pattern_name] = pattern_instance
                         self.performance_stats[pattern_name] = {
@@ -215,7 +342,7 @@ class PatternsOrchestrator:
             # Recargar en factory
             if self.factory.reload_module(pattern_name):
                 # Recrear instancia
-                pattern_instance = self.factory.create_pattern_instance(pattern_name)
+                pattern_instance = self.factory.create_pattern_dashboard(pattern_name)
                 if pattern_instance:
                     self.loaded_patterns[pattern_name] = pattern_instance
                     print(f"✅ Patrón recargado: {pattern_name}")

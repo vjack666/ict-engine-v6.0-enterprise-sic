@@ -42,7 +42,7 @@ sys.path.extend([
 
 # Imports del sistema ICT
 from data_collector import RealDataCollector
-from main_interface import MainDashboardInterface  
+from widgets.main_interface import MainDashboardInterface  
 from dashboard_logger import DashboardLogger
 
 class ICTDashboardApp:

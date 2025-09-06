@@ -25,6 +25,9 @@ from textual.widgets import Header, Footer, Static, TabbedContent, TabPane, Rich
 from textual.binding import Binding
 from textual.reactive import reactive
 
+# Importar pestaña de patrones - REACTIVADO TRAS CORREGIR IMPORTACIONES
+from .patterns_tab import PatternsTab
+
 class TextualDashboardApp(App[None]):
     """Dashboard ICT Enterprise"""
     
@@ -102,6 +105,7 @@ class TextualDashboardApp(App[None]):
         Binding("1", "switch_tab_real_trading", "🎯 Sistema Real", show=True),
         Binding("2", "switch_tab_analysis", "📊 Análisis", show=True), 
         Binding("3", "switch_tab_monitor", "📡 Monitor", show=True),
+        Binding("4", "switch_tab_patterns", "🎯 Patrones", show=True),
         Binding("F5", "refresh_all", "🔄 Refresh", show=True),
         Binding("q", "quit", "Salir", show=True),
     ]
@@ -114,6 +118,9 @@ class TextualDashboardApp(App[None]):
         self.session_id = f"ICT_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         self.start_time = time.time()
         self._refreshing = False
+        
+        # REACTIVADO - Inicializar pestaña de patrones
+        self.patterns_tab = PatternsTab(self)
     
     def compose(self) -> ComposeResult:
         yield Header()
@@ -131,6 +138,11 @@ class TextualDashboardApp(App[None]):
                 with TabPane("📡 Monitor", id="tab_monitor"):
                     with VerticalScroll():
                         yield Static(self.render_system_monitor(), id="monitor_display", classes="monitor-content")
+                
+                # REACTIVADO - Tab de patrones
+                with TabPane("🎯 Patrones", id="tab_patterns"):
+                    with VerticalScroll():
+                        yield Static(self.render_patterns_tab(), id="patterns_display", classes="patterns-content")
         
         yield Footer()
     
@@ -247,6 +259,22 @@ class TextualDashboardApp(App[None]):
         except Exception as e:
             return f"[red]❌ Error en análisis: {e}[/red]"
     
+    # REACTIVADO - Método de patrones
+    def render_patterns_tab(self) -> str:
+        """🎯 Pestaña de Patrones usando sistema modular existente"""
+        try:
+            # Sincronizar configuración con pestaña de patrones
+            current_symbol = "EURUSD"  # En el futuro, obtener del estado global
+            current_timeframes = ["H4", "H1", "M15"]
+            
+            self.patterns_tab.sync_with_main_dashboard(current_symbol, current_timeframes)
+            
+            # Usar sistema modular existente para renderizar
+            return self.patterns_tab.render_patterns_main_view()
+            
+        except Exception as e:
+            return f"[red]❌ Error en pestaña de patrones: {e}[/red]"
+    
     def render_system_monitor(self) -> str:
         """📡 Monitor del sistema"""
         try:
@@ -307,14 +335,16 @@ class TextualDashboardApp(App[None]):
         
         self._refreshing = True
         try:
-            # Actualizar pestaña activa
+            # Actualizar pestañas existentes
             real_trading_widget = self.query_one("#real_trading_display", Static)
             analysis_widget = self.query_one("#analysis_display", Static)
             monitor_widget = self.query_one("#monitor_display", Static)
+            patterns_widget = self.query_one("#patterns_display", Static)
             
             real_trading_widget.update(self.render_real_trading_system())
             analysis_widget.update(self.render_analysis_data())
             monitor_widget.update(self.render_system_monitor())
+            patterns_widget.update(self.render_patterns_tab())
             
         except Exception as e:
             print(f"⚠️ Error en actualización periódica: {e}")
@@ -333,6 +363,11 @@ class TextualDashboardApp(App[None]):
     def action_switch_tab_monitor(self):
         """Cambiar a pestaña Monitor"""
         self.query_one("#main_tabs", TabbedContent).active = "tab_monitor"
+    
+    # REACTIVADO - Action para patrones
+    def action_switch_tab_patterns(self):
+        """Cambiar a pestaña Patrones"""
+        self.query_one("#main_tabs", TabbedContent).active = "tab_patterns"
     
     def action_refresh_all(self):
         """Actualizar todas las pestañas"""

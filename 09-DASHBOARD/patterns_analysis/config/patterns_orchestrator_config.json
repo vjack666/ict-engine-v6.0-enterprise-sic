@@ -1,13 +1,25 @@
 {
   "priority_patterns": [
     "fair_value_gap",
-    "judas_swing",
-    "silver_bullet",
     "liquidity_grab",
+    "judas_swing",
     "optimal_trade_entry",
+    "silver_bullet",
     "order_block"
   ],
-  "enabled_patterns": [],
+  "enabled_patterns": [
+    "order_blocks",
+    "judas_swing",
+    "fair_value_gaps",
+    "recent_structure_break",
+    "silver_bullet",
+    "institutional_flow",
+    "liquidity_grab",
+    "swing_points_for_bos",
+    "choch_single_tf",
+    "false_breakout_v6",
+    "optimal_trade_entry"
+  ],
   "update_frequencies": {
     "silver_bullet": 60,
     "judas_swing": 120,
@@ -19,5 +31,5 @@
     "morning_reversal": 240,
     "mitigation_block": 300
   },
-  "last_updated": "2025-09-06T12:09:29.698373"
+  "last_updated": "2025-09-06T14:50:54.501993"
 }

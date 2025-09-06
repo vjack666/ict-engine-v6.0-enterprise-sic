@@ -17,9 +17,11 @@ from typing import Dict, Any, List, Optional, Type
 # Configurar rutas
 dashboard_root = Path(__file__).parent.parent
 project_root = dashboard_root.parent
+patterns_analysis_dir = Path(__file__).parent
 sys.path.insert(0, str(project_root / "01-CORE"))
+sys.path.insert(0, str(patterns_analysis_dir))
 
-# Importar base
+# Importar base - usando ruta relativa al directorio actual
 from base_pattern_module import BasePatternDashboard
 
 
@@ -289,16 +291,20 @@ def create_dashboard(config: Optional[Dict[str, Any]] = None) -> {class_name}:
                     module_info['module_name'], 
                     module_file
                 )
-                module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(module)
-                
-                # Verificar función create_dashboard
-                if hasattr(module, 'create_dashboard'):
-                    module_info['module'] = module
-                    module_info['create_function'] = module.create_dashboard
-                    print(f"✅ Módulo cargado: {pattern_name}")
+                if spec is not None and spec.loader is not None:
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
+                    
+                    # Verificar función create_dashboard
+                    if hasattr(module, 'create_dashboard'):
+                        module_info['module'] = module
+                        module_info['create_function'] = module.create_dashboard
+                        print(f"✅ Módulo cargado: {pattern_name}")
+                    else:
+                        print(f"⚠️ Módulo sin función create_dashboard: {pattern_name}")
                 else:
-                    print(f"⚠️ Módulo sin función create_dashboard: {pattern_name}")
+                    print(f"⚠️ No se pudo crear spec o loader para: {pattern_name}")
+                    module_info['available'] = False
             
             except Exception as e:
                 print(f"⚠️ Error cargando módulo {pattern_name}: {e}")
