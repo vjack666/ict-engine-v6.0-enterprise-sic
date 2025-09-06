@@ -44,15 +44,17 @@ Or double-click `launch.bat` on Windows.
 
 ### Alternative Direct Launches
 
-#### Run Complete System
+#### Run Complete System (RECOMENDADO)
 ```bash
 python run_complete_system.py
 ```
+*Ejecuta todo el sistema ICT Engine v6.0 Enterprise con detección de patrones*
 
-#### Run Real Market System
+#### Run Market Data Module (Solo módulo auxiliar)
 ```bash
 python run_real_market_system.py
 ```
+*NOTA: Este es solo un módulo auxiliar. Para uso completo usar run_complete_system.py*
 
 #### Launch Dashboard Only
 ```bash
