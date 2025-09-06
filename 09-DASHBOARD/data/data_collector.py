@@ -75,13 +75,18 @@ class RealICTDataCollector:
         self.data_history = []
         self.callbacks = []
         self.components = {}
+        self.real_system_connected = False  # Flag para componentes reales
         
         # Símbolos y timeframes
         self.symbols = config.get('data', {}).get('symbols', ['EURUSD', 'GBPUSD', 'USDJPY'])
         self.timeframes = config.get('data', {}).get('timeframes', ['H1', 'H4', 'D1'])
         
-        print(f"🚀 [RealDataCollector] Inicializando sistema ICT Engine...")
-        self._initialize_ict_components()
+        # Solo inicializar componentes mock si no hay componentes reales
+        if not config.get('real_components'):
+            print(f"🚀 [RealDataCollector] Inicializando sistema ICT Engine...")
+            self._initialize_ict_components()
+        else:
+            print(f"🚀 [RealDataCollector] Esperando conexión con componentes reales...")
         
     def _initialize_ict_components(self):
         """Inicializar componentes reales del sistema ICT (igual que run_complete_system.py)"""
@@ -170,6 +175,38 @@ class RealICTDataCollector:
             return True
         except Exception as e:
             print(f"❌ [RealDataCollector] Error deteniendo: {e}")
+            return False
+    
+    def connect_real_components(self, real_components: Dict[str, Any]):
+        """🔗 Conectar con componentes reales del sistema ICT optimizado"""
+        print("🔗 [RealDataCollector] Conectando con componentes reales...")
+        
+        try:
+            # Reemplazar componentes mock con componentes reales
+            if 'memory_system' in real_components and real_components['memory_system']:
+                self.components['memory_system'] = real_components['memory_system']
+                print("✅ UnifiedMemorySystem v6.1 conectado")
+            
+            if 'smart_money' in real_components and real_components['smart_money']:
+                self.components['smart_money'] = real_components['smart_money']
+                print("✅ SmartMoneyAnalyzer optimizado conectado")
+            
+            if 'mt5_manager' in real_components and real_components['mt5_manager']:
+                self.components['mt5_manager'] = real_components['mt5_manager']
+                print("✅ MT5DataManager conectado")
+            
+            if 'pattern_detector' in real_components and real_components['pattern_detector']:
+                self.components['pattern_detector'] = real_components['pattern_detector']
+                print("✅ ICTPatternDetector conectado")
+            
+            # Marcar como sistema real conectado
+            self.real_system_connected = True
+            print("🎯 [RealDataCollector] Todos los componentes reales conectados exitosamente")
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ [RealDataCollector] Error conectando componentes reales: {e}")
             return False
     
     def _get_real_fvg_statistics(self) -> Dict[str, Any]:

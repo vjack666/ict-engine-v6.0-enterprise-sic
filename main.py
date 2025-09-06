@@ -170,8 +170,8 @@ class ICTEngineProductionSystem:
         if self.data_sources['production_ready']:
             print("1. 🌐 Ejecutar Sistema con Datos Reales")
             print("2. 📊 Solo Dashboard con Datos Reales")
-            print("3. 🔄 Sistema Completo + Dashboard")
-            print("4. 🎯 Silver Bullet Enterprise Dashboard")
+            print("3. 🎯 Sistema Completo + Dashboard Enterprise")
+            print("4. 🔄 Silver Bullet Enterprise Dashboard")
             print("5. 🔍 Verificar Estructura y Compliance")
             print("6. 📋 Generar Reporte de Estado")
             print("7. ⚙️ Configurar Fuentes de Datos")
@@ -778,6 +778,217 @@ except Exception as e:
         except Exception as e:
             print(f"❌ Error ejecutando sistema de producción: {e}")
     
+    def run_system_with_dashboard_enterprise(self):
+        """🎯 Ejecutar Sistema ICT + Dashboard Enterprise Integrado"""
+        print("\n🎯 INICIANDO SISTEMA ICT + DASHBOARD ENTERPRISE INTEGRADO")
+        print("="*65)
+        print("🚀 FASE 1: Inicializando sistema ICT Engine optimizado...")
+        
+        if not self.data_sources['production_ready']:
+            print("❌ Sistema enterprise requiere fuentes de datos reales configuradas")
+            return self.show_production_requirements()
+        
+        try:
+            # Paso 1: Inicializar sistema ICT completo (igual que run_production_analysis)
+            print("📊 Inicializando componentes ICT optimizados...")
+            
+            # Importar e inicializar componentes reales
+            from run_complete_system import main as run_complete_analysis
+            from dashboard_bridge import DashboardBridge
+            
+            # Crear bridge para conexión
+            bridge = DashboardBridge()
+            
+            print("🔗 Inicializando bridge de conexión...")
+            initialized_components = bridge.initialize_system_components()
+            
+            if not initialized_components:
+                print("❌ Error inicializando componentes del sistema")
+                return
+            
+            print("✅ Componentes ICT optimizados inicializados:")
+            print(f"   🧠 UnifiedMemorySystem: {initialized_components.get('memory_system', 'N/A')}")
+            print(f"   💰 SmartMoneyAnalyzer: {initialized_components.get('smart_money', 'N/A')}")
+            print(f"   📊 MT5DataManager: {initialized_components.get('mt5_manager', 'N/A')}")
+            print(f"   🔍 ICTPatternDetector: {initialized_components.get('pattern_detector', 'N/A')}")
+            
+            # Paso 2: Inicializar dashboard con componentes reales
+            print("\n🎯 FASE 2: Inicializando Dashboard Enterprise con datos reales...")
+            
+            # Pasar componentes al dashboard
+            dashboard_success = bridge.launch_dashboard_with_real_data(initialized_components)
+            
+            if dashboard_success:
+                print("✅ SISTEMA ICT + DASHBOARD ENTERPRISE OPERATIVO")
+                print("="*65)
+                print("🏆 Estado: Totalmente integrado con datos reales")
+                print("📊 Datos: MT5 Professional + UnifiedMemorySystem v6.1")
+                print("💰 Smart Money: Analyzer optimizado conectado")
+                print("🎯 Dashboard: Enterprise-grade con datos en tiempo real")
+                print("="*65)
+            else:
+                print("❌ Error integrando dashboard con sistema real")
+                print("💡 Ejecutando análisis sin dashboard...")
+                self.run_production_analysis()
+                
+        except ImportError as e:
+            print(f"❌ Error importando dashboard bridge: {e}")
+            print("💡 Creando dashboard bridge...")
+            self.create_dashboard_bridge()
+            print("🔄 Reintentando integración...")
+            # Reintentar después de crear bridge
+            try:
+                from dashboard_bridge import DashboardBridge
+                bridge = DashboardBridge()
+                initialized_components = bridge.initialize_system_components()
+                if initialized_components:
+                    bridge.launch_dashboard_with_real_data(initialized_components)
+            except Exception as retry_error:
+                print(f"❌ Error en reintento: {retry_error}")
+                print("💡 Ejecutando sistema básico...")
+                self.run_production_analysis()
+        except KeyboardInterrupt:
+            print("\n👋 Sistema integrado detenido por el usuario")
+        except Exception as e:
+            print(f"❌ Error ejecutando sistema integrado: {e}")
+            print("💡 Ejecutando análisis básico como fallback...")
+            self.run_production_analysis()
+    
+    def create_dashboard_bridge(self):
+        """🔗 Crear módulo dashboard_bridge.py si no existe"""
+        bridge_path = project_root / "dashboard_bridge.py"
+        
+        if not bridge_path.exists():
+            print("🔗 Creando dashboard_bridge.py...")
+            
+            bridge_content = '''#!/usr/bin/env python3
+"""
+🔗 DASHBOARD BRIDGE - Puente entre Sistema ICT y Dashboard Enterprise
+===================================================================
+
+Conecta el sistema ICT Engine optimizado con el Dashboard Enterprise,
+eliminando la necesidad de re-inicializar componentes.
+
+Versión: v6.0.0
+"""
+
+import sys
+import os
+from pathlib import Path
+from typing import Dict, Any, Optional
+
+# Configurar rutas
+project_root = Path(__file__).parent.absolute()
+core_path = project_root / "01-CORE"
+dashboard_path = project_root / "09-DASHBOARD"
+
+sys.path.extend([
+    str(project_root),
+    str(core_path),
+    str(dashboard_path),
+    str(dashboard_path / "data"),
+    str(dashboard_path / "widgets")
+])
+
+class DashboardBridge:
+    """🔗 Puente entre sistema ICT y Dashboard Enterprise"""
+    
+    def __init__(self):
+        self.components = {}
+        self.system_ready = False
+    
+    def initialize_system_components(self) -> Dict[str, Any]:
+        """📊 Inicializar componentes ICT optimizados"""
+        try:
+            print("🔧 Inicializando componentes del sistema ICT...")
+            
+            # 1. UnifiedMemorySystem
+            from analysis.unified_memory_system import get_unified_memory_system
+            memory_system = get_unified_memory_system()
+            self.components['memory_system'] = memory_system
+            print("✅ UnifiedMemorySystem v6.1 inicializado")
+            
+            # 2. SmartMoneyAnalyzer optimizado
+            from smart_money_concepts.smart_money_analyzer import SmartMoneyAnalyzer
+            smart_money = SmartMoneyAnalyzer()
+            self.components['smart_money'] = smart_money
+            print("✅ SmartMoneyAnalyzer optimizado inicializado")
+            
+            # 3. MT5DataManager
+            from data_management.mt5_data_manager import MT5DataManager
+            mt5_manager = MT5DataManager()
+            self.components['mt5_manager'] = mt5_manager
+            print("✅ MT5DataManager inicializado")
+            
+            # 4. ICTPatternDetector
+            from analysis.ict_pattern_detector import ICTPatternDetector
+            pattern_detector = ICTPatternDetector()
+            self.components['pattern_detector'] = pattern_detector
+            print("✅ ICTPatternDetector inicializado")
+            
+            self.system_ready = True
+            return self.components
+            
+        except Exception as e:
+            print(f"❌ Error inicializando componentes: {e}")
+            return {}
+    
+    def launch_dashboard_with_real_data(self, components: Dict[str, Any]) -> bool:
+        """🎯 Lanzar dashboard con datos reales"""
+        try:
+            print("🚀 Lanzando Dashboard Enterprise con datos reales...")
+            
+            # Importar componentes de dashboard
+            from data.data_collector import RealICTDataCollector
+            from widgets.main_interface import MainDashboardInterface
+            from core.dashboard_engine import DashboardEngine
+            
+            # Configuración enterprise
+            config = {
+                'symbols': ['EURUSD', 'GBPUSD', 'USDJPY', 'XAUUSD'],
+                'timeframes': ['M15', 'H1', 'H4'],
+                'update_interval': 1.0,
+                'theme': 'enterprise',
+                'enable_alerts': True,
+                'auto_refresh': True,
+                'show_debug': False,
+                'data_source': 'live',
+                'layout_mode': 'tabbed',
+                'enterprise_mode': True,
+                'real_components': components  # ✅ COMPONENTES REALES
+            }
+            
+            # Inicializar con componentes reales
+            engine = DashboardEngine(config)
+            data_collector = RealICTDataCollector(config)
+            
+            # ✅ CONECTAR COMPONENTES REALES
+            data_collector.connect_real_components(components)
+            
+            interface = MainDashboardInterface(config)
+            
+            print("✅ Dashboard Enterprise conectado con sistema real")
+            print("🎯 Iniciando interfaz...")
+            
+            # Ejecutar dashboard
+            interface.run(engine, data_collector)
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error lanzando dashboard: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+'''
+            
+            with open(bridge_path, 'w', encoding='utf-8') as f:
+                f.write(bridge_content)
+            
+            print(f"✅ dashboard_bridge.py creado en {bridge_path}")
+        else:
+            print("✅ dashboard_bridge.py ya existe")
+    
     def verify_system_structure(self):
         """🔍 Verificar estructura del sistema y compliance"""
         print("\n🔍 VERIFICANDO ESTRUCTURA Y COMPLIANCE DEL SISTEMA")
@@ -928,7 +1139,7 @@ except Exception as e:
                         elif choice == "2":
                             self.run_dashboard_only()
                         elif choice == "3":
-                            self.run_complete_production_system()
+                            self.run_system_with_dashboard_enterprise()
                         elif choice == "4":
                             self.run_silver_bullet_dashboard()
                         elif choice == "5":
