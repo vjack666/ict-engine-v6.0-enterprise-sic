@@ -169,13 +169,8 @@ class ICTEngineProductionSystem:
         
         if self.data_sources['production_ready']:
             print("1. 🌐 Ejecutar Sistema con Datos Reales")
-            print("2. 📊 Solo Dashboard con Datos Reales")
             print("3. 🎯 Sistema Completo + Dashboard Enterprise")
-            print("4. 🔄 Silver Bullet Enterprise Dashboard")
-            print("5. 🔍 Verificar Estructura y Compliance")
-            print("6. 📋 Generar Reporte de Estado")
-            print("7. ⚙️ Configurar Fuentes de Datos")
-            print("8. ❌ Salir")
+            print("❌ Salir (Ctrl+C)")
         else:
             print("⚠️ CONFIGURACIÓN REQUERIDA PARA PRODUCCIÓN:")
             print("1. 🛠️ Instalar MetaTrader 5")
@@ -1132,29 +1127,14 @@ class DashboardBridge:
                 
                 try:
                     if self.data_sources['production_ready']:
-                        choice = input("\n🎯 Selecciona una opción (1-8): ").strip()
+                        choice = input("\n🎯 Selecciona una opción (1 o 3): ").strip()
                         
                         if choice == "1":
                             self.run_production_analysis()
-                        elif choice == "2":
-                            self.run_dashboard_only()
                         elif choice == "3":
                             self.run_system_with_dashboard_enterprise()
-                        elif choice == "4":
-                            self.run_silver_bullet_dashboard()
-                        elif choice == "5":
-                            self.verify_system_structure()
-                        elif choice == "6":
-                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                            print(f"📋 Generando reporte de estado del sistema...")
-                            self.verify_system_structure()
-                        elif choice == "7":
-                            self.install_data_sources()
-                        elif choice == "8":
-                            print("\n👋 Saliendo del sistema de producción...")
-                            break
                         else:
-                            print("❌ Opción no válida. Intenta de nuevo.")
+                            print("❌ Opción no válida. Usa 1 o 3.")
                             continue
                     else:
                         choice = input("\n🛠️ Selecciona una opción (1-5): ").strip()
