@@ -133,9 +133,15 @@ class FalseBreakoutV6Dashboard(BasePatternDashboard):
         
         try:
             # 1. Obtener datos reales del mercado
-            market_data = self._get_real_market_data(symbol, timeframe)
-            if not market_data:
+            raw_market_data = self._get_real_market_data(symbol, timeframe)
+            if not raw_market_data:
                 result.narrative = "Datos de mercado no disponibles en el sistema real"
+                return result
+            
+            # 🔒 VALIDAR DATOS DE MERCADO ANTES DE USAR
+            market_data = self.validate_market_data(raw_market_data)
+            if not market_data or len(market_data) == 0:
+                result.narrative = "Datos de mercado inválidos - falló validación de seguridad"
                 return result
             
             # 2. Usar detector real del patrón
@@ -145,33 +151,36 @@ class FalseBreakoutV6Dashboard(BasePatternDashboard):
                 # Procesar señal real (NO inventar datos)
                 best_signal = max(pattern_signals, key=lambda x: x.get('confidence', 0))
                 
-                # Extraer datos REALES de la señal
-                result.confidence = float(best_signal.get('confidence', 0.0))
-                result.strength = float(best_signal.get('strength', 0.0))
-                result.direction = str(best_signal.get('direction', 'NEUTRAL')).upper()
+                # 🔒 VALIDAR RESULTADO DEL PATRÓN ANTES DE USAR
+                validated_signal = self.validate_pattern_result(best_signal)
                 
-                # Niveles reales (NO hardcodeados)
-                entry_zone = best_signal.get('entry_zone', (0.0, 0.0))
+                # Extraer datos VALIDADOS de la señal
+                result.confidence = float(validated_signal.get('confidence', 0.0))
+                result.strength = float(validated_signal.get('strength', 0.0))
+                result.direction = str(validated_signal.get('direction', 'NEUTRAL')).upper()
+                
+                # Niveles validados (NO hardcodeados)
+                entry_zone = validated_signal.get('entry_zone', (0.0, 0.0))
                 if isinstance(entry_zone, (list, tuple)) and len(entry_zone) >= 2:
                     result.entry_zone = (float(entry_zone[0]), float(entry_zone[1]))
                 
-                result.stop_loss = float(best_signal.get('stop_loss', 0.0))
-                result.take_profit_1 = float(best_signal.get('take_profit_1', 0.0))
-                result.take_profit_2 = best_signal.get('take_profit_2')
+                result.stop_loss = float(validated_signal.get('stop_loss', 0.0))
+                result.take_profit_1 = float(validated_signal.get('take_profit_1', 0.0))
+                result.take_profit_2 = validated_signal.get('take_profit_2')
                 if result.take_profit_2:
                     result.take_profit_2 = float(result.take_profit_2)
                 
-                # Métricas reales
-                result.risk_reward_ratio = float(best_signal.get('risk_reward_ratio', 0.0))
-                result.probability = float(best_signal.get('probability', 0.0))
+                # Métricas validadas
+                result.risk_reward_ratio = float(validated_signal.get('risk_reward_ratio', 0.0))
+                result.probability = float(validated_signal.get('probability', 0.0))
                 
-                # Contexto real
-                result.session = str(best_signal.get('session', 'UNKNOWN'))
-                result.confluences = best_signal.get('confluences', [])
-                result.invalidation_criteria = str(best_signal.get('invalidation_criteria', ''))
-                result.narrative = str(best_signal.get('narrative', f'Patrón {self.pattern_name} detectado por sistema real'))
+                # Contexto validado
+                result.session = str(validated_signal.get('session', 'UNKNOWN'))
+                result.confluences = validated_signal.get('confluences', [])
+                result.invalidation_criteria = str(validated_signal.get('invalidation_criteria', ''))
+                result.narrative = str(validated_signal.get('narrative', f'Patrón {self.pattern_name} detectado por sistema real'))
                 
-                # Guardar datos brutos para debugging
+                # Guardar datos validados para debugging
                 result.raw_data = best_signal
                 
             else:

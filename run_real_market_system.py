@@ -20,6 +20,17 @@ if core_path not in sys.path:
 print(f"[RealMarketSystem] Script: {script_dir}")
 print(f"[RealMarketSystem] Core: {core_path}")
 
+# Importar validador de datos crítico
+try:
+    sys.path.insert(0, os.path.join(core_path, "data_management"))
+    from data_validator_real_trading import RealTradingDataValidator
+    VALIDATOR_AVAILABLE = True
+    print("[RealMarketSystem] ✅ Validador de datos crítico cargado")
+except ImportError as e:
+    print(f"[RealMarketSystem] ⚠️ Validador no disponible: {e}")
+    RealTradingDataValidator = None
+    VALIDATOR_AVAILABLE = False
+
 class RealMarketDataProvider:
     """Proveedor de datos de mercado real usando MetaTrader5"""
     
@@ -27,6 +38,18 @@ class RealMarketDataProvider:
         self.is_connected = False
         self.data_cache = {}
         self.mt5_initialized = False
+        
+        # Inicializar validador de datos crítico
+        if VALIDATOR_AVAILABLE and RealTradingDataValidator is not None:
+            try:
+                self.data_validator = RealTradingDataValidator()
+                print("[RealMarketDataProvider] ✅ Validador de datos inicializado")
+            except Exception as e:
+                print(f"[RealMarketDataProvider] ⚠️ Error inicializando validador: {e}")
+                self.data_validator = None
+        else:
+            self.data_validator = None
+            
         print("[RealMarketDataProvider] Inicializado")
         # Intentar conectar inmediatamente
         self.connect()
@@ -116,6 +139,21 @@ class RealMarketDataProvider:
                     'data': market_data,
                     'timestamp': current_time
                 }
+                
+                # 🔒 VALIDAR DATOS ANTES DE DEVOLVERLOS
+                if self.data_validator is not None:
+                    try:
+                        validated_df = self.data_validator.validate_price_data(df)
+                        market_data['data'] = validated_df
+                        market_data['validation_status'] = 'VALIDATED'
+                        print(f"[RealMarketDataProvider] ✅ Datos validados para {symbol} {timeframe}")
+                    except Exception as validation_error:
+                        print(f"[RealMarketDataProvider] ⚠️ Error en validación: {validation_error}")
+                        market_data['validation_status'] = 'FAILED'
+                        market_data['validation_error'] = str(validation_error)
+                else:
+                    market_data['validation_status'] = 'SKIPPED'
+                    print(f"[RealMarketDataProvider] ⚠️ Datos no validados - validador no disponible")
                 
                 print(f"[RealMarketDataProvider] ✅ Datos obtenidos {symbol} {timeframe}: {len(df)} velas, último precio: {market_data['last_price']:.5f}")
                 return market_data

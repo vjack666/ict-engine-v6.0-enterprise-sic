@@ -23,6 +23,20 @@ from pathlib import Path
 dashboard_root = Path(__file__).parent.parent
 project_root = dashboard_root.parent
 sys.path.insert(0, str(project_root / "01-CORE"))
+sys.path.insert(0, str(project_root / "01-CORE" / "data_management"))
+sys.path.insert(0, str(project_root))  # Raíz del proyecto para validador
+
+# Importar validador de datos crítico
+try:
+    # El validador está en 01-CORE/data_management/
+    sys.path.insert(0, str(project_root / "01-CORE" / "data_management"))
+    from data_validator_real_trading import RealTradingDataValidator
+    VALIDATOR_AVAILABLE = True
+    print("✅ Validador de datos importado correctamente")
+except ImportError as e:
+    print(f"⚠️ Validador de datos no disponible: {e}")
+    RealTradingDataValidator = None
+    VALIDATOR_AVAILABLE = False
 
 @dataclass
 class PatternAnalysisResult:
@@ -88,11 +102,74 @@ class BasePatternDashboard(ABC):
         self.cached_results = {}
         self.cache_ttl = self.config.get('cache_ttl_seconds', 300)  # 5 minutos default
         
+        # Inicializar validador de datos crítico
+        if VALIDATOR_AVAILABLE and RealTradingDataValidator is not None:
+            try:
+                self.data_validator = RealTradingDataValidator()
+                print(f"✅ Validador inicializado para {self.pattern_name}")
+            except Exception as e:
+                print(f"⚠️ Error inicializando validador: {e}")
+                self.data_validator = None
+        else:
+            self.data_validator = None
+        
         # Cargar configuración específica del patrón
         self._load_pattern_config()
         
         # Inicializar conexión con detector del core
         self._initialize_pattern_detector()
+        
+    def validate_market_data(self, data: Union[dict, Any]) -> Union[dict, Any]:
+        """
+        Validar datos de mercado usando el validador crítico
+        
+        Args:
+            data: Datos de mercado a validar
+            
+        Returns:
+            Datos validados con valores seguros
+        """
+        if self.data_validator is None:
+            # Sin validador, usar datos directamente (riesgo alto)
+            print(f"⚠️ Validador no disponible para {self.pattern_name}")
+            return data
+            
+        try:
+            validated_data = self.data_validator.validate_price_data(data)
+            return validated_data
+        except Exception as e:
+            print(f"❌ Error validando datos en {self.pattern_name}: {e}")
+            # Retornar datos seguros por defecto
+            return {}
+    
+    def validate_pattern_result(self, result: dict) -> dict:
+        """
+        Validar resultado de análisis de patrón
+        
+        Args:
+            result: Diccionario con resultado de análisis
+            
+        Returns:
+            Resultado validado con valores seguros
+        """
+        if self.data_validator is None:
+            print(f"⚠️ Validador no disponible para resultado de {self.pattern_name}")
+            return result
+            
+        try:
+            validated_result = self.data_validator.validate_pattern_analysis(result)
+            return validated_result
+        except Exception as e:
+            print(f"❌ Error validando resultado en {self.pattern_name}: {e}")
+            # Retornar resultado seguro por defecto
+            return {
+                'signal': 'HOLD',
+                'confidence': 0.0,
+                'risk_reward_ratio': 0.0,
+                'pattern_name': self.pattern_name,
+                'timestamp': datetime.now(),
+                'error': f"Validación fallida: {e}"
+            }
         
     def _load_pattern_config(self):
         """Cargar configuración específica del patrón"""
@@ -164,16 +241,48 @@ class BasePatternDashboard(ABC):
             if cached_result:
                 return cached_result
         
-        # Realizar análisis específico del patrón
-        result = self._perform_pattern_analysis(symbol, timeframe)
-        
-        # Generar recomendaciones
-        result = self._generate_recommendations(result)
-        
-        # Guardar en cache
-        self.cache_result(symbol, timeframe, result)
-        
-        return result
+        try:
+            # Realizar análisis específico del patrón
+            result = self._perform_pattern_analysis(symbol, timeframe)
+            
+            # Validar datos del resultado si el validador está disponible
+            if self.data_validator is not None and hasattr(result, '__dict__'):
+                try:
+                    result_dict = result.__dict__
+                    validated_dict = self.validate_pattern_result(result_dict)
+                    
+                    # Actualizar resultado con datos validados
+                    for key, value in validated_dict.items():
+                        if hasattr(result, key):
+                            setattr(result, key, value)
+                except Exception as validation_error:
+                    print(f"⚠️ Error en validación de {self.pattern_name}: {validation_error}")
+            
+            # Generar recomendaciones
+            result = self._generate_recommendations(result)
+            
+            # Guardar en cache
+            self.cache_result(symbol, timeframe, result)
+            
+            return result
+            
+        except Exception as e:
+            print(f"❌ Error en análisis de {self.pattern_name} para {symbol} {timeframe}: {e}")
+            # Retornar resultado seguro por defecto
+            safe_result = PatternAnalysisResult(
+                pattern_name=self.pattern_name,
+                symbol=symbol,
+                timeframe=timeframe,
+                timestamp=datetime.now(),
+                confidence=0.0,
+                strength=0.0,
+                direction="NEUTRAL",
+                entry_zone=(0.0, 0.0),
+                stop_loss=0.0,
+                take_profit_1=0.0,
+                risk_reward_ratio=0.0
+            )
+            return safe_result
     
     def analyze_market_data(self, symbol: str = "EURUSD", timeframe: str = "H1", 
                           force_refresh: bool = False) -> Optional[PatternAnalysisResult]:
