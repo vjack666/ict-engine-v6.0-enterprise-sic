@@ -22,12 +22,50 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 import numpy as np
+import sys
+import os
+import json
+from pathlib import Path
+
+# Importar el sistema de logging central
+try:
+    # Agregar ruta al core si es necesario
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    core_path = os.path.join(current_dir, "..", "..", "..")
+    if core_path not in sys.path:
+        sys.path.insert(0, core_path)
+    
+    from smart_trading_logger import get_smart_logger, log_info, log_warning, log_error
+except ImportError:
+    # Fallback si no está disponible el sistema central
+    class FallbackLogger:
+        def info(self, msg, component="ORDER_BLOCKS"): 
+            print(f"📊 [ORDER_BLOCKS] {msg}")
+        def warning(self, msg, component="ORDER_BLOCKS"): 
+            print(f"⚠️ [ORDER_BLOCKS] {msg}")
+        def error(self, msg, component="ORDER_BLOCKS"): 
+            print(f"❌ [ORDER_BLOCKS] {msg}")
+    
+    _fallback = FallbackLogger()
+    get_smart_logger = lambda: _fallback
+    log_info = lambda msg, component="ORDER_BLOCKS": _fallback.info(msg, component)
+    log_warning = lambda msg, component="ORDER_BLOCKS": _fallback.warning(msg, component)
+    log_error = lambda msg, component="ORDER_BLOCKS": _fallback.error(msg, component)
 
 # ThreadSafe pandas import
 try:
+    # Intentar usar el manager threadsafe primero
     from data_management.advanced_candle_downloader import _pandas_manager
-    pd = _pandas_manager.get_pandas()
-except ImportError:
+    if hasattr(_pandas_manager, 'get_safe_pandas_instance'):
+        pd = _pandas_manager.get_safe_pandas_instance()
+    else:
+        # Si el manager no tiene el método esperado, usar pandas directamente
+        import pandas as pd
+    
+    if pd is None:
+        import pandas as pd
+        
+except (ImportError, AttributeError):
     import pandas as pd
 
 @dataclass
@@ -69,6 +107,23 @@ class SimpleOrderBlockDetector:
         self.min_confidence = self.config.get('min_confidence', 55)
         self.volume_threshold = self.config.get('volume_threshold', 1.2)
         
+        # Configurar logger para Order Blocks
+        self.logger = get_smart_logger()
+        
+        # Configurar rutas para archivos organizados usando estructura existente
+        self.project_root = Path(__file__).parent.parent.parent.parent
+        self.order_blocks_logs_dir = self.project_root / "01-CORE" / "data" / "logs" / "ict"
+        self.order_blocks_data_dir = self.project_root / "04-DATA" / "reports" / "production"
+        self.order_blocks_structured_dir = self.project_root / "04-DATA" / "logs" / "structured"
+        
+        # Crear directorios si no existen
+        self.order_blocks_logs_dir.mkdir(parents=True, exist_ok=True)
+        self.order_blocks_data_dir.mkdir(parents=True, exist_ok=True)
+        self.order_blocks_structured_dir.mkdir(parents=True, exist_ok=True)
+        
+        log_info("📦 Order Blocks Detector v6.0 initialized", "ORDER_BLOCKS")
+        log_info(f"📁 Output organized: logs→{self.order_blocks_logs_dir.name}, data→{self.order_blocks_data_dir.name}", "ORDER_BLOCKS")
+        
     def detect_basic_order_blocks(self, 
                                  data: Any, 
                                  current_price: float,
@@ -104,15 +159,74 @@ class SimpleOrderBlockDetector:
                 block = self._create_demand_zone(data, i, current_price, symbol, timeframe)
                 if block and self._is_relevant_block(block, current_price):
                     basic_blocks.append(block)
+                    
+                    # 🔍 LOGGING DETALLADO DEL ORDER BLOCK DETECTADO
+                    candle_time = data.index[i].strftime('%Y-%m-%d %H:%M:%S') if hasattr(data.index[i], 'strftime') else str(data.index[i])
+                    
+                    # Usar sistema de logging central
+                    log_info(f"DEMAND ZONE ({symbol} {timeframe}): Precio: {block.price:.5f} | "
+                            f"Entry: {block.entry_price:.5f} | SL: {block.stop_loss:.5f} | TP: {block.take_profit:.5f} | "
+                            f"Distancia: {block.distance_pips:.1f} pips | Confianza: {block.confidence:.1f}% | "
+                            f"R:R: {block.risk_reward:.2f} | Precio actual: {current_price:.5f} | Tiempo: {candle_time}", "ORDER_BLOCKS")
+                    
+                    # También mantener el print visible para el usuario
+                    print(f"📈 DEMAND ZONE ({symbol} {timeframe}): "
+                          f"Precio: {block.price:.5f} | "
+                          f"Entry: {block.entry_price:.5f} | "
+                          f"SL: {block.stop_loss:.5f} | "
+                          f"TP: {block.take_profit:.5f} | "
+                          f"Distancia: {block.distance_pips:.1f} pips | "
+                          f"Confianza: {block.confidence:.1f}% | "
+                          f"R:R: {block.risk_reward:.2f} | "
+                          f"Precio actual: {current_price:.5f} | "
+                          f"Tiempo: {candle_time}")
             
             # 📉 SUPPLY ZONE: Swing High con rechazo hacia abajo  
             if self._is_swing_high(data, i):
                 block = self._create_supply_zone(data, i, current_price, symbol, timeframe)
                 if block and self._is_relevant_block(block, current_price):
                     basic_blocks.append(block)
+                    
+                    # 🔍 LOGGING DETALLADO DEL ORDER BLOCK DETECTADO
+                    candle_time = data.index[i].strftime('%Y-%m-%d %H:%M:%S') if hasattr(data.index[i], 'strftime') else str(data.index[i])
+                    
+                    # Usar sistema de logging central
+                    log_info(f"SUPPLY ZONE ({symbol} {timeframe}): Precio: {block.price:.5f} | "
+                            f"Entry: {block.entry_price:.5f} | SL: {block.stop_loss:.5f} | TP: {block.take_profit:.5f} | "
+                            f"Distancia: {block.distance_pips:.1f} pips | Confianza: {block.confidence:.1f}% | "
+                            f"R:R: {block.risk_reward:.2f} | Precio actual: {current_price:.5f} | Tiempo: {candle_time}", "ORDER_BLOCKS")
+                    
+                    # También mantener el print visible para el usuario
+                    print(f"📉 SUPPLY ZONE ({symbol} {timeframe}): "
+                          f"Precio: {block.price:.5f} | "
+                          f"Entry: {block.entry_price:.5f} | "
+                          f"SL: {block.stop_loss:.5f} | "
+                          f"TP: {block.take_profit:.5f} | "
+                          f"Distancia: {block.distance_pips:.1f} pips | "
+                          f"Confianza: {block.confidence:.1f}% | "
+                          f"R:R: {block.risk_reward:.2f} | "
+                          f"Precio actual: {current_price:.5f} | "
+                          f"Tiempo: {candle_time}")
         
         # 🏆 ORDENAR POR RELEVANCIA (distancia + confidence)
         basic_blocks.sort(key=lambda x: (x.distance_pips, -x.confidence))
+        
+        # 📊 RESUMEN DE DETECCIÓN
+        if basic_blocks:
+            demand_zones = [b for b in basic_blocks if b.type == 'demand_zone']
+            supply_zones = [b for b in basic_blocks if b.type == 'supply_zone']
+            avg_confidence = sum(b.confidence for b in basic_blocks) / len(basic_blocks)
+            
+            # Log resumen con sistema central
+            summary_msg = (f"{len(basic_blocks)} Order Blocks detectados "
+                          f"({len(demand_zones)} Demand, {len(supply_zones)} Supply) | "
+                          f"Confianza promedio: {avg_confidence:.1f}%")
+            log_info(f"RESUMEN {symbol} {timeframe}: {summary_msg}", "ORDER_BLOCKS")
+            
+            print(f"📊 RESUMEN {symbol} {timeframe}: {summary_msg}")
+            
+            # 💾 GUARDAR DATOS ORGANIZADOS usando estructura existente
+            self._save_organized_results(basic_blocks, symbol, timeframe, current_price)
         
         return basic_blocks[:5]  # Top 5 más relevantes
     
@@ -267,3 +381,57 @@ class SimpleOrderBlockDetector:
         """Filtrar solo blocks de alta confidence para validación enterprise"""
         
         return [block for block in blocks if block.confidence >= min_confidence]
+
+    def _save_organized_results(self, blocks: List[BasicOrderBlock], 
+                               symbol: str, timeframe: str, current_price: float) -> None:
+        """💾 Guardar resultados en estructura organizada existente"""
+        import json
+        from datetime import datetime
+        
+        # Usar carpetas existentes en lugar de crear nuevas
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Estructura de datos para guardar
+        results_data = {
+            "timestamp": timestamp,
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "current_price": current_price,
+            "total_blocks": len(blocks),
+            "demand_zones": len([b for b in blocks if b.type == 'demand_zone']),
+            "supply_zones": len([b for b in blocks if b.type == 'supply_zone']),
+            "avg_confidence": sum(b.confidence for b in blocks) / len(blocks) if blocks else 0,
+            "blocks": []
+        }
+        
+        # Agregar detalles de cada block
+        for block in blocks:
+            block_data = {
+                "type": block.type,
+                "price": block.price,
+                "confidence": block.confidence,
+                "distance_pips": block.distance_pips,
+                "candle_index": block.candle_index,
+                "volume_confirmation": block.volume_confirmation,
+                "timestamp": block.timestamp.isoformat() if hasattr(block.timestamp, 'isoformat') else str(block.timestamp),
+                "entry_price": block.entry_price,
+                "stop_loss": block.stop_loss,
+                "take_profit": block.take_profit,
+                "risk_reward": block.risk_reward
+            }
+            results_data["blocks"].append(block_data)
+        
+        # Guardar en carpeta existente 04-DATA/reports
+        filename = f"order_blocks_{symbol}_{timeframe}_{timestamp}.json"
+        filepath = self.order_blocks_data_dir / filename
+        
+        try:
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(results_data, f, indent=2, ensure_ascii=False)
+            
+            log_info(f"💾 Resultados guardados: {filepath.name}", "ORDER_BLOCKS")
+            print(f"💾 Datos guardados en: {filepath}")
+            
+        except Exception as e:
+            log_warning(f"Error guardando resultados: {e}", "ORDER_BLOCKS")
+            print(f"⚠️  Error guardando: {e}")

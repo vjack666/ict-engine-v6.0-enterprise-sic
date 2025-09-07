@@ -19,9 +19,18 @@ import time
 
 # ThreadSafe pandas import
 try:
+    # Intentar usar el manager threadsafe primero
     from data_management.advanced_candle_downloader import _pandas_manager
-    pd = _pandas_manager.get_pandas()
-except ImportError:
+    if hasattr(_pandas_manager, 'get_safe_pandas_instance'):
+        pd = _pandas_manager.get_safe_pandas_instance()
+    else:
+        # Si el manager no tiene el método esperado, usar pandas directamente
+        import pandas as pd
+    
+    if pd is None:
+        import pandas as pd
+        
+except (ImportError, AttributeError):
     import pandas as pd
 
 # Import del sistema híbrido

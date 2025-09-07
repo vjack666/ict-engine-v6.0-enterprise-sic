@@ -130,6 +130,9 @@ class UnifiedMemorySystem:
         self.learning_engine = AdaptiveLearningEngine(self)
         self.confidence_evaluator = TraderConfidenceEvaluator(self)
         
+        # === MEMORIA DE PATRONES ===
+        self.pattern_memory = []  # Lista para almacenar patrones históricos
+        
         # === ESTADO DEL SISTEMA DINÁMICO ===
         self.system_state = {
             'initialization_time': datetime.now(timezone.utc),
@@ -1335,7 +1338,7 @@ class TraderConfidenceEvaluator:
             cutoff_date = datetime.now() - timedelta(days=lookback_days)
             
             # Buscar en memoria de patrones
-            for stored_pattern in self.pattern_memory:
+            for stored_pattern in self.unified_system.pattern_memory:
                 try:
                     pattern_timestamp = stored_pattern.get('timestamp', '')
                     if pattern_timestamp:
@@ -1367,7 +1370,7 @@ class TraderConfidenceEvaluator:
                 "query": f"type={pattern_type}, tf={timeframe}, symbol={symbol}",
                 "patterns_found": len(historical_data),
                 "lookback_days": lookback_days,
-                "total_memory_patterns": len(self.pattern_memory)
+                "total_memory_patterns": len(self.unified_system.pattern_memory)
             })
             
             return {
@@ -1412,7 +1415,7 @@ class TraderConfidenceEvaluator:
             }
             
             # Analizar patrones por sesión
-            for pattern in self.pattern_memory:
+            for pattern in self.unified_system.pattern_memory:
                 pattern_symbol = pattern.get('symbol', 'UNKNOWN')
                 pattern_timestamp = pattern.get('timestamp', '')
                 
@@ -1516,6 +1519,48 @@ class TraderConfidenceEvaluator:
             return 'new_york'
         else:
             return 'unknown'
+
+    def store_pattern_memory(self, symbol: str, pattern_data: Dict[str, Any]) -> bool:
+        """
+        💾 Almacena patrones en memoria del sistema
+        
+        Args:
+            symbol: Símbolo del instrumento
+            pattern_data: Datos del patrón a almacenar
+            
+        Returns:
+            bool: True si se almacenó correctamente
+        """
+        try:
+            # Agregar timestamp si no existe
+            if 'timestamp' not in pattern_data:
+                pattern_data['timestamp'] = datetime.now(timezone.utc).isoformat()
+            
+            # Agregar símbolo si no existe
+            if 'symbol' not in pattern_data:
+                pattern_data['symbol'] = symbol
+            
+            # Almacenar en memoria
+            self.pattern_memory.append(pattern_data)
+            
+            # Mantener solo los últimos 1000 patrones para eficiencia
+            if len(self.pattern_memory) > 1000:
+                self.pattern_memory = self.pattern_memory[-1000:]
+            
+            log_trading_decision_smart_v6("PATTERN_STORED_MEMORY", {
+                "symbol": symbol,
+                "pattern_type": pattern_data.get("type", "unknown"),
+                "memory_size": len(self.pattern_memory)
+            })
+            
+            return True
+            
+        except Exception as e:
+            log_trading_decision_smart_v6("PATTERN_STORE_ERROR", {
+                "symbol": symbol,
+                "error": str(e)
+            })
+            return False
 
 # === INSTANCIA GLOBAL FASE 2 ===
 _unified_memory_system: Optional[UnifiedMemorySystem] = None

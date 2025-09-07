@@ -326,13 +326,18 @@ class ICTEngineProductionSystem:
         
         try:
             # Usar ImportManager para imports seguros
-            from import_manager import get_pattern_detector, get_smart_money_analyzer
+            from import_manager import get_pattern_detector, get_smart_money_analyzer, get_order_blocks_detector
             
             # Cargar componentes usando el gestor de imports
             print("   📦 Cargando ICTPatternDetector...")
             ICTPatternDetector = get_pattern_detector()
             if ICTPatternDetector is None:
                 raise ImportError("No se pudo cargar ICTPatternDetector")
+            
+            print("   📦 Cargando OrderBlocksDetector híbrido...")
+            OrderBlocksDetector = get_order_blocks_detector()
+            if OrderBlocksDetector is None:
+                print("   ⚠️ OrderBlocksDetector no disponible - continuando sin Order Blocks")
             
             print("   📦 Cargando SmartMoneyAnalyzer...")
             SmartMoneyAnalyzer = get_smart_money_analyzer()
@@ -342,6 +347,22 @@ class ICTEngineProductionSystem:
             # Crear detectores
             detector_config = {'production_mode': True, 'real_data_only': True}
             pattern_detector = ICTPatternDetector(detector_config)
+            
+            # Crear detector híbrido de Order Blocks si está disponible
+            order_blocks_detector = None
+            if OrderBlocksDetector:
+                order_blocks_config = {
+                    'enterprise_threshold': 70,
+                    'max_enterprise_validations': 3,
+                    'simple_config': {
+                        'lookback_period': 20,
+                        'max_distance_pips': 30,
+                        'min_confidence': 55
+                    }
+                }
+                order_blocks_detector = OrderBlocksDetector(order_blocks_config)
+                print("   ✅ OrderBlocks híbrido inicializado")
+            
             smart_money = SmartMoneyAnalyzer()
             
             print("✅ Componentes de producción inicializados")
@@ -397,6 +418,35 @@ class ICTEngineProductionSystem:
                         
                         print(f"   ✅ {len(patterns)} patterns detectados en {analysis_time:.3f}s")
                         
+                        # 🎯 ANÁLISIS ORDER BLOCKS HÍBRIDO
+                        order_blocks_patterns = []
+                        if order_blocks_detector:
+                            print(f"   🏗️ Detectando Order Blocks híbridos...")
+                            ob_start_time = time.time()
+                            
+                            try:
+                                order_blocks_patterns = order_blocks_detector.detect_patterns(
+                                    real_data, symbol, timeframe, current_price
+                                )
+                                ob_analysis_time = time.time() - ob_start_time
+                                
+                                print(f"   ✅ {len(order_blocks_patterns)} Order Blocks detectados en {ob_analysis_time:.3f}s")
+                                
+                                # Mostrar resultados destacados
+                                if order_blocks_patterns:
+                                    top_blocks = [p for p in order_blocks_patterns if p.get('recommendation') in ['STRONG_BUY', 'BUY']]
+                                    if top_blocks:
+                                        print(f"   🎯 {len(top_blocks)} Order Blocks de alta confianza encontrados")
+                                        for block in top_blocks[:2]:  # Top 2
+                                            conf = block.get('confidence', 0)
+                                            rec = block.get('recommendation', 'N/A')
+                                            ob_type = block.get('sub_type', 'unknown')
+                                            print(f"      📊 {ob_type.upper()}: {conf:.1f}% confidence - {rec}")
+                                
+                            except Exception as ob_e:
+                                print(f"   ⚠️ Error en Order Blocks: {ob_e}")
+                                order_blocks_patterns = []
+                        
                         # Análisis Smart Money
                         print(f"   🧠 Análisis Smart Money en producción...")
                         timeframes_data = {timeframe: real_data}
@@ -424,6 +474,8 @@ class ICTEngineProductionSystem:
                             'current_price': current_price,
                             'data_points': data_points,
                             'patterns_detected': len(patterns),
+                            'order_blocks_detected': len(order_blocks_patterns),
+                            'order_blocks_analysis': order_blocks_patterns,
                             'smart_money_analysis': sm_analysis,
                             'production_notes': {
                                 'data_quality': 'PROFESSIONAL' if is_professional else 'RETAIL',
@@ -442,6 +494,7 @@ class ICTEngineProductionSystem:
                             'success': True,
                             'data_source': data_source,
                             'patterns_detected': len(patterns),
+                            'order_blocks_detected': len(order_blocks_patterns),
                             'current_price': current_price,
                             'is_professional': is_professional
                         }
@@ -481,6 +534,13 @@ class ICTEngineProductionSystem:
             if isinstance(tf, dict) and tf.get('success', False)
         )
         
+        total_order_blocks = sum(
+            tf.get('order_blocks_detected', 0) 
+            for symbol_data in results.values() 
+            for tf in symbol_data.values() 
+            if isinstance(tf, dict) and tf.get('success', False)
+        )
+        
         mt5_count = sum(
             1 for symbol_data in results.values() 
             for tf in symbol_data.values() 
@@ -496,6 +556,7 @@ class ICTEngineProductionSystem:
         print(f"   🎯 Símbolos configurados: {total_symbols}")
         print(f"   ✅ Análisis exitosos: {success_count}")
         print(f"   🔍 Patterns detectados: {total_patterns}")
+        print(f"   🏗️ Order Blocks detectados: {total_order_blocks}")
         print(f"   🏆 Datos MT5 Professional: {mt5_count}")
         print(f"   📡 Datos Yahoo Finance: {yahoo_count}")
         print(f"   🏭 Modo: PRODUCCIÓN (Solo datos reales)")
