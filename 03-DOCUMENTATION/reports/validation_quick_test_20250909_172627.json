@@ -1,0 +1,36 @@
+{
+  "timestamp": "2025-09-09T17:26:27.268212",
+  "tests": {
+    "log_volume": {
+      "current_lines": 82,
+      "target_max": 1000,
+      "status": "PASS",
+      "severity": "MEDIUM"
+    },
+    "errors": {
+      "current_errors": 2,
+      "current_criticals": 2,
+      "test_errors": 0,
+      "status": "FAIL"
+    },
+    "timestamps": {
+      "files_checked": 10,
+      "inconsistent_files": 0,
+      "status": "PASS"
+    },
+    "configurations": {
+      "total_configs": 4,
+      "configs_exist": 4,
+      "status": "PASS"
+    },
+    "utilities": {
+      "total_utils": 4,
+      "utils_exist": 4,
+      "status": "PASS"
+    }
+  },
+  "overall_score": 80.0,
+  "recommendations": [
+    "\ud83d\udea8 CR\u00cdTICO: Resolver errores y violaciones de riesgo"
+  ]
+}
