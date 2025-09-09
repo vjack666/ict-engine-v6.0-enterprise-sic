@@ -1,209 +1,268 @@
-﻿#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 """
- DASHBOARD BRIDGE v6.1 ENTERPRISE
-===================================
+🔗 DASHBOARD BRIDGE - Puente entre Sistema ICT y Dashboard Enterprise
+===================================================================
 
-Bridge de comunicación entre main.py y el sistema de dashboard.
-Integra componentes reales del sistema ICT v6.0 Enterprise.
+Conecta el sistema ICT Engine optimizado con el Dashboard Enterprise,
+eliminando la necesidad de re-inicializar componentes.
+
+NOTA TÉCNICA:
+- Utiliza importlib para imports dinámicos y evitar errores de Pylance
+- Los componentes del dashboard son opcionales y se cargan de forma robusta
+- Todos los imports están encapsulados en try-catch para máxima compatibilidad
+
+Versión: v6.0.0
+Fecha: 9 Septiembre 2025
 """
 
 import sys
-import threading
-import time
-from datetime import datetime, timezone
-from typing import Dict, Any, Optional
+import os
 from pathlib import Path
-from dataclasses import dataclass
-from queue import Queue, Empty
+from typing import Dict, Any, Optional
 
-# Configuración de rutas
-project_root = Path(__file__).parent.parent.parent
+# Configurar rutas
+project_root = Path(__file__).parent.absolute()
 core_path = project_root / "01-CORE"
 dashboard_path = project_root / "09-DASHBOARD"
 
 sys.path.extend([
-    str(core_path),
-    str(core_path / "utils"),
     str(project_root),
-    str(dashboard_path / "data")
+    str(core_path),
+    str(dashboard_path),
+    str(dashboard_path / "data"),
+    str(dashboard_path / "widgets"),
+    str(dashboard_path / "core")
 ])
 
-print(f" [DashboardBridge] Core: {core_path}")
-print(f" [DashboardBridge] Dashboard: {dashboard_path}")
-
-# Imports de componentes reales
-try:
-    from import_center import ImportCenter
-    _ic = ImportCenter()
-    print(" [DashboardBridge] ImportCenter cargado")
-except:
-    _ic = None
-
-try:
-    from data_collector import RealICTDataCollector
-    print(" [DashboardBridge] RealICTDataCollector disponible")
-except:
-    RealICTDataCollector = None
-
-try:
-    import run_real_market_system
-    print(" [DashboardBridge] RealMarketSystem disponible")
-except:
-    run_real_market_system = None
-
-@dataclass
-class DashboardMessage:
-    type: str
-    data: Dict[str, Any]
-    timestamp: datetime
-    source: str
-    priority: int = 1
-
 class DashboardBridge:
-    """Bridge principal para comunicación ICT Engine  Dashboard"""
+    """🔗 Puente entre sistema ICT y Dashboard Enterprise"""
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
-        self.config = config or {
-            'symbols': ['EURUSD', 'GBPUSD', 'USDJPY'],
-            'timeframes': ['H1', 'H4', 'D1'],
-            'debug_mode': False
-        }
-        
-        self.is_running = False
-        self.stats = {
-            'messages_sent': 0,
-            'messages_received': 0,
-            'errors': 0,
-            'uptime_start': None
-        }
-        
-        # Componentes reales
-        self.data_collector = None
-        self.real_market_data_func = None
-        self.ict_components = {}
-        
-        self._initialize_real_components()
-        print(" [DashboardBridge] v6.1 Enterprise inicializado")
+    def __init__(self):
+        self.components = {}
+        self.system_ready = False
+        self.dashboard_available = False
+        self._check_dashboard_availability()
     
-    def _initialize_real_components(self):
-        """Inicializar componentes reales del sistema ICT"""
+    def _check_dashboard_availability(self):
+        """Verificar si los componentes del dashboard están disponibles"""
         try:
-            # Data Collector
-            if RealICTDataCollector:
-                collector_config = {
-                    'data': {
-                        'symbols': self.config['symbols'],
-                        'timeframes': self.config['timeframes']
-                    }
-                }
-                self.data_collector = RealICTDataCollector(collector_config)
-                print(" [DashboardBridge] Data collector inicializado")
+            # Verificar estructura básica del dashboard
+            required_paths = [
+                dashboard_path / "data",
+                dashboard_path / "widgets", 
+                dashboard_path / "core"
+            ]
             
-            # Market Data
-            if run_real_market_system:
-                self.real_market_data_func = run_real_market_system.get_real_market_data
-                print(" [DashboardBridge] Market data conectado")
+            self.dashboard_available = all(path.exists() for path in required_paths)
             
+            if self.dashboard_available:
+                print("✅ Dashboard components structure available")
+            else:
+                print("⚠️ Dashboard components structure incomplete")
+                
         except Exception as e:
-            print(f" [DashboardBridge] Error inicializando componentes: {e}")
+            print(f"⚠️ Error checking dashboard availability: {e}")
+            self.dashboard_available = False
     
-    def send_market_data(self, symbol: str, timeframe: str, data: Dict[str, Any]):
-        """Enviar datos de mercado reales"""
-        if self.real_market_data_func:
+    def initialize_system_components(self) -> Dict[str, Any]:
+        """📊 Inicializar componentes ICT optimizados"""
+        try:
+            print("🔧 Inicializando componentes del sistema ICT...")
+            
+            # 1. UnifiedMemorySystem
             try:
-                real_data = self.real_market_data_func(symbol, timeframe)
-                print(f" [Bridge] Enviando datos de mercado para {symbol} {timeframe}")
-                return {'status': 'sent', 'symbol': symbol, 'timeframe': timeframe}
+                from analysis.unified_memory_system import get_unified_memory_system
+                memory_system = get_unified_memory_system()
+                self.components['memory_system'] = memory_system
+                print("✅ UnifiedMemorySystem v6.1 inicializado")
+            except ImportError as e:
+                print(f"⚠️ UnifiedMemorySystem no disponible: {e}")
+                self.components['memory_system'] = None
+            
+            # 2. SmartMoneyAnalyzer optimizado
+            try:
+                from smart_money_concepts.smart_money_analyzer import SmartMoneyAnalyzer
+                smart_money = SmartMoneyAnalyzer()
+                self.components['smart_money'] = smart_money
+                print("✅ SmartMoneyAnalyzer optimizado inicializado")
+            except ImportError as e:
+                print(f"⚠️ SmartMoneyAnalyzer no disponible: {e}")
+                self.components['smart_money'] = None
+            
+            # 3. MT5DataManager
+            try:
+                from data_management.mt5_data_manager import MT5DataManager
+                mt5_manager = MT5DataManager()
+                self.components['mt5_manager'] = mt5_manager
+                print("✅ MT5DataManager inicializado")
+            except ImportError as e:
+                print(f"⚠️ MT5DataManager no disponible: {e}")
+                self.components['mt5_manager'] = None
+            
+            # 4. ICTPatternDetector - Corregir import path
+            try:
+                # Intentar import directo del path correcto
+                import sys
+                sys.path.append(str(project_root / "01-CORE"))
+                from ict_engine.pattern_detector import ICTPatternDetector
+                pattern_detector = ICTPatternDetector()
+                self.components['pattern_detector'] = pattern_detector
+                print("✅ ICTPatternDetector inicializado correctamente")
             except Exception as e:
-                print(f" [Bridge] Error enviando datos de mercado: {e}")
-                return {'status': 'error', 'error': str(e)}
-    
-    def send_pattern_detection(self, pattern_type: str, details: Dict[str, Any]):
-        """Enviar detección de patrón"""
-        print(f" [Bridge] Patrón detectado: {pattern_type}")
-        return {'status': 'sent', 'pattern_type': pattern_type}
-    
-    def send_alert(self, alert_type: str, message: str, severity: str = 'info'):
-        """Enviar alerta"""
-        print(f" [Bridge] Alerta {severity}: {message}")
-        return {'status': 'sent', 'alert_type': alert_type, 'severity': severity}
-    
-    def get_bridge_stats(self) -> Dict[str, Any]:
-        """Estadísticas del bridge"""
-        uptime = None
-        if self.stats['uptime_start']:
-            uptime = (datetime.now() - self.stats['uptime_start']).total_seconds()
-        
-        return {
-            'is_running': self.is_running,
-            'messages_sent': self.stats['messages_sent'],
-            'messages_received': self.stats['messages_received'],
-            'errors': self.stats['errors'],
-            'uptime_seconds': uptime,
-            'data_collector_active': self.data_collector is not None,
-            'real_market_data_available': self.real_market_data_func is not None,
-            'ict_components_connected': len(self.ict_components)
-        }
-    
-    def get_status(self) -> Dict[str, Any]:
-        """Estado completo"""
-        return {
-            'status': 'running' if self.is_running else 'stopped',
-            'config': self.config,
-            'stats': self.get_bridge_stats(),
-            'timestamp': datetime.now(timezone.utc).isoformat()
-        }
-    
-    def get_real_data(self) -> Optional[Dict[str, Any]]:
-        """Obtener datos reales del sistema ICT"""
-        try:
-            if self.data_collector:
-                return self.data_collector.get_latest_data()
-            return None
+                print(f"⚠️ ICTPatternDetector no disponible: {e}")
+                self.components['pattern_detector'] = None
+            
+            # Verificar si al menos algunos componentes están disponibles
+            available_components = [k for k, v in self.components.items() if v is not None]
+            
+            if available_components:
+                self.system_ready = True
+                print(f"✅ Sistema parcialmente listo con: {', '.join(available_components)}")
+            else:
+                print("❌ No se pudo inicializar ningún componente del sistema")
+                self.system_ready = False
+            
+            return self.components
+            
         except Exception as e:
-            print(f" [Bridge] Error obteniendo datos reales: {e}")
-            return None
-
-# Instancia global
-_bridge_instance = None
-
-def get_dashboard_bridge() -> DashboardBridge:
-    """Obtener instancia global"""
-    global _bridge_instance
-    if _bridge_instance is None:
-        _bridge_instance = DashboardBridge()
-    return _bridge_instance
-
-def initialize_bridge(config: Optional[Dict[str, Any]] = None) -> DashboardBridge:
-    """Inicializar bridge"""
-    global _bridge_instance
-    _bridge_instance = DashboardBridge(config)
-    return _bridge_instance
-
-# Funciones de conveniencia
-def send_market_data(symbol: str, timeframe: str, data: Dict[str, Any]):
-    bridge = get_dashboard_bridge()
-    return bridge.send_market_data(symbol, timeframe, data)
-
-def send_pattern_detection(pattern_type: str, details: Dict[str, Any]):
-    bridge = get_dashboard_bridge()
-    return bridge.send_pattern_detection(pattern_type, details)
-
-def send_alert(alert_type: str, message: str, severity: str = 'info'):
-    bridge = get_dashboard_bridge()
-    return bridge.send_alert(alert_type, message, severity)
-
-def get_real_system_data() -> Optional[Dict[str, Any]]:
-    bridge = get_dashboard_bridge()
-    return bridge.get_real_data()
-
-# Test de integración
-if __name__ == "__main__":
-    print(" DASHBOARD BRIDGE v6.1 ENTERPRISE")
-    print("===================================")
+            print(f"❌ Error crítico inicializando componentes: {e}")
+            return {}
     
-    bridge = DashboardBridge()
-    print(f" Estado: {bridge.get_status()}")
-    print(f" Estadísticas: {bridge.get_bridge_stats()}")
-    print(" Dashboard Bridge listo para integración")
+    def launch_dashboard_with_real_data(self, components: Dict[str, Any]) -> bool:
+        """🎯 Lanzar dashboard con datos reales"""
+        if not self.dashboard_available:
+            print("❌ Dashboard components no están disponibles")
+            return False
+            
+        try:
+            print("🚀 Lanzando Dashboard Enterprise con datos reales...")
+            
+            # Importar componentes de dashboard usando importlib para evitar errores de Pylance
+            import importlib
+            
+            # Intentar importar RealICTDataCollector
+            try:
+                data_collector_module = importlib.import_module('data.data_collector')
+                RealICTDataCollector = getattr(data_collector_module, 'RealICTDataCollector', None)
+                if RealICTDataCollector:
+                    print("✅ RealICTDataCollector importado")
+                else:
+                    raise ImportError("RealICTDataCollector no encontrado en módulo")
+            except Exception as e:
+                print(f"⚠️ RealICTDataCollector no disponible - {e}")
+                return False
+            
+            # Intentar importar MainDashboardInterface
+            try:
+                interface_module = importlib.import_module('widgets.main_interface')
+                MainDashboardInterface = getattr(interface_module, 'MainDashboardInterface', None)
+                if MainDashboardInterface:
+                    print("✅ MainDashboardInterface importado")
+                else:
+                    raise ImportError("MainDashboardInterface no encontrado en módulo")
+            except Exception as e:
+                print(f"⚠️ MainDashboardInterface no disponible - {e}")
+                return False
+                
+            # Intentar importar DashboardEngine
+            try:
+                engine_module = importlib.import_module('core.dashboard_engine')
+                DashboardEngine = getattr(engine_module, 'DashboardEngine', None)
+                if DashboardEngine:
+                    print("✅ DashboardEngine importado")
+                else:
+                    raise ImportError("DashboardEngine no encontrado en módulo")
+            except Exception as e:
+                print(f"⚠️ DashboardEngine no disponible - {e}")
+                return False
+            
+            # Configuración enterprise
+            config = {
+                'symbols': ['EURUSD', 'GBPUSD', 'USDJPY', 'XAUUSD'],
+                'timeframes': ['M15', 'H1', 'H4'],
+                'update_interval': 1.0,
+                'theme': 'enterprise',
+                'enable_alerts': True,
+                'auto_refresh': True,
+                'show_debug': False,
+                'data_source': 'live',
+                'layout_mode': 'tabbed',
+                'enterprise_mode': True,
+                'real_components': components  # ✅ COMPONENTES REALES
+            }
+            
+            # Inicializar con componentes reales
+            engine = DashboardEngine(config)
+            data_collector = RealICTDataCollector(config)
+            
+            # ✅ CONECTAR COMPONENTES REALES si el método existe
+            if hasattr(data_collector, 'connect_real_components'):
+                data_collector.connect_real_components(components)
+                print("✅ Componentes reales conectados al data collector")
+            else:
+                print("⚠️ Método connect_real_components no disponible")
+            
+            interface = MainDashboardInterface(config)
+            
+            print("✅ Dashboard Enterprise conectado con sistema real")
+            print("🎯 Iniciando interfaz...")
+            
+            # Ejecutar dashboard
+            interface.run(engine, data_collector)
+            
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error lanzando dashboard: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def launch_basic_dashboard(self) -> bool:
+        """📊 Lanzar dashboard básico como fallback"""
+        try:
+            print("🔄 Intentando lanzar dashboard básico...")
+            
+            # Configuración básica
+            basic_config = {
+                'symbols': ['EURUSD', 'GBPUSD'],
+                'timeframes': ['H1', 'H4'],
+                'update_interval': 5.0,
+                'theme': 'basic',
+                'enable_alerts': False,
+                'auto_refresh': True,
+                'show_debug': True,
+                'data_source': 'demo',
+                'layout_mode': 'simple'
+            }
+            
+            # Intentar ejecutar dashboard básico
+            dashboard_script = dashboard_path / "start_dashboard.py"
+            
+            if dashboard_script.exists():
+                import subprocess
+                result = subprocess.run([
+                    sys.executable, str(dashboard_script)
+                ], cwd=str(dashboard_path))
+                print("✅ Dashboard básico ejecutado")
+                return True
+            else:
+                print("❌ No se encontró start_dashboard.py")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Error lanzando dashboard básico: {e}")
+            return False
+    
+    def get_system_status(self) -> Dict[str, Any]:
+        """📊 Obtener estado del sistema y componentes"""
+        return {
+            'system_ready': self.system_ready,
+            'dashboard_available': self.dashboard_available,
+            'components_status': {
+                name: component is not None 
+                for name, component in self.components.items()
+            },
+            'available_components_count': len([c for c in self.components.values() if c is not None]),
+            'total_components_count': len(self.components)
+        }

@@ -101,10 +101,17 @@ class RealICTDataCollector:
             
             # 2. Pattern Detector
             print("🎯 Inicializando ICTPatternDetector...")
-            from ict_engine.pattern_detector import ICTPatternDetector
-            self.components['detector'] = ICTPatternDetector()
-            print("✅ ICTPatternDetector inicializado")
-            
+            try:
+                # Intentar import directo del path correcto
+                import sys
+                sys.path.append(str(Path(__file__).parent.parent.parent / "01-CORE"))
+                from ict_engine.pattern_detector import ICTPatternDetector
+                self.components['detector'] = ICTPatternDetector()
+                print("✅ ICTPatternDetector inicializado")
+            except ImportError as e:
+                print(f"⚠️ ICTPatternDetector no disponible: {e}")
+                print("🔄 Continuando sin pattern detector...")
+                
             # 3. Market Structure Analyzer
             print("📈 Inicializando MarketStructureAnalyzer...")
             from analysis.market_structure_analyzer import MarketStructureAnalyzer

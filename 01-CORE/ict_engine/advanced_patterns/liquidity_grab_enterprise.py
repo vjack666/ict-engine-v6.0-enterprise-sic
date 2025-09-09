@@ -1005,7 +1005,17 @@ def create_test_liquidity_grab_detector() -> LiquidityGrabDetectorEnterprise:
     return LiquidityGrabDetectorEnterprise()
 
 
+# 🔗 ENTERPRISE COMPATIBILITY ALIAS
+# ===========================================
+# Alias para compatibilidad con imports existentes en dashboards
+LiquidityGrabEnterprise = LiquidityGrabDetectorEnterprise
+
+
 if __name__ == "__main__":
     # 🧪 Test básico
     detector = create_test_liquidity_grab_detector()
     print("✅ Liquidity Grab Detector Enterprise v6.0 - Test básico completado")
+    
+    # 🧪 Test alias
+    enterprise_detector = LiquidityGrabEnterprise()
+    print("✅ LiquidityGrabEnterprise alias working correctly")
