@@ -39,18 +39,35 @@ print(f"[TOOL] Core path configurado: {core_path}")
 print(f"[TOOL] Data path configurado: {data_path}")
 print(f"[TOOL] Logs path configurado: {logs_path}")
 
-# Importar componentes reales usando import_center
+# Importar componentes reales usando paths absolutos
 try:
-    # Agregar path específico para utils y dashboard data
-    utils_path = core_path / "utils"
-    dashboard_data_path = dashboard_path / "data"
+    # Configurar paths específicos para importación
+    utils_import_path = str(core_path / "utils")
+    dashboard_data_path = str(dashboard_path / "data")
     
-    for path in [utils_path, dashboard_data_path]:
-        if str(path) not in sys.path:
-            sys.path.insert(0, str(path))
+    # Añadir al principio del sys.path para prioridad
+    if utils_import_path not in sys.path:
+        sys.path.insert(0, utils_import_path)
+    if dashboard_data_path not in sys.path:
+        sys.path.insert(0, dashboard_data_path)
     
-    from import_center import get_smart_logger_safe, get_mt5_manager_safe
-    from data_collector import RealICTDataCollector
+    # Importar componentes con manejo de errores específico
+    try:
+        import import_center  # type: ignore
+        get_smart_logger_safe = import_center.get_smart_logger_safe
+        get_mt5_manager_safe = import_center.get_mt5_manager_safe
+        print("[OK] import_center cargado correctamente")
+    except ImportError as e:
+        print(f"[ERROR] No se pudo cargar import_center: {e}")
+        raise
+    
+    try:
+        import data_collector  # type: ignore
+        RealICTDataCollector = data_collector.RealICTDataCollector
+        print("[OK] data_collector cargado correctamente")
+    except ImportError as e:
+        print(f"[ERROR] No se pudo cargar data_collector: {e}")
+        raise
     
     # Inicializar logger y MT5 manager reales
     logger = get_smart_logger_safe()
@@ -64,8 +81,8 @@ try:
 except Exception as e:
     print(f"[X] Error importando componentes reales: {e}")
     print(f"[DEBUG] Paths utilizados:")
-    print(f"    - Utils: {utils_path}")
-    print(f"    - Dashboard Data: {dashboard_data_path}")
+    print(f"    - Utils: {core_path / 'utils'}")
+    print(f"    - Dashboard Data: {dashboard_path / 'data'}")
     print("[CRITICAL] Sistema no puede continuar sin componentes reales")
     sys.exit(1)
 

@@ -792,10 +792,6 @@ class RealICTDataCollector:
         except:
             return 15.2  # Fallback
     
-    def register_callback(self, callback):
-        """Registrar callback para actualizaciones"""
-        self.callbacks.append(callback)
-    
     def get_historical_data(self, hours: int = 24) -> List[DashboardData]:
         """Obtener datos históricos"""
         return self.data_history[-min(hours, len(self.data_history)):]

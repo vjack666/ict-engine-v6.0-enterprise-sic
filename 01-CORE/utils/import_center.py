@@ -13,6 +13,7 @@ Fecha: 1 Septiembre 2025
 
 import sys
 import threading
+import datetime
 from pathlib import Path
 from typing import Any, Optional, Dict, Callable, Union, TYPE_CHECKING
 
@@ -178,13 +179,6 @@ class ImportCenter:
         # Intentar desde core (ubicación real)
         try:
             from smart_trading_logger import SmartTradingLogger
-            return SmartTradingLogger
-        except ImportError:
-            pass
-
-        # Intentar desde utils como fallback
-        try:
-            from utils.smart_trading_logger import SmartTradingLogger
             return SmartTradingLogger
         except ImportError:
             pass
@@ -497,13 +491,95 @@ def safe_import_ict_types():
 _import_center = ImportCenter()
 
 # Funciones de conveniencia
-def get_mt5_manager_safe():
-    """🔌 Obtener MT5Manager de forma segura"""
-    return _import_center.get_mt5_manager()
-
 def get_pattern_detector_safe():
     """🎯 Obtener PatternDetector de forma segura"""
     return _import_center.get_pattern_detector()
+
+def get_mt5_manager_safe() -> Optional[Any]:
+    """🔌 Obtener MT5DataManager con fallbacks mejorado"""
+    try:
+        # Intentar obtener el manager desde import center
+        manager = _import_center.get_mt5_manager()
+        if hasattr(manager, '__call__'):
+            # Si es una función, llamarla para obtener la instancia
+            return manager()
+        return manager
+    except Exception as e:
+        _log("warning", f"MT5Manager no disponible: {e}")
+        return None
+
+def get_data_collector_safe() -> Optional[Any]:
+    """📊 Obtener Data Collector con fallbacks optimizado"""
+    try:
+        # Intentar importar desde dashboard con configuración optimizada
+        import sys
+        from pathlib import Path
+        dashboard_path = Path(__file__).parent.parent.parent / "09-DASHBOARD" / "data"
+        sys.path.insert(0, str(dashboard_path))
+        
+        try:
+            from data_collector import RealICTDataCollector  # type: ignore
+        except ImportError:
+            # Fallback a core si data no está disponible
+            dashboard_core_path = Path(__file__).parent.parent.parent / "09-DASHBOARD" / "core"
+            sys.path.insert(0, str(dashboard_core_path))
+            from data_collector import RealICTDataCollector  # type: ignore
+        
+        # Configuración empresarial optimizada
+        config = {
+            'data': {
+                'symbols': ['EURUSD', 'GBPUSD', 'XAUUSD', 'USDJPY'],
+                'timeframes': ['H1', 'H4', 'M15'],
+                'real_time_update': True,
+                'enterprise_mode': True
+            },
+            'performance': {
+                'cache_enabled': True,
+                'concurrent_downloads': 3,
+                'thread_safe': True
+            }
+        }
+        
+        collector = RealICTDataCollector(config)
+        _log("info", "✅ Data Collector Enterprise inicializado exitosamente")
+        return collector
+    except Exception as e:
+        _log("warning", f"Data Collector no disponible: {e}")
+        return None
+
+def verify_mt5_connection() -> bool:
+    """🔌 Verificar conexión MT5 mejorada"""
+    try:
+        mt5_manager = get_mt5_manager_safe()
+        if mt5_manager is None:
+            return False
+            
+        # Verificar si ya está conectado o intentar conectar
+        if hasattr(mt5_manager, 'is_connected') and mt5_manager.is_connected():
+            return True
+        elif hasattr(mt5_manager, 'connect'):
+            return mt5_manager.connect()
+        
+        return False
+    except Exception as e:
+        _log("warning", f"Error verificando conexión MT5: {e}")
+        return False
+
+def get_system_status_detailed() -> Dict[str, Any]:
+    """🩺 Obtener estado detallado del sistema"""
+    status = {
+        'mt5_connection': verify_mt5_connection(),
+        'data_collector_available': get_data_collector_safe() is not None,
+        'import_center_health': _import_center.get_system_health(),
+        'timestamp': datetime.datetime.now().isoformat()
+    }
+    
+    # Calcular score de salud general
+    critical_components = ['mt5_connection', 'data_collector_available']
+    health_score = sum(status[comp] for comp in critical_components if isinstance(status[comp], bool))
+    status['overall_health_score'] = (health_score / len(critical_components)) * 100
+    
+    return status
 
 def get_smart_logger_safe():
     """📋 Obtener SmartLogger de forma segura"""
