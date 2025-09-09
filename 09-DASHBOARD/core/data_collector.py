@@ -27,6 +27,16 @@ from typing import Dict, Any, List, Optional, Callable
 from dataclasses import dataclass, asdict
 from collections import defaultdict
 
+# 🌉 REAL MARKET BRIDGE - FASE 1 IMPLEMENTACIÓN
+try:
+    from core.real_market_bridge import RealMarketBridge
+    REAL_BRIDGE_AVAILABLE = True
+    print("✅ RealMarketBridge importado exitosamente")
+except ImportError as e:
+    print(f"⚠️ RealMarketBridge no disponible: {e}")
+    REAL_BRIDGE_AVAILABLE = False
+    RealMarketBridge = None
+
 # Configurar paths
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root / "01-CORE"))
@@ -47,7 +57,7 @@ class DashboardDataCollector:
     
     def __init__(self, config: Dict[str, Any]):
         """
-        Inicializar recolector de datos
+        🌉 Inicializar recolector de datos con RealMarketBridge
         
         Args:
             config: Configuración del dashboard
@@ -56,6 +66,20 @@ class DashboardDataCollector:
         self.symbols = config.get('symbols', ['EURUSD', 'GBPUSD', 'XAUUSD'])
         self.timeframes = config.get('timeframes', ['M15', 'H1'])
         self.update_interval = config.get('update_interval', 2.0)
+        
+        # 🌉 INICIALIZAR REAL MARKET BRIDGE - FASE 1
+        if REAL_BRIDGE_AVAILABLE and RealMarketBridge is not None:
+            try:
+                self.real_bridge = RealMarketBridge()
+                print("✅ RealMarketBridge inicializado en DataCollector")
+                self.use_real_data = True
+            except Exception as e:
+                print(f"⚠️ Error inicializando RealMarketBridge: {e}")
+                self.real_bridge = None
+                self.use_real_data = False
+        else:
+            self.real_bridge = None
+            self.use_real_data = False
         
         # Threading
         self.collection_thread: Optional[threading.Thread] = None
@@ -70,7 +94,7 @@ class DashboardDataCollector:
         # Callbacks
         self.data_callbacks: List[Callable[[DashboardData], None]] = []
         
-        # Componentes del sistema
+        # Componentes del sistema (MOCK hasta completar integración)
         self.fvg_memory = None
         self.market_adapter = None
         
@@ -187,8 +211,33 @@ class DashboardDataCollector:
         )
     
     def _collect_fvg_stats(self) -> Dict[str, Any]:
-        """Recolectar estadísticas de FVG"""
+        """🌉 Recolectar estadísticas de FVG desde RealMarketBridge o fallback"""
+        
+        # 🌉 USAR REAL MARKET BRIDGE SI ESTÁ DISPONIBLE - FASE 2
+        if self.use_real_data and self.real_bridge:
+            try:
+                # USAR método implementado get_real_fvg_stats (el método principal)
+                fvg_stats = self.real_bridge.get_real_fvg_stats()
+                if fvg_stats and isinstance(fvg_stats, dict):
+                    # Verificar si tenemos datos válidos
+                    if fvg_stats.get('total_active_fvgs') is not None:
+                        print("✅ Usando estadísticas FVG reales desde RealMarketBridge")
+                        return fvg_stats
+                    elif fvg_stats.get('data_source') == 'REAL_UNIFIED_MEMORY_SYSTEM':
+                        print("✅ Usando estadísticas FVG reales desde UnifiedMemorySystem")
+                        return fvg_stats
+                    else:
+                        print(f"🔄 FVG stats desde bridge: {fvg_stats.get('data_source', 'unknown')}")
+                        print("🔄 Usando fallback por estructura inesperada")
+                else:
+                    print("🔄 FVG stats vacías desde bridge, usando fallback")
+            except Exception as e:
+                print(f"⚠️ Error obteniendo FVG stats desde bridge: {e}")
+                print("🔄 Usando fallback por error")
+        
+        # FALLBACK: Mock components o datos mock
         if not self.fvg_memory:
+            print("🔄 Usando datos FVG mock (fallback)")
             return self._get_mock_fvg_stats()
         
         try:
@@ -210,55 +259,187 @@ class DashboardDataCollector:
             
         except Exception as e:
             print(f"⚠️ Error recolectando stats FVG: {e}")
+            print("🔄 Usando datos FVG mock (fallback de error)")
             return self._get_mock_fvg_stats()
     
     def _collect_pattern_stats(self) -> Dict[str, Any]:
-        """Recolectar estadísticas de patrones ICT"""
+        """Recolectar estadísticas de patrones ICT reales del sistema"""
+        try:
+            # USAR RealMarketBridge para análisis de patrones reales
+            if self.real_bridge:
+                pattern_data = self.real_bridge.get_pattern_analysis(symbols=self.symbols)
+                
+                if pattern_data and pattern_data.get('data_source') == 'SILVER_BULLET_ENTERPRISE':
+                    # Convertir formato bridge a formato dashboard
+                    dashboard_stats = {
+                        'total_patterns': pattern_data.get('total_patterns', 0),
+                        'patterns_by_type': pattern_data.get('patterns_by_type', {}),
+                        'success_rate': round(pattern_data.get('success_rate', 0.0) * 100, 1),  # Convert to percentage
+                        'recent_signals': pattern_data.get('recent_signals', []),
+                        'symbols_analyzed': pattern_data.get('symbols_analyzed', []),
+                        'data_source': pattern_data.get('data_source'),
+                        'last_update': pattern_data.get('last_update')
+                    }
+                    
+                    # Calcular métricas adicionales del dashboard
+                    if dashboard_stats['recent_signals']:
+                        avg_confidence = sum(s.get('confidence', 0.0) for s in dashboard_stats['recent_signals']) / len(dashboard_stats['recent_signals'])
+                        dashboard_stats['avg_confidence'] = round(avg_confidence, 2)
+                        
+                        # Último patrón detectado
+                        latest_signal = dashboard_stats['recent_signals'][0] if dashboard_stats['recent_signals'] else None
+                        if latest_signal:
+                            dashboard_stats['last_pattern'] = f"{latest_signal['pattern']} {latest_signal['type']} {latest_signal['symbol']} {latest_signal['timeframe']}"
+                        else:
+                            dashboard_stats['last_pattern'] = 'No recent patterns'
+                    else:
+                        dashboard_stats['avg_confidence'] = 0.0
+                        dashboard_stats['last_pattern'] = 'No patterns detected'
+                    
+                    print(f"✅ Pattern stats reales obtenidas: {dashboard_stats['total_patterns']} patrones")
+                    return dashboard_stats
+                    
+                else:
+                    print("⚠️ RealMarketBridge pattern analysis no disponible, usando fallback")
+                    return self._get_fallback_pattern_stats()
+            else:
+                print("⚠️ RealMarketBridge no disponible para pattern stats")
+                return self._get_fallback_pattern_stats()
+                
+        except Exception as e:
+            print(f"⚠️ Error recolectando pattern stats reales: {e}")
+            return self._get_fallback_pattern_stats()
+    
+    def _get_fallback_pattern_stats(self) -> Dict[str, Any]:
+        """Datos de patrones fallback en caso de error"""
         return {
-            'total_patterns': 156,
+            'total_patterns': 0,
             'patterns_by_type': {
-                'judas_swing': 45,
-                'fair_value_gap': 67,
-                'order_block': 23,
-                'liquidity_grab': 21
+                'silver_bullet': 0,
+                'judas_swing': 0,
+                'fair_value_gap': 0,
+                'order_block': 0,
+                'liquidity_grab': 0
             },
-            'success_rate': 72.5,
-            'avg_profit_pips': 15.8,
-            'last_pattern': 'FVG bearish EURUSD M15'
+            'success_rate': 0.0,
+            'recent_signals': [],
+            'symbols_analyzed': [],
+            'avg_confidence': 0.0,
+            'last_pattern': 'Pattern analysis not available',
+            'data_source': 'FALLBACK_NO_ENTERPRISE'
         }
     
     def _collect_market_data(self) -> Dict[str, Any]:
         """Recolectar datos de mercado reales del sistema"""
+        try:
+            # USAR RealMarketBridge para datos reales MT5
+            if self.real_bridge:
+                bridge_data = self.real_bridge.get_real_market_data(symbols=self.symbols)
+                
+                if bridge_data and 'symbols' in bridge_data and bridge_data['total_symbols'] > 0:
+                    market_data = {}
+                    
+                    for symbol in self.symbols:
+                        if symbol in bridge_data['symbols']:
+                            symbol_data = bridge_data['symbols'][symbol]
+                            
+                            # Convertir formato bridge a formato dashboard
+                            market_data[symbol] = {
+                                'price': symbol_data.get('price', 0.0),
+                                'change_pips': self._calculate_change_pips(
+                                    symbol_data.get('price', 0.0), 
+                                    symbol_data.get('open', 0.0)
+                                ),
+                                'volatility': self._calculate_volatility(symbol_data),
+                                'volume': symbol_data.get('volume', 0),
+                                'trend': self._determine_trend(symbol_data),
+                                'session': self._get_current_session(),
+                                'data_source': bridge_data.get('data_source', 'REAL_MT5_DATA_MANAGER'),
+                                'timestamp': symbol_data.get('timestamp', time.time()),
+                                'status': symbol_data.get('status', 'ACTIVE')
+                            }
+                        else:
+                            # Símbolo no disponible en bridge data
+                            market_data[symbol] = {
+                                'price': 0.0,
+                                'change_pips': 0.0,
+                                'volatility': 0.0,
+                                'volume': 0,
+                                'trend': 'no_data',
+                                'session': self._get_current_session(),
+                                'data_source': 'SYMBOL_NOT_AVAILABLE',
+                                'error': f'No data for {symbol}'
+                            }
+                    
+                    print(f"✅ Datos de mercado reales obtenidos para {len(market_data)} símbolos")
+                    return market_data
+                
+                else:
+                    print("⚠️ RealMarketBridge devolvió datos vacíos")
+                    return self._get_fallback_market_data()
+            
+            else:
+                print("⚠️ RealMarketBridge no disponible")
+                return self._get_fallback_market_data()
+                
+        except Exception as e:
+            print(f"❌ Error en _collect_market_data: {e}")
+            return self._get_fallback_market_data()
+    
+    def _get_fallback_market_data(self) -> Dict[str, Any]:
+        """Datos de mercado fallback sin hardcoded values"""
         market_data = {}
         
         for symbol in self.symbols:
-            try:
-                # Intentar obtener datos reales del sistema ICT
-                # Aquí debería integrarse con el sistema real de datos
-                # Por ahora, devolver estructura sin datos hardcodeados
-                market_data[symbol] = {
-                    'price': 0.0,
-                    'change_pips': 0.0,
-                    'volatility': 0.0,
-                    'volume': 0,
-                    'trend': 'no_data',
-                    'session': self._get_current_session(),
-                    'data_source': 'NO_REAL_DATA'
-                }
-            except Exception as e:
-                print(f"⚠️ Error obteniendo datos para {symbol}: {e}")
-                market_data[symbol] = {
-                    'price': 0.0,
-                    'change_pips': 0.0,
-                    'volatility': 0.0,
-                    'volume': 0,
-                    'trend': 'error',
-                    'session': 'unknown',
-                    'data_source': 'ERROR',
-                    'error': str(e)
-                }
+            market_data[symbol] = {
+                'price': 0.0,
+                'change_pips': 0.0,
+                'volatility': 0.0,
+                'volume': 0,
+                'trend': 'no_data',
+                'session': self._get_current_session(),
+                'data_source': 'FALLBACK_NO_REAL_DATA',
+                'error': 'Bridge unavailable'
+            }
         
         return market_data
+    
+    def _calculate_change_pips(self, current_price: float, open_price: float) -> float:
+        """Calcular cambio en pips"""
+        if current_price <= 0 or open_price <= 0:
+            return 0.0
+        
+        change = current_price - open_price
+        # Aproximación de pips (puede mejorarse por símbolo)
+        pips_multiplier = 10000 if current_price < 10 else 100
+        return round(change * pips_multiplier, 1)
+    
+    def _calculate_volatility(self, symbol_data: Dict) -> float:
+        """Calcular volatilidad básica"""
+        try:
+            high = symbol_data.get('high', 0.0)
+            low = symbol_data.get('low', 0.0)
+            
+            if high > 0 and low > 0:
+                return round(((high - low) / low) * 100, 2)
+        except:
+            pass
+        return 0.0
+    
+    def _determine_trend(self, symbol_data: Dict) -> str:
+        """Determinar trend básico"""
+        try:
+            current = symbol_data.get('price', 0.0)
+            open_price = symbol_data.get('open', 0.0)
+            
+            if current > open_price * 1.001:
+                return 'bullish'
+            elif current < open_price * 0.999:
+                return 'bearish'
+            else:
+                return 'neutral'
+        except:
+            return 'unknown'
     
     def _collect_coherence_analysis(self) -> Dict[str, Any]:
         """Recolectar análisis de coherencia"""
@@ -294,7 +475,7 @@ class DashboardDataCollector:
                 'cpu_percent': round(process.cpu_percent(), 1),
                 'uptime_minutes': round((time.time() - process.create_time()) / 60, 1),
                 'thread_count': process.num_threads(),
-                'file_descriptors': process.num_fds() if hasattr(process, 'num_fds') else 0
+                'file_descriptors': getattr(process, 'num_fds', lambda: 0)() if hasattr(process, 'num_fds') else 0
             }
         except ImportError:
             return {
