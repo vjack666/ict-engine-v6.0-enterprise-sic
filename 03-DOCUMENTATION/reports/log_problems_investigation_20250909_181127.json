@@ -1,0 +1,33 @@
+{
+  "total_problems": 0,
+  "problems": [],
+  "volume_analysis": {
+    "total_lines": 0,
+    "massive_duplicates": 0
+  },
+  "error_analysis": {
+    "total_errors": 0,
+    "total_criticals": 0,
+    "by_component": {},
+    "error_patterns": {}
+  },
+  "timestamp_analysis": {
+    "by_file": {
+      "patterns_2025-09-09.log": {
+        "count": 1,
+        "first": "17:51:51",
+        "last": "17:51:51",
+        "formats": [
+          8
+        ]
+      }
+    },
+    "format_inconsistencies": [],
+    "temporal_gaps": []
+  },
+  "categorization_analysis": {
+    "misplaced_logs": [],
+    "category_overlap": {},
+    "missing_categories": []
+  }
+}

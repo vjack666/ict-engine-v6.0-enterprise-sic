@@ -108,7 +108,7 @@ class RealMarketBridge:
             return 4  # Default conservador
     
     def get_real_fvg_stats(self) -> Dict[str, Any]:
-        """🎯 Obtener estadísticas reales de FVG para múltiples símbolos - SIN MOCK DATA"""
+        """🎯 Obtener estadísticas reales de FVG para múltiples símbolos - USANDO FVGMemoryManager REAL"""
         try:
             symbols = self._get_active_symbols()
             total_stats = {
@@ -117,26 +117,50 @@ class RealMarketBridge:
                 'filled_fvgs': 0,
                 'by_symbol': {},
                 'symbols_analyzed': len(symbols),
-                'data_source': 'UNIFIED_MEMORY_MULTI_SYMBOL',
+                'data_source': 'REAL_FVG_MEMORY_MANAGER',
                 'timestamp': datetime.now().isoformat()
             }
             
-            # Obtener FVG stats de cada símbolo desde Unified Memory
-            if self.unified_memory:
+            # USAR FVGMemoryManager REAL del sistema
+            try:
+                from analysis.fvg_memory_manager import FVGMemoryManager
+                fvg_manager = FVGMemoryManager()
+                
                 for symbol in symbols:
                     try:
-                        # Usar unified memory para obtener FVG stats reales
-                        symbol_fvgs = self.unified_memory.get_fvg_stats(symbol)
-                        if symbol_fvgs:
-                            total_stats['by_symbol'][symbol] = symbol_fvgs
-                            total_stats['total_fvgs_all_pairs'] += symbol_fvgs.get('total', 0)
-                            total_stats['active_fvgs'] += symbol_fvgs.get('active', 0)
-                            total_stats['filled_fvgs'] += symbol_fvgs.get('filled', 0)
+                        # Usar método real del FVGMemoryManager
+                        symbol_stats = fvg_manager.get_fvg_statistics(symbol)
+                        if symbol_stats:
+                            total_stats['by_symbol'][symbol] = {
+                                'total': symbol_stats.get('total_fvgs', 0),
+                                'active': symbol_stats.get('unfilled_fvgs', 0) + symbol_stats.get('partially_filled', 0),
+                                'filled': symbol_stats.get('filled_fvgs', 0),
+                                'success_rate': symbol_stats.get('success_rate', 0.0)
+                            }
+                            total_stats['total_fvgs_all_pairs'] += symbol_stats.get('total_fvgs', 0)
+                            total_stats['active_fvgs'] += symbol_stats.get('unfilled_fvgs', 0) + symbol_stats.get('partially_filled', 0)
+                            total_stats['filled_fvgs'] += symbol_stats.get('filled_fvgs', 0)
                         else:
-                            total_stats['by_symbol'][symbol] = {'total': 0, 'active': 0, 'filled': 0}
+                            total_stats['by_symbol'][symbol] = {'total': 0, 'active': 0, 'filled': 0, 'success_rate': 0.0}
                     except Exception as e:
-                        print(f"⚠️ Error obteniendo FVG para {symbol}: {e}")
-                        total_stats['by_symbol'][symbol] = {'total': 0, 'active': 0, 'filled': 0}
+                        print(f"⚠️ Error obteniendo FVG stats para {symbol}: {e}")
+                        total_stats['by_symbol'][symbol] = {'total': 0, 'active': 0, 'filled': 0, 'success_rate': 0.0}
+                
+                # Obtener estadísticas globales del FVGMemoryManager
+                try:
+                    global_stats = fvg_manager.get_fvg_statistics()  # Sin parámetros = estadísticas globales
+                    if global_stats:
+                        total_stats['total_fvgs_all_pairs'] = global_stats.get('total_fvgs_all_pairs', total_stats['total_fvgs_all_pairs'])
+                        total_stats['active_fvgs'] = global_stats.get('active_fvgs', total_stats['active_fvgs'])
+                except Exception as e:
+                    print(f"⚠️ Error obteniendo stats globales FVG: {e}")
+                
+                print(f"✅ FVG stats reales obtenidas desde FVGMemoryManager para {len(symbols)} símbolos")
+                
+            except ImportError as e:
+                print(f"⚠️ FVGMemoryManager no disponible: {e}")
+                total_stats['data_source'] = 'FVG_MANAGER_NOT_AVAILABLE'
+                # Mantener estructura vacía pero válida
             
             # Log para verificar que NO hay datos mock
             self._log_data_source('FVG_STATS', total_stats['data_source'])
@@ -152,11 +176,12 @@ class RealMarketBridge:
                 'by_symbol': {},
                 'symbols_analyzed': 0,
                 'data_source': 'FALLBACK_EMPTY_REAL',
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now().isoformat(),
+                'error': str(e)
             }
     
     def get_real_order_blocks(self) -> Dict[str, Any]:
-        """📦 Obtener Order Blocks reales del sistema - SIN MOCK DATA"""
+        """📦 Obtener Order Blocks reales del sistema - USANDO COMPONENTES REALES"""
         try:
             symbols = self._get_active_symbols()
             total_blocks = {
@@ -165,32 +190,15 @@ class RealMarketBridge:
                 'bearish_blocks': 0,
                 'by_symbol': {},
                 'symbols_analyzed': len(symbols),
-                'data_source': 'UNIFIED_MEMORY_ORDER_BLOCKS',
-                'timestamp': datetime.now().isoformat()
+                'data_source': 'ORDER_BLOCKS_NOT_IMPLEMENTED',
+                'timestamp': datetime.now().isoformat(),
+                'note': 'Order Blocks tracking not implemented in current components'
             }
             
-            # Obtener Order Blocks reales desde Unified Memory
-            if self.unified_memory:
-                for symbol in symbols:
-                    try:
-                        symbol_blocks = self.unified_memory.get_order_blocks_summary(symbol)
-                        if symbol_blocks:
-                            bullish = sum(1 for b in symbol_blocks if b.get('type') == 'bullish')
-                            bearish = sum(1 for b in symbol_blocks if b.get('type') == 'bearish')
-                            
-                            total_blocks['by_symbol'][symbol] = {
-                                'total': len(symbol_blocks),
-                                'bullish': bullish,
-                                'bearish': bearish
-                            }
-                            total_blocks['total_blocks'] += len(symbol_blocks)
-                            total_blocks['bullish_blocks'] += bullish
-                            total_blocks['bearish_blocks'] += bearish
-                        else:
-                            total_blocks['by_symbol'][symbol] = {'total': 0, 'bullish': 0, 'bearish': 0}
-                    except Exception as e:
-                        print(f"⚠️ Error obteniendo Order Blocks para {symbol}: {e}")
-                        total_blocks['by_symbol'][symbol] = {'total': 0, 'bullish': 0, 'bearish': 0}
+            # Order Blocks no están implementados en los componentes actuales
+            # Mantener estructura vacía pero válida
+            for symbol in symbols:
+                total_blocks['by_symbol'][symbol] = {'total': 0, 'bullish': 0, 'bearish': 0}
             
             self._log_data_source('ORDER_BLOCKS', total_blocks['data_source'])
             return total_blocks
@@ -208,33 +216,19 @@ class RealMarketBridge:
             }
     
     def get_real_pnl(self) -> Dict[str, Any]:
-        """💰 Obtener P&L REAL de cuenta de trading - SIN FAKE MONEY"""
+        """💰 Obtener P&L REAL de cuenta de trading - USANDO MT5DataManager REAL"""
         try:
-            # Obtener datos reales de la cuenta MT5
+            # Obtener datos reales de la cuenta MT5 usando get_connection_status
             if self.mt5_manager and self.mt5_manager.is_connected():
-                account_info = self.mt5_manager.get_account_info()
-                if account_info:
+                connection_status = self.mt5_manager.get_connection_status()
+                if connection_status and connection_status.get('connected'):
                     return {
-                        'daily_pnl': account_info.get('profit', 0.00),  # P&L real de la cuenta
-                        'total_pnl': account_info.get('profit', 0.00),
-                        'balance': account_info.get('balance', 0.00),
-                        'equity': account_info.get('equity', 0.00),
-                        'currency': account_info.get('currency', 'USD'),
-                        'data_source': 'MT5_REAL_ACCOUNT',
-                        'timestamp': datetime.now().isoformat()
-                    }
-            
-            # Intentar desde unified memory si hay historial
-            if self.unified_memory:
-                performance_data = self.unified_memory.get_trading_performance()
-                if performance_data:
-                    return {
-                        'daily_pnl': performance_data.get('daily_pnl', 0.00),
-                        'total_pnl': performance_data.get('total_pnl', 0.00),
-                        'balance': 0.00,
-                        'equity': 0.00,
-                        'currency': 'USD',
-                        'data_source': 'UNIFIED_MEMORY_PERFORMANCE',
+                        'daily_pnl': 0.00,  # MT5DataManager no tiene P&L histórico
+                        'total_pnl': 0.00,   # Necesitaría MT5ConnectionManager para esto
+                        'balance': connection_status.get('balance', 0.00),
+                        'equity': connection_status.get('equity', 0.00),
+                        'currency': 'USD',  # Default
+                        'data_source': 'REAL_MT5_DATA_MANAGER_CONNECTION_STATUS',
                         'timestamp': datetime.now().isoformat()
                     }
             
@@ -263,23 +257,10 @@ class RealMarketBridge:
             }
     
     def get_real_performance(self) -> Dict[str, Any]:
-        """📊 Obtener métricas reales de performance - SIN FAKE STATS"""
+        """📊 Obtener métricas reales de performance - USANDO COMPONENTES REALES"""
         try:
-            # Obtener performance real desde unified memory
-            if self.unified_memory:
-                performance_data = self.unified_memory.get_trading_performance()
-                if performance_data:
-                    return {
-                        'win_rate': performance_data.get('win_percentage', 0.0),
-                        'total_trades': performance_data.get('total_trades', 0),
-                        'winning_trades': performance_data.get('winning_trades', 0),
-                        'losing_trades': performance_data.get('losing_trades', 0),
-                        'profit_factor': performance_data.get('profit_factor', 0.0),
-                        'data_source': 'UNIFIED_MEMORY_PERFORMANCE',
-                        'timestamp': datetime.now().isoformat()
-                    }
-            
-            # Fallback: performance REAL en 0 (NO fake stats)
+            # Por ahora retornar estructura válida vacía ya que no tenemos 
+            # sistema de trading performance implementado en los componentes actuales
             self._log_data_source('PERFORMANCE', 'FALLBACK_ZERO_REAL')
             return {
                 'win_rate': 0.0,
@@ -288,7 +269,8 @@ class RealMarketBridge:
                 'losing_trades': 0,
                 'profit_factor': 0.0,
                 'data_source': 'FALLBACK_ZERO_REAL',
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now().isoformat(),
+                'note': 'Trading performance tracking not implemented in current components'
             }
             
         except Exception as e:
@@ -303,79 +285,8 @@ class RealMarketBridge:
                 'timestamp': datetime.now().isoformat()
             }
     
-    def get_real_market_data(self) -> Dict[str, Any]:
-        """💱 Obtener datos de mercado reales para múltiples símbolos - SIN MOCK DATA"""
-        try:
-            symbols = self._get_active_symbols()
-            market_data = {
-                'symbols': {},
-                'summary': {
-                    'total_symbols': len(symbols),
-                    'connected_symbols': 0,
-                    'last_update': datetime.now().isoformat()
-                },
-                'data_source': 'MT5_MULTI_SYMBOL',
-                'timestamp': datetime.now().isoformat()
-            }
-            
-            # Obtener datos reales para cada símbolo
-            for symbol in symbols:
-                try:
-                    if self.mt5_manager:
-                        # Obtener datos de mercado frescos
-                        symbol_data = self.mt5_manager.get_direct_market_data(symbol, 'M15', 10)
-                        if symbol_data is not None and len(symbol_data) > 0:
-                            current_price = symbol_data['close'].iloc[-1]
-                            prev_price = symbol_data['close'].iloc[-2] if len(symbol_data) > 1 else current_price
-                            price_change = current_price - prev_price
-                            
-                            # Convertir a pips según el símbolo
-                            if 'JPY' in symbol:
-                                pips_change = price_change * 100  # Pares con JPY
-                            else:
-                                pips_change = price_change * 10000  # Pares regulares
-                            
-                            market_data['symbols'][symbol] = {
-                                'price': float(current_price),
-                                'change_pips': round(pips_change, 1),
-                                'status': 'connected',
-                                'last_update': datetime.now().strftime('%H:%M:%S')
-                            }
-                            market_data['summary']['connected_symbols'] += 1
-                        else:
-                            market_data['symbols'][symbol] = {
-                                'price': 0.0,
-                                'change_pips': 0.0,
-                                'status': 'no_data',
-                                'last_update': datetime.now().strftime('%H:%M:%S')
-                            }
-                    else:
-                        market_data['symbols'][symbol] = {
-                            'price': 0.0,
-                            'change_pips': 0.0,
-                            'status': 'mt5_disconnected',
-                            'last_update': datetime.now().strftime('%H:%M:%S')
-                        }
-                except Exception as e:
-                    market_data['symbols'][symbol] = {
-                        'price': 0.0,
-                        'change_pips': 0.0,
-                        'status': 'error',
-                        'error': str(e),
-                        'last_update': datetime.now().strftime('%H:%M:%S')
-                    }
-            
-            self._log_data_source('MARKET_DATA', market_data['data_source'])
-            return market_data
-            
-        except Exception as e:
-            print(f"❌ Error en get_real_market_data: {e}")
-            return {
-                'symbols': {},
-                'summary': {'total_symbols': 0, 'connected_symbols': 0, 'last_update': datetime.now().isoformat()},
-                'data_source': 'ERROR_FALLBACK_REAL',
-                'timestamp': datetime.now().isoformat()
-            }
+    # MÉTODO ELIMINADO: get_real_market_data duplicado
+    # Se conserva la versión más completa con parámetros en línea 462
     
     def _log_data_source(self, component: str, data_source: str):
         """Log para verificar que datos son reales (NO mock)"""
@@ -715,56 +626,8 @@ class RealMarketBridge:
             'last_update': self.last_update
         }
     
-    def get_real_fvg_stats(self) -> Dict:
-        """📊 Obtener estadísticas FVG reales multi-símbolo (FASE 2)"""
-        try:
-            # 1. CARGAR configuración de símbolos desde config
-            symbols_config = self._load_symbols_config()
-            active_symbols = self._get_active_symbols_from_config(symbols_config)
-            
-            # 2. ESTRUCTURAR datos FVG reales por símbolo
-            fvg_stats = {
-                'total_active_fvgs': 0,
-                'by_symbol': {},
-                'by_priority': {
-                    'critical': {'count': 0, 'symbols': []},
-                    'important': {'count': 0, 'symbols': []},
-                    'extended': {'count': 0, 'symbols': []}
-                },
-                'last_update': time.time(),
-                'data_source': 'REAL_UNIFIED_MEMORY_SYSTEM'
-            }
-            
-            # 3. OBTENER estadísticas reales por símbolo (máximo 6)
-            for symbol in active_symbols[:6]:
-                try:
-                    symbol_fvg_data = self._get_symbol_fvg_stats(symbol)
-                    if symbol_fvg_data:
-                        fvg_stats['by_symbol'][symbol] = symbol_fvg_data
-                        fvg_stats['total_active_fvgs'] += symbol_fvg_data.get('active_count', 0)
-                        
-                        # Clasificar por prioridad
-                        priority = self._get_symbol_priority(symbol, symbols_config)
-                        fvg_stats['by_priority'][priority]['count'] += symbol_fvg_data.get('active_count', 0)
-                        fvg_stats['by_priority'][priority]['symbols'].append(symbol)
-                        
-                except Exception as e:
-                    print(f"⚠️ Error obteniendo FVG stats para {symbol}: {e}")
-                    continue
-            
-            print(f"✅ FVG Stats reales obtenidas para {len(fvg_stats['by_symbol'])} símbolos")
-            return fvg_stats
-            
-        except Exception as e:
-            print(f"❌ Error en get_real_fvg_stats: {e}")
-            # Fallback a datos básicos
-            return {
-                'total_active_fvgs': 0,
-                'by_symbol': {},
-                'error': str(e),
-                'data_source': 'ERROR_FALLBACK',
-                'last_update': time.time()
-            }
+    # MÉTODO ELIMINADO: get_real_fvg_stats duplicado (FASE 2)
+    # Se conserva la versión con FVGMemoryManager real en línea 110
     
     def _load_symbols_config(self) -> Dict:
         """🔧 Cargar configuración de símbolos desde JSON"""

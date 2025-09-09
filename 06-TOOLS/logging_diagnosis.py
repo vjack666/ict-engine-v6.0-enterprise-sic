@@ -392,7 +392,7 @@ class LoggingDiagnosticTool:
     def save_report(self, output_path: Optional[str] = None) -> str:
         """Guarda el reporte completo en JSON."""
         if not output_path:
-            output_path = self.project_root / "06-TOOLS" / f"logging_diagnosis_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            output_path = str(self.project_root / "06-TOOLS" / f"logging_diagnosis_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
         
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(self.results, f, indent=2, ensure_ascii=False)

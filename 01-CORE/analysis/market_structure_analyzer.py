@@ -201,7 +201,7 @@ if not SIC_LOGGING_AVAILABLE:
 # Componentes v6.0
 try:
     from data_management.advanced_candle_downloader import AdvancedCandleDownloader
-    from utils.mt5_data_manager import MT5DataManager
+    from data_management.mt5_data_manager import MT5DataManager
     COMPONENTS_AVAILABLE = True
 except ImportError:
     COMPONENTS_AVAILABLE = False

@@ -13,22 +13,46 @@ Autor: ICT Engine v6.1.0 Team
 import logging
 import sys
 import json
+import time
+import hashlib
 from pathlib import Path
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union, Type, Protocol, runtime_checkable
 
-# Importar configuración de modo silencioso
+# Protocolo para configuración de logging mode
+@runtime_checkable
+class LoggingModeConfigProtocol(Protocol):
+    @classmethod
+    def should_be_silent(cls, component_name: str) -> bool:
+        """Determina si un componente debe estar en modo silencioso"""
+        ...
+
+# Implementación por defecto
+class DefaultLoggingModeConfig:
+    @classmethod
+    def should_be_silent(cls, component_name: str) -> bool:
+        """🔇 Determinar si un componente debe estar en modo silencioso"""
+        # Componentes que por defecto deberían ser silenciosos
+        silent_components = {
+            'debug', 'test', 'cache', 'memory', 'background'
+        }
+        component_lower = component_name.lower()
+        return any(silent_comp in component_lower for silent_comp in silent_components)
+
+# Importar configuración de modo silencioso con manejo de tipos mejorado
+LoggingModeConfig: Type[LoggingModeConfigProtocol] = DefaultLoggingModeConfig
+
 try:
-    from .config.logging_mode_config import LoggingModeConfig
+    from .config.logging_mode_config import LoggingModeConfig as ExternalConfig
+    if isinstance(ExternalConfig, type) and hasattr(ExternalConfig, 'should_be_silent'):
+        LoggingModeConfig = ExternalConfig  # type: ignore
 except ImportError:
     try:
-        from config.logging_mode_config import LoggingModeConfig
+        from config.logging_mode_config import LoggingModeConfig as ExternalConfig
+        if isinstance(ExternalConfig, type) and hasattr(ExternalConfig, 'should_be_silent'):
+            LoggingModeConfig = ExternalConfig  # type: ignore
     except ImportError:
-        # Fallback si no está disponible
-        class LoggingModeConfig:
-            @classmethod
-            def should_be_silent(cls, component_name: str) -> bool:
-                return False
+        pass  # Usar implementación por defecto
 
 class SmartTradingLogger:
     """🔧 Logger inteligente para ICT Engine v6.1.0"""
@@ -90,7 +114,9 @@ class SmartTradingLogger:
         name_lower = self.name.lower()
         
         # Mapear nombres de logger a componentes
-        if 'dashboard' in name_lower or 'ui' in name_lower:
+        if name_lower == 'ict_signals':
+            return 'ICT_SIGNALS'  # Mapeado específicamente para patrones ICT
+        elif 'dashboard' in name_lower or 'ui' in name_lower:
             return 'DASHBOARD'
         elif 'trading' in name_lower or 'trade' in name_lower:
             return 'TRADING'  

@@ -39,11 +39,12 @@ except ImportError:
 
 # ✅ SISTEMA CENTRAL ACTIVO: core.smart_trading_logger
 try:
-    from smart_trading_logger import log_trading_decision_smart_v6  # type: ignore
+    from smart_trading_logger import log_trading_decision_smart_v6, SmartTradingLogger  # type: ignore
 except ImportError:
     def log_trading_decision_smart_v6(event_type, data, **kwargs) -> None:
         """Fallback if central logger unavailable"""
         pass
+    SmartTradingLogger = None
 
 try:
     from analysis.market_structure_analyzer import MarketStructureAnalyzer as MarketStructureAnalyzerV6, MarketStructureSignal  # type: ignore
@@ -80,7 +81,7 @@ class ICTPatternDetector:
     """
 
     def __init__(self, config: Optional[Dict] = None):
-        """Inicializar detector de patrones con UnifiedMemorySystem v6.1"""
+        """Inicializar detector de patrones con UnifiedMemorySystem v6.1 y sistema de logs ICT_SIGNALS"""
         self.config = config or {}
         self.patterns_detected = []
         self.last_analysis_time = None
@@ -107,6 +108,26 @@ class ICTPatternDetector:
         self._market_structure = None
         self._candle_downloader = None
         self._pandas_initialized = False
+
+        # 📝 INICIALIZAR LOGGER ICT_SIGNALS para guardar copias de patrones
+        self.ict_signals_logger = None
+        self.use_signals_logging = False
+        
+        if SmartTradingLogger is not None:
+            try:
+                self.ict_signals_logger = SmartTradingLogger("ICT_SIGNALS")
+                self.use_signals_logging = True
+                log_trading_decision_smart_v6("ICT_SIGNALS_LOGGER_INITIALIZED", {
+                    "component": "ICTPatternDetector",
+                    "logger": "ICT_SIGNALS",
+                    "auto_cleanup": "30_days",
+                    "status": "ready"
+                })
+            except Exception as e:
+                print(f"⚠️ Error inicializando ICT_SIGNALS logger: {e}")
+                self.use_signals_logging = False
+        else:
+            print("📋 ICT_SIGNALS ejecutándose sin sistema central de logs")
 
         # Inicializar componentes
         self._initialize_components()
@@ -425,11 +446,52 @@ class ICTPatternDetector:
         }
 
     def _store_pattern_in_memory(self, pattern: ICTPattern):
-        """💾 Almacenar patrón usando UnifiedMemorySystem v6.1"""
+        """💾 Almacenar patrón usando UnifiedMemorySystem v6.1 y guardar copia en ICT_SIGNALS"""
         try:
             # Agregar patrón a lista local
             self.patterns_detected.append(pattern)
             
+            # 📝 GUARDAR COPIA EN ICT_SIGNALS (Sistema Central con rotación diaria y limpieza 30 días)
+            if self.use_signals_logging and self.ict_signals_logger:
+                try:
+                    # Formatear información del patrón para logs
+                    pattern_log_msg = (
+                        f"🎯 PATTERN DETECTED: {pattern.pattern_type} | "
+                        f"Symbol: {pattern.symbol} | "
+                        f"Timeframe: {pattern.timeframe} | "
+                        f"Confidence: {pattern.confidence:.3f} | "
+                        f"Entry: {pattern.entry_price:.5f} | "
+                        f"Timestamp: {pattern.timestamp}"
+                    )
+                    
+                    # Agregar metadata si está disponible
+                    if pattern.metadata:
+                        metadata_str = ", ".join([f"{k}: {v}" for k, v in pattern.metadata.items()][:3])  # Primeros 3 items
+                        pattern_log_msg += f" | Metadata: {metadata_str}"
+                    
+                    # Registrar en sistema central (se guarda automáticamente en 05-LOGS/ict_signals/)
+                    self.ict_signals_logger.info(pattern_log_msg)
+                    
+                    # Log adicional con datos estructurados para análisis posterior
+                    pattern_data_structured = {
+                        "pattern_type": pattern.pattern_type,
+                        "symbol": pattern.symbol,
+                        "timeframe": pattern.timeframe,
+                        "confidence": pattern.confidence,
+                        "entry_price": pattern.entry_price,
+                        "timestamp": pattern.timestamp.isoformat() if hasattr(pattern.timestamp, 'isoformat') else str(pattern.timestamp),
+                        "metadata": pattern.metadata,
+                        "detector_version": "ICTPatternDetector_v6.0"
+                    }
+                    
+                    # Registrar datos estructurados para análisis
+                    import json
+                    self.ict_signals_logger.debug(f"PATTERN_DATA: {json.dumps(pattern_data_structured)}")
+                    
+                except Exception as e:
+                    print(f"⚠️ Error guardando patrón en ICT_SIGNALS: {e}")
+            
+            # 🧠 ALMACENAR EN UNIFIED MEMORY SYSTEM (funcionalidad original)
             if self._unified_memory_system:
                 try:
                     # Preparar datos del patrón para memoria
@@ -451,7 +513,8 @@ class ICTPatternDetector:
                         "pattern_type": pattern.pattern_type,
                         "symbol": pattern.symbol,
                         "confidence": pattern.confidence,
-                        "memory_system": "UnifiedMemorySystem v6.1"
+                        "memory_system": "UnifiedMemorySystem v6.1",
+                        "signals_copy": "saved_to_ict_signals"
                     })
                     
                 except Exception as e:

@@ -5,10 +5,19 @@ ICT Engine v6.0 Enterprise - Sistema de respuesta automática a emergencias
 """
 
 import json
+import sys
+import os
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 import logging
+
+# Importar sistema de log central
+try:
+    from smart_trading_logger import SmartTradingLogger
+except ImportError:
+    print("⚠️ No se pudo importar smart_trading_logger. Usando logging estándar.")
+    SmartTradingLogger = None
 
 class EmergencyHandler:
     """🚨 Sistema de manejo automático de emergencias"""
@@ -17,6 +26,21 @@ class EmergencyHandler:
         self.config = self._load_config()
         self.emergency_log = []
         self.active_emergencies = []
+        
+        # Inicializar sistema de log central
+        self.logger = None
+        self.use_central_logging = False
+        
+        if SmartTradingLogger is not None:
+            try:
+                self.logger = SmartTradingLogger("EMERGENCY_HANDLER")
+                self.use_central_logging = True
+                self.logger.info("🚨 Emergency Handler iniciado - usando sistema central")
+            except Exception as e:
+                print(f"⚠️ Error inicializando sistema central de logs para Emergency Handler: {e}")
+                self.use_central_logging = False
+        else:
+            print("📋 Emergency Handler ejecutándose sin sistema central de logs")
         
     def _load_config(self) -> Dict:
         """Cargar configuración de procedimientos de emergencia"""
@@ -37,7 +61,7 @@ class EmergencyHandler:
             "max_emergency_actions_per_day": 10
         }
     
-    def handle_emergency(self, emergency_type: str, context: Dict = None) -> Dict[str, Any]:
+    def handle_emergency(self, emergency_type: str, context: Optional[Dict] = None) -> Dict[str, Any]:
         """
         Manejar situación de emergencia
         
@@ -58,26 +82,28 @@ class EmergencyHandler:
         }
         
         try:
+            context_safe = context or {}
+            
             if emergency_type == 'RISK_VIOLATION_MAX_POSITIONS':
-                emergency_record.update(self._handle_max_positions_violation(context))
+                emergency_record.update(self._handle_max_positions_violation(context_safe))
                 
             elif emergency_type == 'RISK_VIOLATION_DAILY_LOSS':
-                emergency_record.update(self._handle_daily_loss_violation(context))
+                emergency_record.update(self._handle_daily_loss_violation(context_safe))
                 
             elif emergency_type == 'RISK_VIOLATION_DRAWDOWN':
-                emergency_record.update(self._handle_drawdown_violation(context))
+                emergency_record.update(self._handle_drawdown_violation(context_safe))
                 
             elif emergency_type == 'SYSTEM_ERROR_CRITICAL':
-                emergency_record.update(self._handle_critical_system_error(context))
+                emergency_record.update(self._handle_critical_system_error(context_safe))
                 
             elif emergency_type == 'MT5_CONNECTION_LOST':
-                emergency_record.update(self._handle_mt5_disconnection(context))
+                emergency_record.update(self._handle_mt5_disconnection(context_safe))
                 
             elif emergency_type == 'LOG_SYSTEM_OVERLOAD':
-                emergency_record.update(self._handle_log_overload(context))
+                emergency_record.update(self._handle_log_overload(context_safe))
                 
             else:
-                emergency_record.update(self._handle_unknown_emergency(emergency_type, context))
+                emergency_record.update(self._handle_unknown_emergency(emergency_type, context_safe))
             
             emergency_record['success'] = True
             
@@ -97,6 +123,9 @@ class EmergencyHandler:
     
     def _handle_max_positions_violation(self, context: Dict) -> Dict:
         """Manejar violación de máximo de posiciones"""
+        if self.use_central_logging and self.logger:
+            self.logger.warning("🚨 Iniciando manejo de violación de máximo de posiciones")
+        
         actions = []
         
         if self.config.get('auto_close_on_violation', True):
@@ -106,6 +135,9 @@ class EmergencyHandler:
         
         actions.append('SENT_RISK_VIOLATION_ALERT')
         
+        if self.use_central_logging and self.logger:
+            self.logger.info(f"🚨 Violación de posiciones manejada: {len(actions)} acciones tomadas")
+        
         return {
             'actions_taken': actions,
             'severity': 'HIGH',
@@ -114,6 +146,9 @@ class EmergencyHandler:
     
     def _handle_daily_loss_violation(self, context: Dict) -> Dict:
         """Manejar violación de pérdida diaria"""
+        if self.use_central_logging and self.logger:
+            self.logger.error("🚨 Iniciando manejo de violación de pérdida diaria - CRÍTICO")
+        
         actions = []
         
         if self.config.get('emergency_stop_enabled', True):
@@ -123,6 +158,9 @@ class EmergencyHandler:
             self._log_critical("EMERGENCY: Daily loss limit exceeded - Emergency stop activated")
         
         actions.append('RISK_MANAGER_NOTIFIED')
+        
+        if self.use_central_logging and self.logger:
+            self.logger.critical(f"🚨 Pérdida diaria excedida: {len(actions)} acciones de emergencia ejecutadas")
         
         return {
             'actions_taken': actions,
@@ -213,7 +251,29 @@ class EmergencyHandler:
         }
     
     def _log_emergency_event(self, emergency_record: Dict):
-        """Registrar evento de emergencia en log específico"""
+        """Registrar evento de emergencia en log específico y sistema central"""
+        
+        # Primero, registrar en sistema central si está disponible
+        if self.use_central_logging and self.logger:
+            emergency_msg = (
+                f"🚨 EMERGENCY: {emergency_record['type']} | "
+                f"Severity: {emergency_record.get('severity', 'UNKNOWN')} | "
+                f"Actions: {', '.join(emergency_record['actions_taken'])} | "
+                f"Success: {emergency_record['success']}"
+            )
+            
+            # Registrar según severidad
+            severity = emergency_record.get('severity', 'UNKNOWN')
+            if severity == 'CRITICAL':
+                self.logger.critical(emergency_msg)
+            elif severity == 'HIGH':
+                self.logger.error(emergency_msg)
+            elif severity == 'MEDIUM':
+                self.logger.warning(emergency_msg)
+            else:
+                self.logger.info(emergency_msg)
+        
+        # También mantener el archivo específico de emergencias como backup
         try:
             emergency_log_file = Path("05-LOGS/emergency/emergency_events.log")
             emergency_log_file.parent.mkdir(parents=True, exist_ok=True)
@@ -233,9 +293,14 @@ class EmergencyHandler:
             self._log_critical(f"Failed to write emergency log: {e}")
     
     def _log_critical(self, message: str):
-        """Log mensaje crítico"""
-        logging.critical(message)
-        print(f"🚨 CRITICAL: {message}")  # También mostrar en consola para emergencias
+        """Log mensaje crítico usando sistema central"""
+        if self.use_central_logging and self.logger:
+            self.logger.critical(message)
+        else:
+            logging.critical(message)
+        
+        # También mostrar en consola para emergencias
+        print(f"🚨 CRITICAL: {message}")
     
     def get_active_emergencies(self) -> List[Dict]:
         """Obtener emergencias activas"""
@@ -265,7 +330,7 @@ class EmergencyHandler:
 # Instancia global
 EMERGENCY_HANDLER = EmergencyHandler()
 
-def handle_emergency(emergency_type: str, context: Dict = None) -> Dict:
+def handle_emergency(emergency_type: str, context: Optional[Dict] = None) -> Dict:
     """Función de conveniencia para manejar emergencias"""
     return EMERGENCY_HANDLER.handle_emergency(emergency_type, context)
 

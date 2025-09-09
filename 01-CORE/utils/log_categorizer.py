@@ -69,7 +69,7 @@ class LogCategorizer:
         
         return best_category
     
-    def get_target_log_file(self, category: str, date: str = None) -> Path:
+    def get_target_log_file(self, category: str, date: Optional[str] = None) -> Path:
         """
         Obtener archivo de destino para la categoría
         

@@ -40,7 +40,7 @@ except ImportError:
     def list_daily_log_files():
         return {'status': 'error', 'message': 'smart_trading_logger no disponible'}
     
-    def cleanup_old_logs(days):
+    def cleanup_old_logs(days_to_keep: int = 30):
         return {'status': 'error', 'message': 'smart_trading_logger no disponible'}
 
 def view_today_logs(component: str = "all", tail_lines: int = 50):
@@ -166,26 +166,33 @@ def show_logs_stats():
     # Usar función del smart_trading_logger si está disponible
     files_info = list_daily_log_files()
     
-    if files_info['status'] == 'success':
-        print(f"📁 Total archivos: {files_info['total_files']}")
-        print(f"📅 Archivos de hoy: {files_info['today_files']}")
+    if files_info.get('status') == 'success':
+        total_files = files_info.get('total_files', 0)
+        today_files = files_info.get('today_files', 0)
+        files_list = files_info.get('files', [])
+        
+        print(f"📁 Total archivos: {total_files}")
+        print(f"📅 Archivos de hoy: {today_files}")
         print()
         
         # Estadísticas por componente
-        components = {}
-        total_size = 0
+        components: Dict[str, Dict[str, Any]] = {}
+        total_size = 0.0
         
-        for file_info in files_info['files']:
-            comp = file_info['component']
-            if comp not in components:
-                components[comp] = {'count': 0, 'size_mb': 0, 'latest': ''}
-            
-            components[comp]['count'] += 1
-            components[comp]['size_mb'] += file_info['size_mb']
-            total_size += file_info['size_mb']
-            
-            if file_info['is_today']:
-                components[comp]['latest'] = file_info['modified']
+        for file_info in files_list:
+            if isinstance(file_info, dict):
+                comp = file_info.get('component', 'UNKNOWN')
+                if comp not in components:
+                    components[comp] = {'count': 0, 'size_mb': 0.0, 'latest': ''}
+                
+                components[comp]['count'] += 1
+                size_mb = file_info.get('size_mb', 0.0)
+                if isinstance(size_mb, (int, float)):
+                    components[comp]['size_mb'] += size_mb
+                    total_size += size_mb
+                
+                if file_info.get('is_today', False):
+                    components[comp]['latest'] = file_info.get('modified', '')
         
         print("📋 POR COMPONENTE:")
         for comp, stats in components.items():
@@ -197,19 +204,23 @@ def show_logs_stats():
         
         # Archivos más recientes
         print("\n📅 ARCHIVOS MÁS RECIENTES:")
-        for file_info in files_info['files'][:5]:
-            status = "📅" if file_info['is_today'] else "📄"
-            print(f"  {status} {file_info['name']} ({file_info['size_mb']:.2f} MB)")
+        for file_info in files_list[:5]:
+            if isinstance(file_info, dict):
+                status = "📅" if file_info.get('is_today', False) else "📄"
+                name = file_info.get('name', 'Unknown')
+                size_mb = file_info.get('size_mb', 0.0)
+                print(f"  {status} {name} ({size_mb:.2f} MB)")
             
     else:
-        print(f"❌ Error obteniendo estadísticas: {files_info.get('message', 'Unknown error')}")
+        error_message = files_info.get('message', 'Unknown error')
+        print(f"❌ Error obteniendo estadísticas: {error_message}")
 
 def cleanup_logs(days: int):
     """🗑️ Limpiar logs antiguos"""
     print(f"🗑️ LIMPIANDO LOGS ANTERIORES A {days} DÍAS")
     print("=" * 50)
     
-    result = cleanup_old_logs(days)
+    result = cleanup_old_logs(days_to_keep=days)
     
     if result['status'] == 'success':
         print(f"✅ Limpieza completada:")

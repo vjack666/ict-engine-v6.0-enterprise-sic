@@ -16,9 +16,22 @@ Fecha: 2025-09-09
 
 import re
 import json
+import sys
+import os
 from pathlib import Path
 from datetime import datetime
 from collections import defaultdict, Counter
+
+# Agregar ruta padre al path para importar módulos centrales
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Agregar específicamente el directorio 01-CORE
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "01-CORE"))
+
+try:
+    from smart_trading_logger import SmartTradingLogger, list_daily_log_files
+except ImportError:
+    print("⚠️ No se pudo importar smart_trading_logger. Ejecutando en modo standalone.")
+    list_daily_log_files = None
 
 class LogProblemInvestigator:
     """🔍 Investigador de problemas específicos en logs"""
@@ -28,21 +41,121 @@ class LogProblemInvestigator:
         self.logs_dir = self.project_root / "05-LOGS"
         self.today = datetime.now().strftime('%Y-%m-%d')
         
+        # Inicializar sistema de log central si está disponible
+        self.logger = None
+        self.use_central_logging = False
+        
+        if list_daily_log_files is not None:
+            try:
+                self.logger = SmartTradingLogger("LOG_INVESTIGATOR")
+                self.use_central_logging = True
+                self.logger.info("🔍 Log Problem Investigator iniciado - usando sistema central")
+            except Exception as e:
+                print(f"⚠️ Error inicializando sistema central de logs: {e}")
+                self.use_central_logging = False
+        else:
+            print("📋 Log Problem Investigator ejecutándose en modo standalone")
+        
     def investigate_application_volume(self):
         """📊 Investigar por qué APPLICATION tiene 4445 logs"""
+        if self.use_central_logging and self.logger:
+            self.logger.info("🔍 Iniciando investigación de volumen en APPLICATION")
+        
         print("🔍 INVESTIGANDO VOLUMEN EXCESIVO EN APPLICATION")
         print("=" * 60)
+        
+        # Usar sistema central si está disponible
+        if self.use_central_logging and list_daily_log_files is not None:
+            try:
+                files_info = list_daily_log_files()
+                if files_info.get('status') == 'success':
+                    app_files = [f for f in files_info.get('files', []) if f.get('component') == 'APPLICATION']
+                    if app_files:
+                        app_file_info = app_files[0]  # Tomar el primer archivo APPLICATION
+                        total_lines = app_file_info.get('total_lines', 0)
+                        
+                        if self.logger:
+                            self.logger.info(f"📊 APPLICATION: {total_lines} líneas detectadas via sistema central")
+                        
+                        print(f"📝 Total líneas en APPLICATION (sistema central): {total_lines}")
+                        
+                        if total_lines == 0:
+                            # Fallback al método manual
+                            if self.logger:
+                                self.logger.warning("📊 Sistema central no retornó líneas, usando método manual")
+                            return self._investigate_application_manual()
+                        
+                        # Continuar con análisis usando información del sistema central
+                        return self._analyze_volume_data(total_lines, app_file_info)
+                    else:
+                        if self.logger:
+                            self.logger.warning("📊 No se encontró archivo APPLICATION en sistema central")
+                        return self._investigate_application_manual()
+                else:
+                    if self.logger:
+                        self.logger.error(f"📊 Error en sistema central: {files_info.get('message', 'Unknown')}")
+                    return self._investigate_application_manual()
+            except Exception as e:
+                if self.logger:
+                    self.logger.error(f"📊 Excepción usando sistema central: {e}")
+                return self._investigate_application_manual()
+        else:
+            return self._investigate_application_manual()
+    
+    def _investigate_application_manual(self):
+        """📊 Método manual de investigación (fallback)"""
+        if self.logger:
+            self.logger.info("📊 Usando método manual de investigación de APPLICATION")
         
         app_log = self.logs_dir / "application" / f"ict_engine_{self.today}.log"
         
         if not app_log.exists():
-            print("❌ Archivo APPLICATION no encontrado")
-            return
+            error_msg = "❌ Archivo APPLICATION no encontrado"
+            print(error_msg)
+            if self.logger:
+                self.logger.error(error_msg)
+            return None
         
         with open(app_log, 'r', encoding='utf-8') as f:
             lines = f.readlines()
         
         print(f"📝 Total líneas en APPLICATION: {len(lines)}")
+        
+        return self._analyze_volume_data(len(lines), None, lines)
+    
+    def _analyze_volume_data(self, total_lines, file_info=None, lines=None):
+        """📊 Analizar datos de volumen (método común)"""
+        if self.logger:
+            self.logger.info(f"📊 Analizando volumen: {total_lines} líneas")
+        
+        # Si no tenemos las líneas, intentar leerlas del archivo
+        if lines is None and file_info is not None:
+            # Intentar obtener líneas del sistema central o del archivo
+            app_log = self.logs_dir / "application" / f"ict_engine_{self.today}.log"
+            if app_log.exists():
+                with open(app_log, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+            else:
+                if self.logger:
+                    self.logger.warning("📊 No se pudo leer archivo para análisis detallado")
+                return {
+                    'total_lines': total_lines,
+                    'unique_messages': 0,
+                    'massive_duplicates': 0,
+                    'max_per_second': 0,
+                    'top_duplicates': {}
+                }
+        
+        if lines is None:
+            if self.logger:
+                self.logger.warning("📊 No hay líneas disponibles para análisis")
+            return {
+                'total_lines': total_lines,
+                'unique_messages': 0,
+                'massive_duplicates': 0,
+                'max_per_second': 0,
+                'top_duplicates': {}
+            }
         
         # Analizar patrones de duplicación
         timestamps = []
@@ -86,17 +199,27 @@ class LogProblemInvestigator:
         
         if max_per_second > 50:
             print(f"   🚨 PROBLEMA: {max_per_second} logs por segundo es excesivo")
+            if self.logger:
+                self.logger.warning(f"🚨 Volumen excesivo detectado: {max_per_second} logs/segundo")
         
-        return {
-            'total_lines': len(lines),
+        analysis_result = {
+            'total_lines': total_lines,
             'unique_messages': len(duplicates),
             'massive_duplicates': len(massive_duplicates),
             'max_per_second': max_per_second,
             'top_duplicates': dict(sorted(massive_duplicates.items(), key=lambda x: x[1], reverse=True)[:5])
         }
+        
+        if self.logger:
+            self.logger.info(f"📊 Análisis completado: {len(duplicates)} mensajes únicos, {len(massive_duplicates)} con duplicación masiva")
+        
+        return analysis_result
     
     def investigate_errors(self):
         """🚨 Investigar ERRORs y CRITICALs específicos"""
+        if self.logger:
+            self.logger.info("🚨 Iniciando investigación de errores y críticos")
+        
         print("\n🚨 INVESTIGANDO ERRORES Y CRÍTICOS")
         print("=" * 60)
         
@@ -122,7 +245,7 @@ class LogProblemInvestigator:
                             level = 'ERROR' if 'ERROR' in line else 'CRITICAL'
                             
                             # Extraer componente
-                            component_match = re.search(r'\[([^\]]+)\].*\[' + level + '\]', line)
+                            component_match = re.search(r'\[([^\]]+)\].*\[' + level + r'\]', line)
                             component = component_match.group(1) if component_match else 'UNKNOWN'
                             
                             # Extraer mensaje de error
@@ -301,6 +424,16 @@ class LogProblemInvestigator:
         timestamp_issues = self.investigate_timestamp_issues()
         categorization_issues = self.investigate_categorization_issues()
         
+        # Verificar que tenemos datos válidos
+        if not volume_issues:
+            volume_issues = {'total_lines': 0, 'massive_duplicates': 0}
+        if not error_issues:
+            error_issues = {'total_errors': 0, 'total_criticals': 0}
+        if not timestamp_issues:
+            timestamp_issues = {'format_inconsistencies': []}
+        if not categorization_issues:
+            categorization_issues = {'misplaced_logs': []}
+        
         # Generar reporte final
         print("\n📋 RESUMEN DE PROBLEMAS IDENTIFICADOS")
         print("=" * 80)
@@ -308,37 +441,37 @@ class LogProblemInvestigator:
         problems = []
         
         # Problema 1: Volumen excesivo
-        if volume_issues['total_lines'] > 1000:
+        if volume_issues.get('total_lines', 0) > 1000:
             problems.append({
                 'type': 'VOLUME_EXCESSIVE',
                 'severity': 'HIGH',
-                'description': f"APPLICATION tiene {volume_issues['total_lines']} logs (>1000)",
-                'cause': f"Duplicación masiva: {volume_issues['massive_duplicates']} tipos de mensaje",
+                'description': f"APPLICATION tiene {volume_issues.get('total_lines', 0)} logs (>1000)",
+                'cause': f"Duplicación masiva: {volume_issues.get('massive_duplicates', 0)} tipos de mensaje",
                 'impact': 'Rendimiento degradado, archivos grandes'
             })
         
         # Problema 2: ERRORs críticos
-        if error_issues['total_errors'] > 0 or error_issues['total_criticals'] > 0:
+        if error_issues.get('total_errors', 0) > 0 or error_issues.get('total_criticals', 0) > 0:
             problems.append({
                 'type': 'CRITICAL_ERRORS',
                 'severity': 'CRITICAL',
-                'description': f"{error_issues['total_errors']} ERRORs, {error_issues['total_criticals']} CRITICALs",
+                'description': f"{error_issues.get('total_errors', 0)} ERRORs, {error_issues.get('total_criticals', 0)} CRITICALs",
                 'cause': 'Risk violations, emergency actions, test errors',
                 'impact': 'Operación del sistema comprometida'
             })
         
         # Problema 3: Timestamps inconsistentes
-        if timestamp_issues['format_inconsistencies']:
+        if timestamp_issues.get('format_inconsistencies', []):
             problems.append({
                 'type': 'TIMESTAMP_INCONSISTENT',
                 'severity': 'MEDIUM',
-                'description': f"{len(timestamp_issues['format_inconsistencies'])} archivos con formatos mixtos",
+                'description': f"{len(timestamp_issues.get('format_inconsistencies', []))} archivos con formatos mixtos",
                 'cause': 'Configuraciones de logger inconsistentes',
                 'impact': 'Dificulta análisis temporal y debugging'
             })
         
         # Problema 4: Categorización incorrecta
-        misplaced_total = sum(item['count'] for item in categorization_issues['misplaced_logs'])
+        misplaced_total = sum(item.get('count', 0) for item in categorization_issues.get('misplaced_logs', []))
         if misplaced_total > 100:
             problems.append({
                 'type': 'CATEGORIZATION_WRONG',
