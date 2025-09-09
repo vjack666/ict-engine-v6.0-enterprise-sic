@@ -13,8 +13,8 @@ from dataclasses import dataclass
 
 # Import existing ICT Engine modules
 try:
-    from data_management.mt5_connection_manager import MT5ConnectionManager, get_mt5_connection
-    from risk_management.risk_manager import RiskManager, RiskMetrics, ICTRiskConfig
+    from ..data_management.mt5_connection_manager import MT5ConnectionManager, get_mt5_connection  # type: ignore
+    from ..risk_management.risk_manager import RiskManager, RiskMetrics, ICTRiskConfig  # type: ignore
 except ImportError:
     # Fallbacks for module imports
     class MT5ConnectionManager:
@@ -34,7 +34,7 @@ except ImportError:
         def __init__(self, **kwargs): pass
 
 try:
-    from smart_trading_logger import SmartTradingLogger
+    from ..smart_trading_logger import SmartTradingLogger  # type: ignore
 except ImportError:
     import logging
     class SmartTradingLogger:

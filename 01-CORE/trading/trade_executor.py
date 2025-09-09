@@ -1,8 +1,8 @@
 """
 Trade Executor - ICT Engine v6.0 Enterprise
-Real Trade Execution System for Demo Accounts
+Real Trade Execution System for Live Trading
 
-Extends existing MT5ConnectionManager with actual trading capabilities
+Direct integration with MT5 API for real trading operations
 Integrates with existing RiskManager for position sizing and risk management
 """
 
@@ -13,17 +13,17 @@ from dataclasses import dataclass
 from enum import Enum
 
 # Import existing ICT Engine modules
-from data_management.mt5_connection_manager import MT5ConnectionManager, get_mt5_connection
+from ..data_management.mt5_connection_manager import MT5ConnectionManager, get_mt5_connection
 from risk_management.risk_manager import RiskManager
 
 try:
+    import sys
+    import os
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
     from smart_trading_logger import SmartTradingLogger
 except ImportError:
     import logging
-    class SmartTradingLogger:
-        @staticmethod
-        def get_logger(name: str):
-            return logging.getLogger(name)
+    SmartTradingLogger = None
 
 from .trade_validator import TradeValidator, TradingLimits
 
@@ -54,25 +54,13 @@ class TradeExecutor:
     """
     🚀 Real Trade Execution System for ICT Engine v6.0 Enterprise
     
-    EXTENDS existing modules with actual trading capabilities:
+    Direct MT5 API integration for real trading:
+    - Real buy/sell order execution
+    - Real position management
+    - Real risk validation
+    - Real trade logging
     
-    🔧 EXTENDS MT5ConnectionManager with:
-    - place_buy_order() - MISSING in current implementation
-    - place_sell_order() - MISSING in current implementation  
-    - close_position() - MISSING in current implementation
-    - modify_position() - MISSING in current implementation
-    - get_open_positions() - MISSING in current implementation
-    
-    ✅ USES existing RiskManager for:
-    - calculate_position_size() - AVAILABLE
-    - Risk validation and limits - AVAILABLE
-    
-    ✅ INTEGRATES with existing SmartTradingLogger for:
-    - Comprehensive trade logging - AVAILABLE
-    
-    🚨 CRITICAL MODULE EXTENSIONS NEEDED:
-    This class identifies and implements the missing trading methods
-    that need to be added to MT5ConnectionManager for real trading.
+    No fallback or demo logic - only real trading operations
     """
     
     def __init__(self, validator: Optional[TradeValidator] = None):
@@ -82,8 +70,8 @@ class TradeExecutor:
         self.risk_manager = RiskManager()
         
         # Initialize logger correctly
-        if hasattr(SmartTradingLogger, 'get_logger'):
-            self.logger = SmartTradingLogger.get_logger(__name__)
+        if SmartTradingLogger:
+            self.logger = SmartTradingLogger(__name__).logger
         else:
             self.logger = logging.getLogger(__name__)
             
@@ -95,49 +83,7 @@ class TradeExecutor:
         self.failed_trades = 0
         self.total_slippage = 0.0
         
-        # Validate and extend MT5ConnectionManager capabilities
-        self._validate_and_extend_mt5_capabilities()
-        
-    def _validate_and_extend_mt5_capabilities(self) -> None:
-        """
-        🚨 CRITICAL: Validate MT5ConnectionManager and add missing methods
-        """
-        self.logger.warning("""
-🚨 CRITICAL: MT5ConnectionManager MISSING TRADING METHODS
-
-Current MT5ConnectionManager has these methods:
-- connect() ✅
-- get_account_info() ✅  
-- ensure_connection() ✅
-
-MISSING METHODS for REAL TRADING:
-- place_buy_order() ❌
-- place_sell_order() ❌
-- close_position() ❌
-- modify_position() ❌
-- get_open_positions() ❌
-
-🔧 SOLUTION: TradeExecutor implements these methods temporarily
-until MT5ConnectionManager is extended.
-        """)
-        
-        # Extend MT5ConnectionManager with trading methods
-        self._extend_mt5_manager()
-        
-    def _extend_mt5_manager(self) -> None:
-        """
-        Extend MT5ConnectionManager with missing trading methods
-        This is a temporary solution until the main class is updated
-        """
-        # Add trading methods to existing MT5ConnectionManager instance
-        self.mt5_manager.place_buy_order = self._place_buy_order
-        self.mt5_manager.place_sell_order = self._place_sell_order
-        self.mt5_manager.close_position = self._close_position
-        self.mt5_manager.modify_position = self._modify_position
-        self.mt5_manager.get_open_positions = self._get_open_positions
-        
-        self.logger.info("✅ MT5ConnectionManager extended with trading methods")
-    
+        self.logger.info("✅ TradeExecutor initialized with real MT5 integration")
     def execute_silver_bullet_trade(self, signal: Dict[str, Any]) -> TradeResult:
         """
         Execute a Silver Bullet trade signal with full validation and risk management
@@ -185,28 +131,42 @@ until MT5ConnectionManager is extended.
                 
             self.logger.info(f"Position size calculated: {signal['position_size']} lots")
             
-            # 5. Execute trade based on direction
+            # 5. Execute trade based on direction using MT5ConnectionManager
             if signal['direction'].lower() == 'buy':
-                result = self._place_buy_order(
+                mt5_result = self.mt5_manager.place_buy_order(
                     symbol=signal['symbol'],
-                    lot_size=signal['position_size'],
-                    stop_loss=signal['stop_loss'],
-                    take_profit=signal['take_profit'],
+                    volume=signal['position_size'],
+                    sl=signal['stop_loss'],
+                    tp=signal['take_profit'],
                     comment=f"ICT_SB_BUY_{datetime.now().strftime('%H%M%S')}"
                 )
             else:  # sell
-                result = self._place_sell_order(
+                mt5_result = self.mt5_manager.place_sell_order(
                     symbol=signal['symbol'],
-                    lot_size=signal['position_size'],
-                    stop_loss=signal['stop_loss'],
-                    take_profit=signal['take_profit'],
+                    volume=signal['position_size'],
+                    sl=signal['stop_loss'],
+                    tp=signal['take_profit'],
                     comment=f"ICT_SB_SELL_{datetime.now().strftime('%H%M%S')}"
                 )
             
-            # 6. Update statistics
+            # 6. Convert MT5 result to TradeResult
+            if mt5_result['success']:
+                result = TradeResult(
+                    success=True,
+                    ticket=mt5_result.get('ticket'),
+                    execution_time=datetime.now()
+                )
+            else:
+                result = TradeResult(
+                    success=False,
+                    error_code=mt5_result.get('error_code'),
+                    error_message=mt5_result.get('message')
+                )
+            
+            # 7. Update statistics
             self._update_execution_stats(result)
             
-            # 7. Update validator daily stats
+            # 8. Update validator daily stats
             if result.success:
                 self.validator.update_daily_stats({
                     'status': 'opened',
@@ -214,7 +174,7 @@ until MT5ConnectionManager is extended.
                     'symbol': signal['symbol']
                 })
             
-            # 8. Log execution result
+            # 9. Log execution result
             self._log_trade_execution(signal, result, account_info)
             
             return result
@@ -227,178 +187,26 @@ until MT5ConnectionManager is extended.
                 error_message=error_msg
             )
     
-    def _place_buy_order(self, symbol: str, lot_size: float, stop_loss: Optional[float] = None, 
-                        take_profit: Optional[float] = None, comment: str = "ICT_BUY") -> TradeResult:
-        """
-        🔧 MISSING FROM MT5ConnectionManager - Place buy order
-        """
+    def close_position_by_ticket(self, ticket: int) -> TradeResult:
+        """Close position using MT5ConnectionManager"""
         try:
-            # Prepare order request
-            request = {
-                "action": mt5.TRADE_ACTION_DEAL,
-                "symbol": symbol,
-                "volume": lot_size,
-                "type": mt5.ORDER_TYPE_BUY,
-                "deviation": 20,
-                "magic": 12345,  # ICT Engine magic number
-                "comment": comment,
-                "type_time": mt5.ORDER_TIME_GTC,
-                "type_filling": mt5.ORDER_FILLING_IOC,
-            }
+            result = self.mt5_manager.close_position(ticket=ticket)
             
-            # Add stop loss and take profit if provided
-            if stop_loss:
-                request["sl"] = stop_loss
-            if take_profit:
-                request["tp"] = take_profit
-            
-            # Send order
-            result = mt5.order_send(request)
-            
-            if result is None:
-                return TradeResult(
-                    success=False,
-                    error_message="Order send failed - no result"
+            if result['success']:
+                trade_result = TradeResult(
+                    success=True,
+                    ticket=result.get('ticket'),
+                    execution_time=datetime.now()
                 )
-            
-            if result.retcode != mt5.TRADE_RETCODE_DONE:
-                return TradeResult(
-                    success=False,
-                    error_code=result.retcode,
-                    error_message=f"Order failed: {result.comment}"
-                )
-            
-            # Calculate slippage
-            ask_price = mt5.symbol_info_tick(symbol).ask
-            slippage = abs(result.price - ask_price) if ask_price else 0.0
-            
-            return TradeResult(
-                success=True,
-                ticket=result.order,
-                execution_price=result.price,
-                execution_time=datetime.now(),
-                slippage=slippage
-            )
-            
-        except Exception as e:
-            return TradeResult(
-                success=False,
-                error_message=f"Buy order error: {str(e)}"
-            )
-    
-    def _place_sell_order(self, symbol: str, lot_size: float, stop_loss: Optional[float] = None, 
-                         take_profit: Optional[float] = None, comment: str = "ICT_SELL") -> TradeResult:
-        """
-        🔧 MISSING FROM MT5ConnectionManager - Place sell order
-        """
-        try:
-            # Prepare order request
-            request = {
-                "action": mt5.TRADE_ACTION_DEAL,
-                "symbol": symbol,
-                "volume": lot_size,
-                "type": mt5.ORDER_TYPE_SELL,
-                "deviation": 20,
-                "magic": 12345,  # ICT Engine magic number
-                "comment": comment,
-                "type_time": mt5.ORDER_TIME_GTC,
-                "type_filling": mt5.ORDER_FILLING_IOC,
-            }
-            
-            # Add stop loss and take profit if provided
-            if stop_loss:
-                request["sl"] = stop_loss
-            if take_profit:
-                request["tp"] = take_profit
-            
-            # Send order
-            result = mt5.order_send(request)
-            
-            if result is None:
-                return TradeResult(
-                    success=False,
-                    error_message="Order send failed - no result"
-                )
-            
-            if result.retcode != mt5.TRADE_RETCODE_DONE:
-                return TradeResult(
-                    success=False,
-                    error_code=result.retcode,
-                    error_message=f"Order failed: {result.comment}"
-                )
-            
-            # Calculate slippage
-            bid_price = mt5.symbol_info_tick(symbol).bid
-            slippage = abs(result.price - bid_price) if bid_price else 0.0
-            
-            return TradeResult(
-                success=True,
-                ticket=result.order,
-                execution_price=result.price,
-                execution_time=datetime.now(),
-                slippage=slippage
-            )
-            
-        except Exception as e:
-            return TradeResult(
-                success=False,
-                error_message=f"Sell order error: {str(e)}"
-            )
-    
-    def _close_position(self, ticket: int) -> TradeResult:
-        """
-        🔧 MISSING FROM MT5ConnectionManager - Close position
-        """
-        try:
-            # Get position info
-            position = None
-            positions = mt5.positions_get(ticket=ticket)
-            if positions and len(positions) > 0:
-                position = positions[0]
             else:
-                return TradeResult(
+                trade_result = TradeResult(
                     success=False,
-                    error_message=f"Position {ticket} not found"
+                    error_code=result.get('error_code'),
+                    error_message=result.get('message')
                 )
-            
-            # Prepare close request
-            close_type = mt5.ORDER_TYPE_SELL if position.type == mt5.ORDER_TYPE_BUY else mt5.ORDER_TYPE_BUY
-            
-            request = {
-                "action": mt5.TRADE_ACTION_DEAL,
-                "symbol": position.symbol,
-                "volume": position.volume,
-                "type": close_type,
-                "position": ticket,
-                "deviation": 20,
-                "magic": 12345,
-                "comment": f"Close_{ticket}",
-                "type_time": mt5.ORDER_TIME_GTC,
-                "type_filling": mt5.ORDER_FILLING_IOC,
-            }
-            
-            # Send close order
-            result = mt5.order_send(request)
-            
-            if result is None:
-                return TradeResult(
-                    success=False,
-                    error_message="Close order failed - no result"
-                )
-            
-            if result.retcode != mt5.TRADE_RETCODE_DONE:
-                return TradeResult(
-                    success=False,
-                    error_code=result.retcode,
-                    error_message=f"Close failed: {result.comment}"
-                )
-            
-            return TradeResult(
-                success=True,
-                ticket=result.order,
-                execution_price=result.price,
-                execution_time=datetime.now()
-            )
+                
+            self._update_execution_stats(trade_result)
+            return trade_result
             
         except Exception as e:
             return TradeResult(
@@ -406,53 +214,31 @@ until MT5ConnectionManager is extended.
                 error_message=f"Close position error: {str(e)}"
             )
     
-    def _modify_position(self, ticket: int, stop_loss: Optional[float] = None, 
-                        take_profit: Optional[float] = None) -> TradeResult:
-        """
-        🔧 MISSING FROM MT5ConnectionManager - Modify position
-        """
+    def modify_position_by_ticket(self, ticket: int, stop_loss: Optional[float] = None, 
+                                take_profit: Optional[float] = None) -> TradeResult:
+        """Modify position using MT5ConnectionManager"""
         try:
-            # Get position info
-            position = None
-            positions = mt5.positions_get(ticket=ticket)
-            if positions and len(positions) > 0:
-                position = positions[0]
-            else:
-                return TradeResult(
-                    success=False,
-                    error_message=f"Position {ticket} not found"
-                )
-            
-            # Prepare modification request
-            request = {
-                "action": mt5.TRADE_ACTION_SLTP,
-                "symbol": position.symbol,
-                "position": ticket,
-                "sl": stop_loss if stop_loss else position.sl,
-                "tp": take_profit if take_profit else position.tp,
-            }
-            
-            # Send modification
-            result = mt5.order_send(request)
-            
-            if result is None:
-                return TradeResult(
-                    success=False,
-                    error_message="Modify order failed - no result"
-                )
-            
-            if result.retcode != mt5.TRADE_RETCODE_DONE:
-                return TradeResult(
-                    success=False,
-                    error_code=result.retcode,
-                    error_message=f"Modify failed: {result.comment}"
-                )
-            
-            return TradeResult(
-                success=True,
-                ticket=result.order,
-                execution_time=datetime.now()
+            result = self.mt5_manager.modify_position(
+                ticket=ticket,
+                sl=stop_loss,
+                tp=take_profit
             )
+            
+            if result['success']:
+                trade_result = TradeResult(
+                    success=True,
+                    ticket=result.get('ticket'),
+                    execution_time=datetime.now()
+                )
+            else:
+                trade_result = TradeResult(
+                    success=False,
+                    error_code=result.get('error_code'),
+                    error_message=result.get('message')
+                )
+                
+            self._update_execution_stats(trade_result)
+            return trade_result
             
         except Exception as e:
             return TradeResult(
@@ -460,35 +246,10 @@ until MT5ConnectionManager is extended.
                 error_message=f"Modify position error: {str(e)}"
             )
     
-    def _get_open_positions(self) -> List[Dict[str, Any]]:
-        """
-        🔧 MISSING FROM MT5ConnectionManager - Get open positions
-        """
+    def get_open_positions(self) -> List[Dict[str, Any]]:
+        """Get open positions using MT5ConnectionManager"""
         try:
-            positions = mt5.positions_get()
-            if positions is None:
-                return []
-            
-            position_list = []
-            for pos in positions:
-                position_list.append({
-                    'ticket': pos.ticket,
-                    'symbol': pos.symbol,
-                    'type': 'buy' if pos.type == mt5.ORDER_TYPE_BUY else 'sell',
-                    'volume': pos.volume,
-                    'open_price': pos.price_open,
-                    'current_price': pos.price_current,
-                    'stop_loss': pos.sl,
-                    'take_profit': pos.tp,
-                    'profit': pos.profit,
-                    'swap': pos.swap,
-                    'commission': pos.commission,
-                    'comment': pos.comment,
-                    'open_time': datetime.fromtimestamp(pos.time)
-                })
-            
-            return position_list
-            
+            return self.mt5_manager.get_open_positions()
         except Exception as e:
             self.logger.error(f"Error getting positions: {str(e)}")
             return []
@@ -500,7 +261,7 @@ until MT5ConnectionManager is extended.
         try:
             self.logger.warning("🚨 EMERGENCY STOP: Closing all positions")
             
-            positions = self._get_open_positions()
+            positions = self.get_open_positions()
             if not positions:
                 return {
                     'success': True,
@@ -513,7 +274,7 @@ until MT5ConnectionManager is extended.
             errors = []
             
             for position in positions:
-                result = self._close_position(position['ticket'])
+                result = self.close_position_by_ticket(position['ticket'])
                 if result.success:
                     closed_count += 1
                     self.logger.info(f"✅ Emergency closed position {position['ticket']}")

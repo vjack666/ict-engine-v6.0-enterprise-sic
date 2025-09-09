@@ -13,14 +13,14 @@ from typing import Dict, List, Optional, Any
 from pathlib import Path
 
 # Import all real trading components
-from .trade_validator import TradeValidator, TradingLimits
+from .trade_validator import TradeValidator, TradingLimits as ValidatorTradingLimits
 from .trade_executor import TradeExecutor, TradeResult
 from .dashboard_integrator import DashboardTradingIntegrator, DashboardTradeSignal
 from .real_trading_logger import RealTradingLogger
 
 # Import existing ICT Engine modules
 try:
-    from smart_trading_logger import SmartTradingLogger
+    from smart_trading_logger import SmartTradingLogger  # type: ignore
 except ImportError:
     import logging
     class SmartTradingLogger:
@@ -28,7 +28,7 @@ except ImportError:
         def get_logger(name: str):
             return logging.getLogger(name)
 
-from data_management.mt5_connection_manager import get_mt5_connection
+from ..data_management.mt5_connection_manager import get_mt5_connection
 from risk_management.risk_manager import RiskManager
 
 class RealTradingSystem:
@@ -96,7 +96,7 @@ class RealTradingSystem:
         # Initialize core components with configuration
         self.validator = self._initialize_validator()
         self.executor = TradeExecutor(self.validator)
-        self.dashboard_integrator = DashboardTradingIntegrator(self.validator, self.executor)
+        self.dashboard_integrator = DashboardTradingIntegrator(self.validator, self.executor)  # type: ignore
         
         # Enhance existing modules with real trading capabilities
         self._enhance_existing_modules()
@@ -157,7 +157,7 @@ class RealTradingSystem:
             daily_limits = safety_config.get('daily_limits', {})
             account_limits = safety_config.get('account_limits', {})
             
-            limits = TradingLimits(
+            limits = ValidatorTradingLimits(
                 max_daily_trades=daily_limits.get('max_trades_per_day', 5),
                 max_daily_loss=daily_limits.get('max_daily_loss', 0.05),
                 max_position_size=daily_limits.get('max_position_size', 0.3),
@@ -379,12 +379,12 @@ class RealTradingSystem:
                 'message': 'System not active - start system first'
             }
         
-        # Convert custom limits to TradingLimits object if provided
+        # Convert custom limits to ValidatorTradingLimits object if provided
         limits = None
         if custom_limits:
-            limits = TradingLimits(**custom_limits)
+            limits = ValidatorTradingLimits(**custom_limits)
         
-        result = self.dashboard_integrator.enable_auto_trading(limits)
+        result = self.dashboard_integrator.enable_auto_trading(limits)  # type: ignore
         
         self.trading_logger.log_dashboard_action(
             'enable_auto_trading',
@@ -396,7 +396,7 @@ class RealTradingSystem:
     
     def disable_auto_trading(self) -> Dict[str, Any]:
         """Disable auto-trading"""
-        result = self.dashboard_integrator.disable_auto_trading()
+        result = self.dashboard_integrator.disable_auto_trading()  # type: ignore
         
         self.trading_logger.log_dashboard_action(
             'disable_auto_trading',
@@ -408,7 +408,7 @@ class RealTradingSystem:
     
     def emergency_stop_all(self) -> Dict[str, Any]:
         """Emergency stop all trading activities"""
-        result = self.dashboard_integrator.emergency_stop()
+        result = self.dashboard_integrator.emergency_stop()  # type: ignore
         
         self.trading_logger.log_dashboard_action(
             'emergency_stop',
@@ -425,7 +425,7 @@ class RealTradingSystem:
             self.base_logger.warning("Cannot process signal - system not active")
             return None
         
-        signal = self.dashboard_integrator.process_silver_bullet_signal(poi_data, candle_data)
+        signal = self.dashboard_integrator.process_silver_bullet_signal(poi_data, candle_data)  # type: ignore
         
         if signal:
             self.trading_logger.log_signal_generated({
@@ -443,7 +443,7 @@ class RealTradingSystem:
     
     def manual_execute_signal(self, signal_id: str) -> Dict[str, Any]:
         """Manually execute a pending signal"""
-        result = self.dashboard_integrator.manual_execute_signal(signal_id)
+        result = self.dashboard_integrator.manual_execute_signal(signal_id)  # type: ignore
         
         self.trading_logger.log_dashboard_action(
             'manual_execute_signal',
@@ -458,10 +458,10 @@ class RealTradingSystem:
         return {
             'system_active': self.system_active,
             'initialization_time': self.initialization_time.isoformat(),
-            'dashboard_status': self.dashboard_integrator.get_dashboard_status(),
-            'pending_signals': self.dashboard_integrator.get_pending_signals(),
-            'active_trades': self.dashboard_integrator.get_active_trades(),
-            'open_positions': self.dashboard_integrator.get_open_positions(),
+            'dashboard_status': self.dashboard_integrator.get_dashboard_status(),  # type: ignore
+            'pending_signals': self.dashboard_integrator.get_pending_signals(),  # type: ignore
+            'active_trades': self.dashboard_integrator.get_active_trades(),  # type: ignore
+            'open_positions': self.dashboard_integrator.get_open_positions(),  # type: ignore
             'validator_summary': self.validator.get_validation_summary(),
             'executor_summary': self.executor.get_execution_summary(),
             'log_statistics': self.trading_logger.get_log_statistics()
@@ -473,7 +473,7 @@ class RealTradingSystem:
     
     def register_dashboard_callback(self, callback) -> None:
         """Register callback for dashboard real-time updates"""
-        self.dashboard_integrator.register_dashboard_callback(callback)
+        self.dashboard_integrator.register_dashboard_callback(callback)  # type: ignore
     
     def export_trading_logs(self, date: Optional[datetime] = None) -> Dict[str, str]:
         """Export trading logs for specified date"""

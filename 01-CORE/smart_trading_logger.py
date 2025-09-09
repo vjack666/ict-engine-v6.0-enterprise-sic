@@ -15,7 +15,7 @@ import sys
 import json
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 class SmartTradingLogger:
     """🔧 Logger inteligente para ICT Engine v6.1.0"""
@@ -803,3 +803,211 @@ def cache_multi_timeframe_decision(analysis_results: Dict[str, Any]) -> None:
 def is_significant_smart_money_change(current_analysis: Dict[str, Any]) -> bool:
     """🧠 Verificar cambio significativo en Smart Money"""
     return get_trading_decision_cache().is_significant_smart_money_change(current_analysis)
+
+# ================== MÉTODOS CRÍTICOS PARA TRADING REAL ==================
+
+def log_trade_entry(symbol: str, action: str, volume: float, price: float, 
+                   sl: Optional[float] = None, tp: Optional[float] = None,
+                   ticket: Optional[int] = None) -> bool:
+    """
+    🚀 MÉTODO CRÍTICO: Log entrada de trade real
+    
+    Args:
+        symbol: Símbolo operado
+        action: 'BUY' o 'SELL'
+        volume: Volumen en lotes
+        price: Precio de entrada
+        sl: Stop Loss
+        tp: Take Profit
+        ticket: Ticket de la orden
+        
+    Returns:
+        bool: True si se loggeó exitosamente
+    """
+    try:
+        logger = SmartTradingLogger("ICT_Trading")
+        
+        entry_data = {
+            'event_type': 'TRADE_ENTRY',
+            'timestamp': datetime.now().isoformat(),
+            'symbol': symbol,
+            'action': action,
+            'volume': volume,
+            'entry_price': price,
+            'stop_loss': sl,
+            'take_profit': tp,
+            'ticket': ticket,
+            'status': 'OPENED'
+        }
+        
+        logger.info(f"🎯 TRADE ENTRY: {action} {volume} lots {symbol} at {price}")
+        logger.info(f"📊 Trade Details: {json.dumps(entry_data, default=str)}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to log trade entry: {e}")
+        return False
+
+def log_trade_exit(ticket: int, symbol: str, close_price: float, profit: float,
+                  reason: str = "Manual close") -> bool:
+    """
+    🚀 MÉTODO CRÍTICO: Log salida de trade real
+    
+    Args:
+        ticket: Ticket de la posición cerrada
+        symbol: Símbolo
+        close_price: Precio de cierre
+        profit: Ganancia/pérdida en USD
+        reason: Razón del cierre
+        
+    Returns:
+        bool: True si se loggeó exitosamente
+    """
+    try:
+        logger = SmartTradingLogger("ICT_Trading")
+        
+        exit_data = {
+            'event_type': 'TRADE_EXIT',
+            'timestamp': datetime.now().isoformat(),
+            'ticket': ticket,
+            'symbol': symbol,
+            'close_price': close_price,
+            'profit': profit,
+            'reason': reason,
+            'status': 'CLOSED'
+        }
+        
+        profit_status = "PROFIT" if profit > 0 else "LOSS"
+        logger.info(f"🏁 TRADE EXIT: {symbol} ticket {ticket} closed at {close_price} - {profit_status}: ${profit:.2f}")
+        logger.info(f"📊 Exit Details: {json.dumps(exit_data, default=str)}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to log trade exit: {e}")
+        return False
+
+def log_risk_violation(rule_type: str, details: Dict[str, Any]) -> bool:
+    """
+    🚨 MÉTODO CRÍTICO: Log violación de reglas de riesgo
+    
+    Args:
+        rule_type: Tipo de regla violada (MAX_POSITIONS, MAX_DRAWDOWN, etc.)
+        details: Detalles de la violación
+        
+    Returns:
+        bool: True si se loggeó exitosamente
+    """
+    try:
+        logger = SmartTradingLogger("ICT_Risk")
+        
+        violation_data = {
+            'event_type': 'RISK_VIOLATION',
+            'timestamp': datetime.now().isoformat(),
+            'rule_type': rule_type,
+            'details': details,
+            'severity': 'HIGH'
+        }
+        
+        logger.error(f"🚨 RISK VIOLATION: {rule_type}")
+        logger.error(f"📊 Violation Details: {json.dumps(violation_data, default=str)}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to log risk violation: {e}")
+        return False
+
+def log_account_status(balance: float, equity: float, margin: float,
+                      free_margin: Optional[float] = None) -> bool:
+    """
+    📊 MÉTODO CRÍTICO: Log status de cuenta en tiempo real
+    
+    Args:
+        balance: Balance de la cuenta
+        equity: Equity actual
+        margin: Margen usado
+        free_margin: Margen libre
+        
+    Returns:
+        bool: True si se loggeó exitosamente
+    """
+    try:
+        logger = SmartTradingLogger("ICT_Account")
+        
+        account_data = {
+            'event_type': 'ACCOUNT_STATUS',
+            'timestamp': datetime.now().isoformat(),
+            'balance': balance,
+            'equity': equity,
+            'margin_used': margin,
+            'margin_free': free_margin,
+            'margin_level': (equity / margin * 100) if margin > 0 else 0.0,
+            'floating_pnl': equity - balance
+        }
+        
+        logger.info(f"💰 ACCOUNT STATUS: Balance=${balance:.2f}, Equity=${equity:.2f}, Margin=${margin:.2f}")
+        logger.debug(f"📊 Account Details: {json.dumps(account_data, default=str)}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to log account status: {e}")
+        return False
+
+def log_emergency_action(action_type: str, details: Dict[str, Any], 
+                        positions_affected: int = 0) -> bool:
+    """
+    🚨 MÉTODO CRÍTICO: Log acciones de emergencia
+    
+    Args:
+        action_type: Tipo de acción (EMERGENCY_STOP, DRAWDOWN_LIMIT, etc.)
+        details: Detalles de la acción
+        positions_affected: Número de posiciones afectadas
+        
+    Returns:
+        bool: True si se loggeó exitosamente
+    """
+    try:
+        logger = SmartTradingLogger("ICT_Emergency")
+        
+        emergency_data = {
+            'event_type': 'EMERGENCY_ACTION',
+            'timestamp': datetime.now().isoformat(),
+            'action_type': action_type,
+            'details': details,
+            'positions_affected': positions_affected,
+            'severity': 'CRITICAL'
+        }
+        
+        logger.critical(f"🚨 EMERGENCY ACTION: {action_type} - {positions_affected} positions affected")
+        logger.critical(f"📊 Emergency Details: {json.dumps(emergency_data, default=str)}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to log emergency action: {e}")
+        return False
+
+def get_trading_session_summary() -> Dict[str, Any]:
+    """
+    📈 NUEVO: Obtener resumen de sesión de trading (simplificado)
+    
+    Returns:
+        Dict con métricas básicas de la sesión
+    """
+    try:
+        current_time = datetime.now()
+        
+        return {
+            'session_time': current_time.isoformat(),
+            'logger_active': True,
+            'cache_available': True,
+            'session_status': 'ACTIVE'
+        }
+        
+    except Exception as e:
+        return {'error': f'Failed to generate session summary: {e}'}
+
+# ================== FIN DE MÉTODOS CRÍTICOS PARA TRADING REAL ==================

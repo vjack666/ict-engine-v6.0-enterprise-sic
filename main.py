@@ -69,9 +69,38 @@ try:
         print(f"[ERROR] No se pudo cargar data_collector: {e}")
         raise
     
-    # Inicializar logger y MT5 manager reales
-    logger = get_smart_logger_safe()
-    mt5_manager = get_mt5_manager_safe()
+    # Inicializar logger y MT5 manager reales con manejo robusto
+    try:
+        # Obtener logger con manejo mejorado
+        logger_class = get_smart_logger_safe()
+        if logger_class:
+            # Verificar si es una clase que necesita instanciación
+            if hasattr(logger_class, '__call__') and not hasattr(logger_class, 'info'):
+                logger = logger_class()
+            else:
+                logger = logger_class
+        else:
+            # Fallback básico
+            import logging
+            logger = logging.getLogger(__name__)
+        
+        # Obtener MT5 manager con manejo mejorado
+        mt5_manager_class = get_mt5_manager_safe()
+        if mt5_manager_class:
+            # Verificar si es una función o clase, instanciarla si es necesario
+            if hasattr(mt5_manager_class, '__call__') and not hasattr(mt5_manager_class, 'get_account_info'):
+                mt5_manager = mt5_manager_class()
+            else:
+                mt5_manager = mt5_manager_class
+        else:
+            mt5_manager = None
+            
+    except Exception as e:
+        print(f"[WARN] Error en inicialización avanzada: {e}")
+        # Usar versiones básicas
+        import logging
+        logger = logging.getLogger(__name__)
+        mt5_manager = None
     
     print("[OK] Componentes reales importados exitosamente")
     print("    - SmartTradingLogger: Activo")
@@ -300,7 +329,7 @@ class ICTEnterpriseSystem:
                     break
                     
                 else:
-                    print("[X] Opción no válida. Usa 1 o 2.")
+                    print("[X] Opción no válida. Usa 1-2.")
                     continue
                     
             except KeyboardInterrupt:

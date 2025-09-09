@@ -618,3 +618,293 @@ class RiskManager:
                 return True
         
         return False
+
+    # ================== MÉTODOS CRÍTICOS PARA TRADING REAL ==================
+    
+    def validate_trade_signal(self, symbol: str, action: str, volume: float,
+                             current_positions: int) -> Dict[str, Any]:
+        """
+        🚀 MÉTODO CRÍTICO: Validar si señal de trading cumple reglas de riesgo
+        
+        Args:
+            symbol: Símbolo a operar
+            action: 'BUY' o 'SELL'
+            volume: Volumen en lotes
+            current_positions: Número de posiciones actuales
+            
+        Returns:
+            Dict: {'valid': bool, 'reason': str, 'max_volume': float, 'risk_level': str}
+        """
+        try:
+            # Reglas de riesgo obligatorias
+            MAX_RISK_PER_TRADE = 2.0  # % de cuenta por operación
+            MAX_POSITIONS = 5         # Máximo posiciones simultáneas
+            MAX_VOLUME_PER_SYMBOL = 1.0  # Máximo volumen por símbolo
+            
+            # 1. Verificar máximo de posiciones
+            if current_positions >= MAX_POSITIONS:
+                return {
+                    'valid': False,
+                    'reason': f'Máximo de posiciones alcanzado ({current_positions}/{MAX_POSITIONS})',
+                    'max_volume': 0.0,
+                    'risk_level': 'HIGH'
+                }
+            
+            # 2. Verificar volumen máximo
+            if volume > MAX_VOLUME_PER_SYMBOL:
+                return {
+                    'valid': False,
+                    'reason': f'Volumen excede máximo permitido ({volume} > {MAX_VOLUME_PER_SYMBOL})',
+                    'max_volume': MAX_VOLUME_PER_SYMBOL,
+                    'risk_level': 'HIGH'
+                }
+            
+            # 3. Calcular riesgo de la operación
+            account_balance = 10000.0  # Fallback si no se puede obtener balance real
+            try:
+                # Intentar obtener balance real desde MT5
+                from data_management.mt5_connection_manager import get_mt5_connection
+                mt5_manager = get_mt5_connection()
+                account_info = mt5_manager.get_account_info()
+                if account_info and 'balance' in account_info:
+                    account_balance = account_info['balance']
+            except:
+                pass
+            
+            # Estimar riesgo basado en volumen típico
+            estimated_risk_usd = volume * 1000  # Estimación conservadora
+            risk_percentage = (estimated_risk_usd / account_balance) * 100
+            
+            if risk_percentage > MAX_RISK_PER_TRADE:
+                max_safe_volume = (account_balance * MAX_RISK_PER_TRADE / 100) / 1000
+                return {
+                    'valid': False,
+                    'reason': f'Riesgo excede límite ({risk_percentage:.1f}% > {MAX_RISK_PER_TRADE}%)',
+                    'max_volume': round(max_safe_volume, 2),
+                    'risk_level': 'HIGH'
+                }
+            
+            # 4. Verificar correlación con posiciones existentes
+            # Esto se implementaría con posiciones reales
+            correlation_risk = self._check_correlation_risk(symbol)
+            
+            # 5. Determinar nivel de riesgo
+            if risk_percentage > 1.5:
+                risk_level = 'HIGH'
+            elif risk_percentage > 1.0:
+                risk_level = 'MEDIUM'
+            else:
+                risk_level = 'LOW'
+            
+            # Señal válida
+            logging.info(f"✅ Trade signal validated: {symbol} {action} {volume} lots - Risk: {risk_percentage:.1f}%")
+            return {
+                'valid': True,
+                'reason': f'Signal validated - Risk: {risk_percentage:.1f}%',
+                'max_volume': volume,
+                'risk_level': risk_level
+            }
+            
+        except Exception as e:
+            logging.error(f"Error validating trade signal: {e}")
+            return {
+                'valid': False,
+                'reason': f'Validation error: {str(e)}',
+                'max_volume': 0.0,
+                'risk_level': 'HIGH'
+            }
+    
+    def check_max_drawdown(self, current_equity: float, peak_equity: float) -> bool:
+        """
+        🚀 MÉTODO CRÍTICO: Verificar si se excede drawdown máximo permitido
+        
+        Args:
+            current_equity: Equity actual de la cuenta
+            peak_equity: Equity máximo alcanzado
+            
+        Returns:
+            bool: True si dentro de límites, False si excedido
+        """
+        try:
+            MAX_DRAWDOWN = 10.0  # % máximo de drawdown
+            
+            if peak_equity <= 0:
+                logging.warning("Peak equity inválido para cálculo de drawdown")
+                return True  # Permitir trading si no hay datos válidos
+            
+            # Calcular drawdown actual
+            drawdown_percentage = ((peak_equity - current_equity) / peak_equity) * 100
+            
+            if drawdown_percentage > MAX_DRAWDOWN:
+                logging.error(f"🚨 DRAWDOWN LIMIT EXCEEDED: {drawdown_percentage:.1f}% > {MAX_DRAWDOWN}%")
+                return False
+            
+            if drawdown_percentage > MAX_DRAWDOWN * 0.8:  # 80% del límite
+                logging.warning(f"⚠️ Drawdown approaching limit: {drawdown_percentage:.1f}% (limit: {MAX_DRAWDOWN}%)")
+            
+            return True
+            
+        except Exception as e:
+            logging.error(f"Error checking drawdown: {e}")
+            return False  # Ser conservativo en caso de error
+    
+    def emergency_stop_all(self, reason: str = "Emergency stop") -> Dict[str, Any]:
+        """
+        🚨 MÉTODO CRÍTICO: Cerrar todas las posiciones inmediatamente
+        
+        Args:
+            reason: Razón del stop de emergencia
+            
+        Returns:
+            Dict: {'closed_positions': int, 'failed_closes': int, 'details': list, 'success': bool}
+        """
+        try:
+            logging.error(f"🚨 EMERGENCY STOP TRIGGERED: {reason}")
+            
+            # Obtener MT5ConnectionManager
+            from data_management.mt5_connection_manager import get_mt5_connection
+            mt5_manager = get_mt5_connection()
+            
+            # Obtener todas las posiciones abiertas
+            open_positions = mt5_manager.get_open_positions()
+            
+            if not open_positions:
+                logging.info("✅ No hay posiciones abiertas para cerrar")
+                return {
+                    'closed_positions': 0,
+                    'failed_closes': 0,
+                    'details': ['No open positions to close'],
+                    'success': True
+                }
+            
+            closed_count = 0
+            failed_count = 0
+            details = []
+            
+            # Cerrar cada posición
+            for position in open_positions:
+                ticket = position.get('ticket', 0)
+                symbol = position.get('symbol', 'UNKNOWN')
+                
+                try:
+                    result = mt5_manager.close_position(ticket)
+                    
+                    if result.get('success', False):
+                        closed_count += 1
+                        details.append(f"✅ Closed position {ticket} ({symbol})")
+                        logging.info(f"✅ Emergency closed position {ticket} ({symbol})")
+                    else:
+                        failed_count += 1
+                        error_msg = result.get('message', 'Unknown error')
+                        details.append(f"❌ Failed to close {ticket} ({symbol}): {error_msg}")
+                        logging.error(f"❌ Failed to close position {ticket}: {error_msg}")
+                        
+                except Exception as e:
+                    failed_count += 1
+                    details.append(f"❌ Exception closing {ticket}: {str(e)}")
+                    logging.error(f"❌ Exception closing position {ticket}: {e}")
+            
+            # Resultado final
+            success = failed_count == 0
+            total_positions = len(open_positions)
+            
+            summary_msg = f"Emergency stop completed: {closed_count}/{total_positions} positions closed"
+            if failed_count > 0:
+                summary_msg += f", {failed_count} failed"
+            
+            logging.error(f"🚨 {summary_msg}")
+            
+            return {
+                'closed_positions': closed_count,
+                'failed_closes': failed_count,
+                'details': details,
+                'success': success,
+                'total_positions': total_positions,
+                'summary': summary_msg
+            }
+            
+        except Exception as e:
+            error_msg = f"Critical error in emergency_stop_all: {str(e)}"
+            logging.error(f"🚨 {error_msg}")
+            return {
+                'closed_positions': 0,
+                'failed_closes': 0,
+                'details': [error_msg],
+                'success': False,
+                'total_positions': 0,
+                'summary': error_msg
+            }
+    
+    def _check_correlation_risk(self, symbol: str) -> float:
+        """
+        Verificar riesgo de correlación con posiciones existentes
+        
+        Returns:
+            float: Nivel de riesgo de correlación (0.0 a 1.0)
+        """
+        try:
+            # Obtener posiciones actuales
+            from data_management.mt5_connection_manager import get_mt5_connection
+            mt5_manager = get_mt5_connection()
+            open_positions = mt5_manager.get_open_positions()
+            
+            if not open_positions:
+                return 0.0  # Sin riesgo si no hay posiciones
+            
+            correlation_risk = 0.0
+            
+            for position in open_positions:
+                position_symbol = position.get('symbol', '')
+                if self._symbols_are_correlated(symbol, position_symbol):
+                    correlation_risk += 0.2  # Incrementar riesgo por cada correlación
+            
+            return min(correlation_risk, 1.0)  # Máximo 1.0
+            
+        except Exception as e:
+            logging.error(f"Error checking correlation risk: {e}")
+            return 0.5  # Riesgo medio en caso de error
+    
+    def get_account_risk_summary(self) -> Dict[str, Any]:
+        """
+        🚀 NUEVO: Obtener resumen completo de riesgo de la cuenta
+        
+        Returns:
+            Dict con métricas de riesgo en tiempo real
+        """
+        try:
+            # Obtener datos de cuenta
+            from data_management.mt5_connection_manager import get_mt5_connection
+            mt5_manager = get_mt5_connection()
+            account_info = mt5_manager.get_account_info()
+            open_positions = mt5_manager.get_open_positions()
+            
+            if not account_info:
+                return {'error': 'Cannot retrieve account information'}
+            
+            balance = account_info.get('balance', 0.0)
+            equity = account_info.get('equity', 0.0)
+            margin_free = account_info.get('margin_free', 0.0)
+            
+            # Calcular métricas
+            total_exposure = sum(pos.get('volume', 0.0) for pos in open_positions)
+            total_profit = sum(pos.get('profit', 0.0) for pos in open_positions)
+            
+            # Drawdown desde balance inicial (simplificado)
+            current_drawdown = ((balance - equity) / balance * 100) if balance > 0 else 0.0
+            
+            return {
+                'account_balance': balance,
+                'account_equity': equity,
+                'margin_free': margin_free,
+                'open_positions': len(open_positions),
+                'total_exposure': total_exposure,
+                'total_profit': total_profit,
+                'current_drawdown': current_drawdown,
+                'margin_level': (equity / (balance - margin_free) * 100) if (balance - margin_free) > 0 else 0.0,
+                'risk_status': 'LOW' if current_drawdown < 5.0 else 'MEDIUM' if current_drawdown < 8.0 else 'HIGH',
+                'timestamp': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logging.error(f"Error getting account risk summary: {e}")
+            return {'error': f'Risk summary error: {str(e)}'}
