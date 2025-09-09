@@ -1,0 +1,42 @@
+{
+  "application": {
+    "keywords": ["ict_engine", "system", "startup", "shutdown", "config", "main"],
+    "exclude_keywords": ["fvg", "market_data", "pattern", "dashboard"],
+    "priority": 1
+  },
+  "fvg_memory": {
+    "keywords": ["fvg", "fair value gap", "fvg_memory", "gap", "unified_memory"],
+    "file_patterns": ["fvg_*.log"],
+    "priority": 5
+  },
+  "market_data": {
+    "keywords": ["market_data", "candle", "ohlc", "price", "mt5", "tick", "data_collector"],
+    "file_patterns": ["market_data_*.log"],
+    "priority": 4
+  },
+  "patterns": {
+    "keywords": ["pattern", "ict_patterns", "signal", "analysis", "detector", "silver_bullet"],
+    "file_patterns": ["patterns_*.log"],
+    "priority": 3
+  },
+  "dashboard": {
+    "keywords": ["dashboard", "ui", "frontend", "web", "display", "textual"],
+    "file_patterns": ["dashboard_*.log"],
+    "priority": 2
+  },
+  "trading": {
+    "keywords": ["trading", "order", "position", "trade", "execution", "risk"],
+    "file_patterns": ["trading_*.log"],
+    "priority": 6
+  },
+  "system_status": {
+    "keywords": ["status", "health", "monitoring", "performance", "bridge"],
+    "file_patterns": ["system_status_*.log"],
+    "priority": 1
+  },
+  "general": {
+    "keywords": ["general", "misc", "other"],
+    "file_patterns": ["general_*.log"],
+    "priority": 0
+  }
+}

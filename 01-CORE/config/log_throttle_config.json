@@ -1,0 +1,17 @@
+{
+  "max_logs_per_second": 10,
+  "max_duplicates_per_minute": 5,
+  "throttle_window_seconds": 60,
+  "duplicate_detection_enabled": true,
+  "emergency_throttle_threshold": 100,
+  "rate_limiting": {
+    "enabled": true,
+    "window_size_seconds": 60,
+    "max_identical_messages": 5
+  },
+  "deduplication": {
+    "enabled": true,
+    "cache_size": 1000,
+    "cleanup_interval_seconds": 300
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "default_format": "%H:%M:%S",
+  "long_format": "%Y-%m-%d %H:%M:%S",
+  "timezone": "UTC",
+  "standardized": true,
+  "formats": {
+    "console": "%H:%M:%S",
+    "file": "%H:%M:%S",
+    "detailed": "%Y-%m-%d %H:%M:%S"
+  },
+  "consistency": {
+    "enforce_single_format": true,
+    "convert_legacy_formats": true,
+    "validate_on_write": true
+  }
+}

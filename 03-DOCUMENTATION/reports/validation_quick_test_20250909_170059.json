@@ -1,0 +1,38 @@
+{
+  "timestamp": "2025-09-09T17:00:59.367190",
+  "tests": {
+    "log_volume": {
+      "current_lines": 82,
+      "target_max": 1000,
+      "status": "PASS",
+      "severity": "MEDIUM"
+    },
+    "errors": {
+      "current_errors": 2,
+      "current_criticals": 2,
+      "test_errors": 4,
+      "status": "FAIL"
+    },
+    "timestamps": {
+      "files_checked": 10,
+      "inconsistent_files": 0,
+      "status": "PASS"
+    },
+    "configurations": {
+      "total_configs": 4,
+      "configs_exist": 0,
+      "status": "FAIL"
+    },
+    "utilities": {
+      "total_utils": 4,
+      "utils_exist": 0,
+      "status": "FAIL"
+    }
+  },
+  "overall_score": 40.0,
+  "recommendations": [
+    "\ud83d\udea8 CR\u00cdTICO: Resolver errores y violaciones de riesgo",
+    "\ud83d\udd27 MEDIO: Crear archivos de configuraci\u00f3n faltantes",
+    "\ud83d\udd27 MEDIO: Implementar utilidades de sistema faltantes"
+  ]
+}

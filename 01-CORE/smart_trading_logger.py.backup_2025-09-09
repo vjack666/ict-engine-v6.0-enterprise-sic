@@ -51,18 +51,6 @@ class SmartTradingLogger:
         else:
             self.silent_mode = silent_mode
             
-        # Inicializar deduplicador si está disponible
-        self.deduplicator = None
-        try:
-            from .utils.realtime_log_deduplicator import DEDUPLICATOR
-            self.deduplicator = DEDUPLICATOR
-        except ImportError:
-            try:
-                from utils.realtime_log_deduplicator import DEDUPLICATOR
-                self.deduplicator = DEDUPLICATOR
-            except ImportError:
-                pass  # Continuar sin deduplicación
-            
         self.logger = logging.getLogger(name)
         
         # Configurar nivel
@@ -78,12 +66,6 @@ class SmartTradingLogger:
         # Evitar duplicar handlers
         if not self.logger.handlers:
             self._setup_handlers()
-    
-    def _should_log_message(self, message: str) -> bool:
-        """🔧 Verificar si un mensaje debe loggearse (deduplicación)"""
-        if self.deduplicator:
-            return self.deduplicator.should_log(message)
-        return True  # Si no hay deduplicador, permitir todos los mensajes
     
     def _get_component_from_name(self) -> str:
         """🎯 Determinar componente basado en el nombre del logger"""
@@ -109,7 +91,7 @@ class SmartTradingLogger:
         # Formatter
         formatter = logging.Formatter(
             '[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s',
-            datefmt='%H:%M:%S'
+            datefmt='%Y-%m-%d %H:%M:%S'
         )
         
         # Console handler - solo si no está en modo silencioso
@@ -160,33 +142,23 @@ class SmartTradingLogger:
     
     def debug(self, message: str, component: str = "CORE", **kwargs):
         """🔍 Log debug message"""
-        full_message = f"[{component}] {message}"
-        if self._should_log_message(full_message):
-            self.logger.debug(full_message)
+        self.logger.debug(f"[{component}] {message}")
     
     def info(self, message: str, component: str = "CORE", **kwargs):
         """ℹ️ Log info message"""
-        full_message = f"[{component}] {message}"
-        if self._should_log_message(full_message):
-            self.logger.info(full_message)
+        self.logger.info(f"[{component}] {message}")
     
     def warning(self, message: str, component: str = "CORE", **kwargs):
         """⚠️ Log warning message"""
-        full_message = f"[{component}] {message}"
-        if self._should_log_message(full_message):
-            self.logger.warning(full_message)
+        self.logger.warning(f"[{component}] {message}")
     
     def error(self, message: str, component: str = "CORE", **kwargs):
         """❌ Log error message"""
-        full_message = f"[{component}] {message}"
-        if self._should_log_message(full_message):
-            self.logger.error(full_message)
+        self.logger.error(f"[{component}] {message}")
     
     def critical(self, message: str, component: str = "CORE", **kwargs):
         """🚨 Log critical message"""
-        full_message = f"[{component}] {message}"
-        # Los mensajes críticos siempre se loggean
-        self.logger.critical(full_message)
+        self.logger.critical(f"[{component}] {message}")
     
     # ===== MÉTODOS DE SESIÓN DIARIA =====
     
@@ -228,7 +200,7 @@ class SmartTradingLogger:
             if not console_handlers:
                 formatter = logging.Formatter(
                     '[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s',
-                    datefmt='%H:%M:%S'
+                    datefmt='%Y-%m-%d %H:%M:%S'
                 )
                 console_handler = logging.StreamHandler(sys.stdout)
                 console_handler.setFormatter(formatter)
@@ -1265,42 +1237,3 @@ def test_centralized_logging():
 
 if __name__ == "__main__":
     test_centralized_logging()
-
-    
-    # ===== RATE LIMITING PARA PREVENIR DUPLICACIÓN =====
-    _message_cache = {}
-    _message_timestamps = {}
-    
-    def _should_log_message(self, message: str, level: str) -> bool:
-        """🎛️ Verificar si el mensaje debe ser loggeado (rate limiting)"""
-        import time
-        
-        current_time = time.time()
-        message_key = f"{level}:{hash(message) % 10000}"
-        
-        # Limpiar cache viejo (>60 segundos)
-        expired_keys = [k for k, t in self._message_timestamps.items() if current_time - t > 60]
-        for key in expired_keys:
-            self._message_cache.pop(key, None)
-            self._message_timestamps.pop(key, None)
-        
-        # Verificar si el mensaje ya fue loggeado recientemente
-        if message_key in self._message_cache:
-            count = self._message_cache[message_key]
-            last_time = self._message_timestamps[message_key]
-            
-            # Rate limiting: máximo 5 mensajes idénticos por minuto
-            if count >= 5 and (current_time - last_time) < 60:
-                return False
-            
-            # Si ha pasado tiempo suficiente, resetear contador
-            if (current_time - last_time) > 60:
-                self._message_cache[message_key] = 1
-                self._message_timestamps[message_key] = current_time
-            else:
-                self._message_cache[message_key] += 1
-        else:
-            self._message_cache[message_key] = 1
-            self._message_timestamps[message_key] = current_time
-        
-        return True
