@@ -39,6 +39,18 @@ print(f"[TOOL] Core path configurado: {core_path}")
 print(f"[TOOL] Data path configurado: {data_path}")
 print(f"[TOOL] Logs path configurado: {logs_path}")
 
+# ===== SISTEMA DE LOGGING CENTRALIZADO =====
+try:
+    from smart_trading_logger import get_centralized_logger
+    # Logger principal del sistema
+    main_logger = get_centralized_logger("SYSTEM")
+    main_logger.log_session_start()
+    main_logger.log_system_status("ICT Engine v6.0 Enterprise iniciando...", "MAIN")
+    print("✅ Sistema de logging centralizado activado")
+except Exception as e:
+    print(f"⚠️ Error configurando logging centralizado: {e}")
+    main_logger = None
+
 # Importar componentes reales usando paths absolutos
 try:
     # Configurar paths específicos para importación
@@ -143,6 +155,8 @@ class ICTEnterpriseSystem:
     def initialize_real_components(self):
         """Inicializar RealICTDataCollector y componentes reales"""
         try:
+            if main_logger:
+                main_logger.log_system_status("Inicializando RealICTDataCollector...", "CORE")
             print("[TOOL] Inicializando RealICTDataCollector...")
             
             # Crear configuración para el RealICTDataCollector
@@ -156,6 +170,9 @@ class ICTEnterpriseSystem:
                 'max_history': 1000
             }
             
+            if main_logger:
+                main_logger.info(f"Configuración aplicada: {len(config['data']['symbols'])} símbolos, {len(config['data']['timeframes'])} timeframes")
+            
             # Crear instancia del colector de datos reales
             self.data_collector = RealICTDataCollector(config)
             
@@ -168,12 +185,16 @@ class ICTEnterpriseSystem:
             
             # Verificar estado básico - solo verificar que el objeto fue creado
             if self.data_collector:
+                if main_logger:
+                    main_logger.log_system_status("RealICTDataCollector inicializado correctamente", "SUCCESS")
                 print("[OK] RealICTDataCollector: Inicializado correctamente")
                 print("    - Configuración aplicada")
                 print("    - Componentes async inicializados")
                 print("    - Sistema listo para operación")
                 self.real_components_loaded = True
             else:
+                if main_logger:
+                    main_logger.error("Error en inicialización de RealICTDataCollector")
                 print("[WARN] RealICTDataCollector: Error en inicialización")
                 self.real_components_loaded = False
                 
@@ -232,29 +253,41 @@ class ICTEnterpriseSystem:
     
     def run_dashboard_with_real_data(self):
         """Iniciar Dashboard Enterprise con RealICTDataCollector"""
+        if main_logger:
+            main_logger.log_system_status("Iniciando Dashboard Enterprise...", "DASHBOARD")
         print("\n[ROCKET] INICIANDO DASHBOARD ENTERPRISE CON DATOS REALES...")
         print("=" * 60)
         
         try:
             # Asegurar que los componentes están inicializados
             if not self.real_components_loaded:
+                if main_logger:
+                    main_logger.info("Inicializando componentes reales para dashboard")
                 print("[INFO] Inicializando componentes reales...")
                 self.initialize_real_components()
             
             # Verificar estado del data collector
+            if main_logger:
+                main_logger.info("Verificando RealICTDataCollector para dashboard")
             print("[DATA] Verificando RealICTDataCollector...")
             
             if self.data_collector:
+                if main_logger:
+                    main_logger.info("RealICTDataCollector disponible para dashboard")
                 print("[OK] RealICTDataCollector: ✓ Disponible")
                 print("    - Sistema configurado con datos reales")
                 print("    - Dashboard listo para cargar")
             else:
+                if main_logger:
+                    main_logger.warning("RealICTDataCollector no disponible, modo básico")
                 print("[WARN] RealICTDataCollector: Iniciando en modo básico")
             
             # Cargar el dashboard
             dashboard_script = dashboard_path / "start_dashboard.py"
             
             if dashboard_script.exists():
+                if main_logger:
+                    main_logger.info(f"Ejecutando dashboard desde: {dashboard_script}")
                 print("[ROCKET] Ejecutando dashboard con datos reales...")
                 print(f"[TOOL] Script: {dashboard_script}")
                 
@@ -381,10 +414,18 @@ def main():
         enterprise_system.main_menu()
         
     except KeyboardInterrupt:
+        if main_logger:
+            main_logger.warning("Sistema terminado por el usuario (KeyboardInterrupt)")
         print("\n[EMOJI] Sistema enterprise terminado por el usuario")
     except Exception as e:
+        if main_logger:
+            main_logger.error(f"Error fatal en main: {e}")
         print(f"[X] Error fatal: {e}")
         sys.exit(1)
+    finally:
+        # Cerrar sesión de logging
+        if main_logger:
+            main_logger.log_session_end()
 
 if __name__ == "__main__":
     main()

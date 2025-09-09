@@ -21,6 +21,28 @@ def main():
         print("🎯 Iniciando ICT Engine Dashboard...")
         print("=" * 50)
         
+        # ===== CONFIGURAR MODO SILENCIOSO PARA LOGGING =====
+        try:
+            # Configurar logging silencioso para el dashboard
+            dashboard_dir = Path(__file__).parent.absolute()
+            project_root = dashboard_dir.parent
+            core_path = project_root / "01-CORE"
+            sys.path.insert(0, str(core_path))
+            
+            from smart_trading_logger import get_centralized_logger
+            
+            # Activar modo silencioso para todos los loggers centralizados
+            for component in ['SYSTEM', 'DASHBOARD', 'PATTERNS', 'TRADING', 'GENERAL']:
+                try:
+                    logger = get_centralized_logger(component)
+                    logger.set_silent_mode(True)
+                except:
+                    pass  # Silenciar errores de configuración de logger
+            
+            print("🔇 Modo silencioso activado - logs solo en archivos")
+        except Exception as e:
+            print(f"⚠️ Warning: No se pudo configurar modo silencioso: {e}")
+        
         # Importar aplicación principal
         from dashboard import ICTDashboardApp
         

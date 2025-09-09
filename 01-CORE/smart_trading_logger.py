@@ -14,22 +14,24 @@ import logging
 import sys
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 
 class SmartTradingLogger:
     """🔧 Logger inteligente para ICT Engine v6.1.0"""
     
-    def __init__(self, name: str = "ICT_Engine", level: str = "INFO"):
+    def __init__(self, name: str = "ICT_Engine", level: str = "INFO", silent_mode: bool = False):
         """
         🏗️ Inicializar Smart Trading Logger
         
         Args:
             name: Nombre del logger
             level: Nivel de logging (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+            silent_mode: Si True, no muestra logs en consola
         """
         
         self.name = name
+        self.silent_mode = silent_mode
         self.logger = logging.getLogger(name)
         
         # Configurar nivel
@@ -46,6 +48,24 @@ class SmartTradingLogger:
         if not self.logger.handlers:
             self._setup_handlers()
     
+    def _get_component_from_name(self) -> str:
+        """🎯 Determinar componente basado en el nombre del logger"""
+        name_lower = self.name.lower()
+        
+        # Mapear nombres de logger a componentes
+        if 'dashboard' in name_lower or 'ui' in name_lower:
+            return 'DASHBOARD'
+        elif 'trading' in name_lower or 'trade' in name_lower:
+            return 'TRADING'  
+        elif 'pattern' in name_lower or 'ict' in name_lower:
+            return 'PATTERNS'
+        elif 'mt5' in name_lower or 'data' in name_lower:
+            return 'MT5'
+        elif 'system' in name_lower or 'main' in name_lower:
+            return 'SYSTEM'
+        else:
+            return 'GENERAL'
+    
     def _setup_handlers(self):
         """🔧 Configurar handlers del logger con archivos diarios organizados"""
         
@@ -55,51 +75,46 @@ class SmartTradingLogger:
             datefmt='%Y-%m-%d %H:%M:%S'
         )
         
-        # Console handler
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(formatter)
-        console_handler.setLevel(logging.INFO)
-        self.logger.addHandler(console_handler)
+        # Console handler - solo si no está en modo silencioso
+        if not self.silent_mode:
+            console_handler = logging.StreamHandler(sys.stdout)
+            console_handler.setFormatter(formatter)
+            console_handler.setLevel(logging.INFO)
+            self.logger.addHandler(console_handler)
         
         # File handlers organizados por categoría y fecha
         self._setup_daily_file_handlers(formatter)
     
     def _setup_daily_file_handlers(self, formatter):
-        """📅 Configurar handlers de archivos diarios organizados"""
+        """📅 Configurar handlers de archivos diarios centralizados - UN archivo por día por componente"""
         try:
             project_root = Path(__file__).parent.parent
-            date_str = datetime.now().strftime('%Y-%m-%d')
+            self.date_str = datetime.now().strftime('%Y-%m-%d')
             
-            # Estructura de logging diario
-            log_categories = {
-                'general': project_root / "05-LOGS" / "application",
-                'ict': project_root / "01-CORE" / "data" / "logs" / "ict",
-                'trading': project_root / "01-CORE" / "data" / "logs" / "trading",
-                'structured': project_root / "01-CORE" / "data" / "logs" / "structured",
-                'daily': project_root / "01-CORE" / "data" / "logs" / "daily"
-            }
+            # Estructura de logging diario centralizada en 05-LOGS
+            component_name = self._get_component_from_name()
+            log_dir = project_root / "05-LOGS" / component_name.lower()
+            log_dir.mkdir(parents=True, exist_ok=True)
             
-            # Crear directorios si no existen
-            for category, log_dir in log_categories.items():
-                log_dir.mkdir(parents=True, exist_ok=True)
+            # ARCHIVO ÚNICO por día por componente
+            daily_log_file = log_dir / f"{component_name.lower()}_{self.date_str}.log"
             
-            # Handler principal para logs generales
-            general_log = log_categories['general'] / f"ict_engine_{date_str}.log"
-            file_handler = logging.FileHandler(general_log, encoding='utf-8')
-            file_handler.setFormatter(formatter)
+            # Handler con modo append para agregar al archivo diario
+            file_handler = logging.FileHandler(daily_log_file, mode='a', encoding='utf-8')
+            
+            # Formato optimizado para logs diarios
+            daily_formatter = logging.Formatter(
+                '[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s',
+                datefmt='%H:%M:%S'
+            )
+            file_handler.setFormatter(daily_formatter)
             file_handler.setLevel(logging.DEBUG)
             self.logger.addHandler(file_handler)
             
-            # Handler para resumen diario
-            daily_summary_log = log_categories['daily'] / f"summary_{date_str}.log"
-            summary_handler = logging.FileHandler(daily_summary_log, encoding='utf-8')
-            summary_handler.setFormatter(formatter)
-            summary_handler.setLevel(logging.INFO)
-            self.logger.addHandler(summary_handler)
-            
             # Guardar referencias para uso posterior
-            self.log_categories = log_categories
-            self.date_str = date_str
+            self.log_dir = log_dir
+            self.daily_log_file = daily_log_file
+            self.component_name = component_name
             
         except Exception as e:
             # Si no se puede crear archivos, continuar sin file logging
@@ -125,6 +140,76 @@ class SmartTradingLogger:
     def critical(self, message: str, component: str = "CORE", **kwargs):
         """🚨 Log critical message"""
         self.logger.critical(f"[{component}] {message}")
+    
+    # ===== MÉTODOS DE SESIÓN DIARIA =====
+    
+    def log_session_start(self):
+        """🚀 Marcar inicio de nueva sesión en archivo diario"""
+        session_id = datetime.now().strftime('%H:%M:%S')
+        separator = "=" * 80
+        
+        self.logger.info(f"\n{separator}")
+        self.logger.info(f"🚀 NUEVA SESIÓN INICIADA - {session_id}")
+        self.logger.info(f"📅 Fecha: {self.date_str}")
+        self.logger.info(f"🎯 Componente: {getattr(self, 'component_name', 'UNKNOWN')}")
+        self.logger.info(f"{separator}")
+        
+        # También imprimir en consola para seguimiento inmediato
+        print(f"📋 [{getattr(self, 'component_name', 'LOG')}] Sesión iniciada - {session_id}")
+    
+    def log_session_end(self):
+        """⏹️ Marcar fin de sesión en archivo diario"""
+        end_time = datetime.now().strftime('%H:%M:%S')
+        self.logger.info(f"⏹️ SESIÓN TERMINADA - {end_time}")
+        self.logger.info("=" * 40 + "\n")
+        
+        print(f"📋 [{getattr(self, 'component_name', 'LOG')}] Sesión terminada - {end_time}")
+    
+    def set_silent_mode(self, silent: bool = True):
+        """🔇 Activar/desactivar modo silencioso dinámicamente"""
+        self.silent_mode = silent
+        
+        # Remover handler de consola si existe
+        console_handlers = [h for h in self.logger.handlers if isinstance(h, logging.StreamHandler) and h.stream == sys.stdout]
+        
+        if silent:
+            # Remover console handlers
+            for handler in console_handlers:
+                self.logger.removeHandler(handler)
+        else:
+            # Agregar console handler si no existe
+            if not console_handlers:
+                formatter = logging.Formatter(
+                    '[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S'
+                )
+                console_handler = logging.StreamHandler(sys.stdout)
+                console_handler.setFormatter(formatter)
+                console_handler.setLevel(logging.INFO)
+                self.logger.addHandler(console_handler)
+    
+    def is_silent(self) -> bool:
+        """🔇 Verificar si está en modo silencioso"""
+        return self.silent_mode
+    
+    def log_trading_action(self, action: str, symbol: str = "UNKNOWN", details: Optional[Dict[str, Any]] = None):
+        """💰 Log específico para acciones de trading"""
+        details_str = ""
+        if details:
+            details_str = f" | {details}"
+        
+        trading_msg = f"💰 TRADING: {action} [{symbol}]{details_str}"
+        self.logger.info(trading_msg)
+    
+    def log_pattern_detection(self, pattern: str, symbol: str = "UNKNOWN", confidence: float = 0.0):
+        """🎯 Log específico para detección de patrones"""
+        pattern_msg = f"🎯 PATTERN: {pattern} [{symbol}] | Confidence: {confidence:.2f}"
+        self.logger.info(pattern_msg)
+    
+    def log_system_status(self, status: str, component: str = "SYSTEM"):
+        """🔧 Log específico para estado del sistema"""
+        status_msg = f"🔧 STATUS: {component} | {status}"
+        self.logger.info(status_msg)
     
     # ===== MÉTODOS ESPECIALIZADOS PARA ICT ENGINE =====
     
@@ -1011,3 +1096,125 @@ def get_trading_session_summary() -> Dict[str, Any]:
         return {'error': f'Failed to generate session summary: {e}'}
 
 # ================== FIN DE MÉTODOS CRÍTICOS PARA TRADING REAL ==================
+
+# ===== FUNCIONES DE UTILIDAD PARA LOGGING DIARIO CENTRALIZADO =====
+
+def get_centralized_logger(component: str) -> SmartTradingLogger:
+    """🎯 Función helper para obtener logger centralizado por componente"""
+    logger_name = f"ICT_{component.upper()}"
+    return SmartTradingLogger(logger_name)
+
+def list_daily_log_files() -> Dict[str, Any]:
+    """📋 Listar todos los archivos de log diarios actuales"""
+    try:
+        log_base_dir = Path(__file__).parent.parent / "05-LOGS"
+        
+        if not log_base_dir.exists():
+            return {'status': 'logs_directory_not_found', 'files': []}
+        
+        log_files = []
+        today = datetime.now().strftime('%Y-%m-%d')
+        
+        for log_file in log_base_dir.rglob("*.log"):
+            try:
+                stat = log_file.stat()
+                is_today = today in log_file.name
+                
+                log_files.append({
+                    'name': log_file.name,
+                    'path': str(log_file),
+                    'size_mb': round(stat.st_size / (1024 * 1024), 2),
+                    'modified': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
+                    'component': log_file.parent.name.upper(),
+                    'is_today': is_today
+                })
+            except Exception:
+                continue
+        
+        # Ordenar por fecha de modificación, más recientes primero
+        log_files.sort(key=lambda x: x['modified'], reverse=True)
+        
+        return {
+            'status': 'success',
+            'total_files': len(log_files),
+            'today_files': len([f for f in log_files if f['is_today']]),
+            'files': log_files
+        }
+        
+    except Exception as e:
+        return {'status': 'error', 'message': str(e)}
+
+def cleanup_old_logs(days_to_keep: int = 30) -> Dict[str, Any]:
+    """🗑️ Limpiar logs más antiguos que X días"""
+    try:
+        log_base_dir = Path(__file__).parent.parent / "05-LOGS"
+        
+        if not log_base_dir.exists():
+            return {'status': 'no_logs_directory', 'cleaned': 0}
+        
+        cutoff_date = datetime.now() - timedelta(days=days_to_keep)
+        cleaned_files = []
+        
+        for log_file in log_base_dir.rglob("*.log"):
+            try:
+                # Extraer fecha del nombre del archivo
+                filename_parts = log_file.stem.split('_')
+                if len(filename_parts) >= 2:
+                    date_str = filename_parts[-1]  # Última parte debería ser YYYY-MM-DD
+                    
+                    try:
+                        file_date = datetime.strptime(date_str, '%Y-%m-%d')
+                        
+                        if file_date < cutoff_date:
+                            log_file.unlink()  # Eliminar archivo antiguo
+                            cleaned_files.append(log_file.name)
+                    except ValueError:
+                        # Si no se puede parsear la fecha, ignorar el archivo
+                        continue
+                        
+            except (ValueError, IndexError, OSError):
+                continue
+        
+        return {
+            'status': 'success',
+            'cleaned_files': len(cleaned_files),
+            'files': cleaned_files,
+            'cutoff_date': cutoff_date.strftime('%Y-%m-%d')
+        }
+        
+    except Exception as e:
+        return {'status': 'error', 'message': str(e)}
+
+def test_centralized_logging():
+    """🧪 Test básico del sistema de logging centralizado actualizado"""
+    print("🧪 Probando sistema de logging centralizado en SmartTradingLogger...")
+    
+    # Test con diferentes componentes
+    components = ['SYSTEM', 'DASHBOARD', 'PATTERNS', 'TRADING']
+    
+    for component in components:
+        logger = get_centralized_logger(component)
+        logger.log_session_start()
+        
+        logger.info(f"Prueba de logging diario para {component}")
+        logger.warning(f"Prueba de warning para {component}")
+        logger.error(f"Prueba de error para {component}")
+        
+        if component == 'TRADING':
+            logger.log_trading_action("BUY", "EURUSD", {"volume": 0.01, "price": 1.0850})
+            
+        if component == 'PATTERNS':
+            logger.log_pattern_detection("Fair Value Gap", "GBPUSD", 0.85)
+        
+        logger.log_session_end()
+    
+    # Listar archivos creados
+    files_info = list_daily_log_files()
+    print(f"\n📋 Archivos de log diarios: {files_info['total_files']} total, {files_info['today_files']} de hoy")
+    
+    for file_info in files_info['files'][:5]:  # Mostrar solo los primeros 5
+        status = "📅 HOY" if file_info['is_today'] else "📄"
+        print(f"  {status} {file_info['name']} ({file_info['size_mb']} MB) - {file_info['component']}")
+
+if __name__ == "__main__":
+    test_centralized_logging()

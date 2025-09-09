@@ -119,6 +119,17 @@ class TextualDashboardApp(App[None]):
         self.start_time = time.time()
         self._refreshing = False
         
+        # REAL MARKET BRIDGE - Para eliminar datos mock
+        try:
+            from core.real_market_bridge import RealMarketBridge
+            self.real_bridge = RealMarketBridge(config)
+            self.real_bridge.initialize_mt5_manager()
+            self.real_bridge.initialize_unified_memory()
+            print("✅ RealMarketBridge conectado - Datos reales habilitados")
+        except Exception as e:
+            print(f"⚠️ RealMarketBridge no disponible: {e}")
+            self.real_bridge = None
+        
         # REACTIVADO - Inicializar pestaña de patrones
         self.patterns_tab = PatternsTab(self)
     
@@ -150,15 +161,43 @@ class TextualDashboardApp(App[None]):
         self.set_interval(3.0, self.periodic_update)
     
     def render_real_trading_system(self) -> str:
-        """🎯 Sistema de trading con datos reales"""
+        """🎯 Sistema de trading con datos reales - ELIMINADO TODO MOCK DATA"""
         try:
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             uptime = time.time() - self.start_time
             uptime_str = f"{int(uptime // 3600):02d}:{int((uptime % 3600) // 60):02d}:{int(uptime % 60):02d}"
             
-            # Obtener datos reales del sistema
-            symbols = self.config.get('symbols', ['EURUSD', 'GBPUSD', 'XAUUSD'])
-            timeframes = self.config.get('timeframes', ['M15', 'H1', 'H4'])
+            # OBTENER DATOS REALES - NO MOCK
+            if self.real_bridge:
+                # Datos reales de FVG
+                fvg_stats = self.real_bridge.get_real_fvg_stats()
+                
+                # Datos reales de Order Blocks
+                ob_stats = self.real_bridge.get_real_order_blocks()
+                
+                # Datos reales de P&L
+                pnl_data = self.real_bridge.get_real_pnl()
+                
+                # Datos reales de Performance
+                performance = self.real_bridge.get_real_performance()
+                
+                # Datos reales de mercado multi-símbolo
+                market_data = self.real_bridge.get_real_market_data()
+                
+                # Símbols information from real config
+                symbols_info = market_data.get('symbols', {})
+                connected_symbols = market_data.get('summary', {}).get('connected_symbols', 0)
+                total_symbols = market_data.get('summary', {}).get('total_symbols', 0)
+                
+            else:
+                # Fallback REAL (no mock): estructura vacía pero correcta
+                fvg_stats = {'total_fvgs_all_pairs': 0, 'active_fvgs': 0, 'filled_fvgs': 0, 'data_source': 'NO_BRIDGE_FALLBACK'}
+                ob_stats = {'total_blocks': 0, 'bullish_blocks': 0, 'bearish_blocks': 0, 'data_source': 'NO_BRIDGE_FALLBACK'}
+                pnl_data = {'daily_pnl': 0.00, 'currency': 'USD', 'data_source': 'NO_BRIDGE_FALLBACK'}
+                performance = {'win_rate': 0.0, 'total_trades': 0, 'profit_factor': 0.0, 'data_source': 'NO_BRIDGE_FALLBACK'}
+                symbols_info = {}
+                connected_symbols = 0
+                total_symbols = 0
             
             system_status = f"""[bold white on blue] 🎯 ICT ENGINE v6.1 ENTERPRISE - SISTEMA REAL [/bold white on blue]
 [bold cyan]{'='*80}[/bold cyan]
@@ -169,42 +208,77 @@ class TextualDashboardApp(App[None]):
 • [bold]Uptime:[/bold] {uptime_str}
 • [bold]Sesión:[/bold] {self.session_id}
 • [bold]Modo:[/bold] [bold green]TRADING REAL[/bold green]
-• [bold]Símbolos Activos:[/bold] {len(symbols)}
-• [bold]Timeframes:[/bold] {len(timeframes)}
+• [bold]Símbolos Conectados:[/bold] {connected_symbols}/{total_symbols}
+• [bold]Bridge Status:[/bold] {'[green]Conectado[/green]' if self.real_bridge else '[red]Desconectado[/red]'}
 
-[bold blue]💹 DATOS DE MERCADO[/bold blue]
+[bold blue]💹 DATOS DE MERCADO REALES[/bold blue]
 [cyan]{'─'*50}[/cyan]"""
             
-            # Información de símbolos
-            for symbol in symbols:
+            # Mostrar información REAL de símbolos
+            if symbols_info:
+                for symbol, data in list(symbols_info.items())[:4]:  # Top 4 símbolos
+                    status_emoji = "🟢" if data.get('status') == 'connected' else "🔴"
+                    price = data.get('price', 0.0)
+                    change_pips = data.get('change_pips', 0.0)
+                    last_update = data.get('last_update', 'N/A')
+                    
+                    system_status += f"""
+• {status_emoji} [bold]{symbol}:[/bold] {price:.5f} | {change_pips:+.1f} pips | {last_update}"""
+            else:
                 system_status += f"""
-• [bold]{symbol}:[/bold] [green]Activo[/green] | Spread: 0.8 pips | Vol: Alto"""
+• [dim]No hay datos de mercado disponibles - Bridge: {'Conectado' if self.real_bridge else 'Desconectado'}[/dim]"""
+            
+            # SEÑALES ICT REALES (NO MOCK)
+            system_status += f"""
+
+[bold yellow]⚡ SEÑALES ICT REALES[/bold yellow]
+[cyan]{'─'*50}[/cyan]
+• [bold]FVG Detectados:[/bold] [bold cyan]{fvg_stats.get('total_fvgs_all_pairs', 0)}[/bold cyan]
+• [bold]Order Blocks:[/bold] [bold magenta]{ob_stats.get('total_blocks', 0)}[/bold magenta]
+• [bold]  └─ Bullish:[/bold] [bold green]{ob_stats.get('bullish_blocks', 0)}[/bold green]
+• [bold]  └─ Bearish:[/bold] [bold red]{ob_stats.get('bearish_blocks', 0)}[/bold red]
+• [bold]FVG Activos:[/bold] [bold yellow]{fvg_stats.get('active_fvgs', 0)}[/bold yellow]"""
+
+            # GESTIÓN DE RIESGO REAL
+            # Obtener configuración real de riesgo
+            risk_config = self.config.get('symbols', ['EURUSD', 'GBPUSD', 'USDJPY'])
+            timeframes = self.config.get('timeframes', ['M15', 'H1', 'H4'])
             
             system_status += f"""
 
-[bold yellow]⚡ SEÑALES ICT ACTIVAS[/bold yellow]
+[bold red]⚠️ GESTIÓN DE RIESGO REAL[/bold red]
 [cyan]{'─'*50}[/cyan]
-• [bold]FVG Detectados:[/bold] [bold cyan]12[/bold cyan]
-• [bold]Order Blocks:[/bold] [bold magenta]8[/bold magenta]
-• [bold]Break of Structure:[/bold] [bold green]3[/bold green]
-• [bold]Liquidity Sweeps:[/bold] [bold yellow]2[/bold yellow]
+• [bold]Símbolos Monitoreados:[/bold] [green]{len(risk_config)}[/green]
+• [bold]Timeframes Activos:[/bold] [green]{len(timeframes)}[/green]
+• [bold]Balance Cuenta:[/bold] [green]${pnl_data.get('balance', 0.00):.2f} {pnl_data.get('currency', 'USD')}[/green]
+• [bold]Equity:[/bold] [green]${pnl_data.get('equity', 0.00):.2f}[/green]"""
 
-[bold red]⚠️ GESTIÓN DE RIESGO[/bold red]
-[cyan]{'─'*50}[/cyan]
-• [bold]Risk Per Trade:[/bold] [green]1.5%[/green]
-• [bold]Max Daily Risk:[/bold] [green]5.0%[/green]
-• [bold]Equity Used:[/bold] [yellow]15%[/yellow]
-• [bold]Stop Loss:[/bold] [green]Activo[/green]
+            # RENDIMIENTO REAL (NO FAKE)
+            daily_pnl = pnl_data.get('daily_pnl', 0.00)
+            pnl_color = 'green' if daily_pnl >= 0 else 'red'
+            pnl_sign = '+' if daily_pnl >= 0 else ''
+            
+            win_rate = performance.get('win_rate', 0.0)
+            total_trades = performance.get('total_trades', 0)
+            profit_factor = performance.get('profit_factor', 0.0)
+            
+            system_status += f"""
 
-[bold magenta]📈 RENDIMIENTO HOY[/bold magenta]
+[bold magenta]📈 RENDIMIENTO REAL[/bold magenta]
 [cyan]{'─'*50}[/cyan]
-• [bold]P&L Sesión:[/bold] [bold green]+$247.50[/bold green]
-• [bold]Trades Ejecutados:[/bold] [cyan]8[/cyan]
-• [bold]Win Rate:[/bold] [bold green]75%[/bold green]
-• [bold]Profit Factor:[/bold] [bold blue]2.1[/bold blue]
+• [bold]P&L Sesión:[/bold] [bold {pnl_color}]{pnl_sign}${daily_pnl:.2f}[/bold {pnl_color}]
+• [bold]Trades Ejecutados:[/bold] [cyan]{total_trades}[/cyan]
+• [bold]Win Rate:[/bold] [bold green]{win_rate:.1f}%[/bold green]
+• [bold]Profit Factor:[/bold] [bold blue]{profit_factor:.2f}[/bold blue]
+
+[bold white]📋 FUENTES DE DATOS[/bold white]
+[cyan]{'─'*50}[/cyan]
+• [bold]FVG:[/bold] [dim]{fvg_stats.get('data_source', 'N/A')}[/dim]
+• [bold]P&L:[/bold] [dim]{pnl_data.get('data_source', 'N/A')}[/dim]
+• [bold]Performance:[/bold] [dim]{performance.get('data_source', 'N/A')}[/dim]
 
 [bold cyan]{'='*80}[/bold cyan]
-[italic]Sistema ICT Engine v6.0 Enterprise operativo[/italic]"""
+[italic]Sistema ICT Engine v6.0 Enterprise - DATOS REALES ÚNICAMENTE[/italic]"""
             
             return system_status
             
