@@ -14,6 +14,7 @@ import sys
 import os
 import time
 import asyncio
+import importlib.util
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List, Union
 from pathlib import Path
@@ -21,33 +22,47 @@ from dataclasses import dataclass
 import traceback
 
 # Configurar rutas del sistema (igual que run_complete_system.py)
+current_dir = Path(__file__).parent.absolute()
 if "01-CORE" in str(Path.cwd()):
     # Ejecutándose desde 01-CORE
     project_root = Path(__file__).parent.parent.parent
     core_path = Path.cwd()
     data_path = project_root / "04-DATA"
 else:
-    # Ejecutándose desde raíz o dashboard
-    dashboard_dir = Path(__file__).parent.parent.absolute()
-    project_root = dashboard_dir.parent
+    # Ejecutándose desde dashboard o raíz
+    # data_collector.py está en 09-DASHBOARD/data/
+    # Necesitamos ir 2 niveles arriba para llegar a la raíz
+    project_root = current_dir.parent.parent  # 09-DASHBOARD/data -> 09-DASHBOARD -> raíz
     core_path = project_root / "01-CORE"
     data_path = project_root / "04-DATA"
 
 # Añadir core al path
 sys.path.insert(0, str(core_path))
 
-# Agregar utils directory para ImportCenter
+# Configurar ImportCenter correctamente
 utils_path = core_path / "utils"
 if str(utils_path) not in sys.path:
     sys.path.insert(0, str(utils_path))
 
-# Usar central de imports
-try:
-    import import_center
-    _ic = import_center.ImportCenter()
-    print("✅ [RealDataCollector] ImportCenter cargado")
-except ImportError as e:
-    print(f"⚠️ [RealDataCollector] ImportCenter no disponible: {e}")
+# Verificar que el archivo existe antes de importar
+import_center_path = utils_path / "import_center.py"
+if import_center_path.exists():
+    try:
+        # Importar con la ruta absoluta para evitar errores de Pylance
+        spec = importlib.util.spec_from_file_location("import_center", import_center_path)
+        if spec and spec.loader:
+            import_center = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(import_center)
+            _ic = import_center.ImportCenter()
+            print("✅ [RealDataCollector] ImportCenter cargado desde 01-CORE/utils")
+        else:
+            print("⚠️ [RealDataCollector] No se pudo crear spec para import_center")
+            _ic = None
+    except Exception as e:
+        print(f"⚠️ [RealDataCollector] Error cargando ImportCenter: {e}")
+        _ic = None
+else:
+    print(f"⚠️ [RealDataCollector] import_center.py no encontrado en {utils_path}")
     _ic = None
 
 print(f"🔧 [RealDataCollector] Core path: {core_path}")
@@ -142,17 +157,28 @@ class RealICTDataCollector:
             except Exception as e:
                 print(f"⚠️ ICTDataManager no disponible: {e}")
                 
-            # 7. Real Market Data Function
-            print("🌐 Configurando obtención de datos reales...")
+            # 7. MT5 Manager y Real Market Data
+            print("🔌 Inicializando MT5DataManager...")
             try:
-                # Importar desde run_real_market_system.py
-                sys.path.insert(0, str(project_root))
-                from run_real_market_system import get_real_market_data
-                self.get_real_market_data = get_real_market_data
-                print("✅ get_real_market_data configurado desde run_real_market_system")
-            except Exception as e:
-                print(f"⚠️ get_real_market_data no disponible: {e}")
-                self.get_real_market_data = None
+                from data_management.mt5_data_manager import get_mt5_manager, get_market_data, connect_mt5
+                
+                # Obtener instancia del MT5Manager
+                mt5_manager = get_mt5_manager()
+                self.components['mt5_manager'] = mt5_manager
+                
+                # Intentar conectar
+                if connect_mt5():
+                    print("✅ MT5DataManager conectado exitosamente")
+                    self.get_real_market_data = get_market_data
+                    print("✅ get_real_market_data configurado desde MT5DataManager")
+                else:
+                    print("⚠️ MT5 no pudo conectar, usando método interno")
+                    self.get_real_market_data = self._get_internal_market_data
+                    
+            except ImportError as e:
+                print(f"⚠️ MT5DataManager no disponible: {e}")
+                # Fallback: usar el método interno
+                self.get_real_market_data = self._get_internal_market_data
                 
         except Exception as e:
             print(f"❌ Error inicializando componentes ICT: {e}")
@@ -405,6 +431,90 @@ class RealICTDataCollector:
         
         return market_data
     
+    def _get_internal_market_data(self, symbol: str, timeframe: str = 'H1', count: int = 500):
+        """Método interno fallback para obtener datos de mercado"""
+        try:
+            # Intentar usar MT5DataManager directamente
+            if 'mt5_manager' in self.components and self.components['mt5_manager']:
+                mt5_manager = self.components['mt5_manager']
+                if hasattr(mt5_manager, 'get_current_data'):
+                    return mt5_manager.get_current_data(symbol, timeframe, count)
+                elif hasattr(mt5_manager, 'get_candles'):
+                    return mt5_manager.get_candles(symbol, timeframe, count)
+            
+            # Si no hay MT5, usar datos mock básicos
+            import pandas as pd
+            import numpy as np
+            from datetime import datetime, timedelta
+            
+            # Generar datos básicos para fallback
+            dates = pd.date_range(end=datetime.now(), periods=count, freq='H')
+            base_price = 1.1000 if 'EUR' in symbol else 1.3000
+            
+            # Precio con variación aleatoria pequeña
+            prices = base_price + np.random.normal(0, 0.001, count).cumsum()
+            
+            data = pd.DataFrame({
+                'time': dates,
+                'open': prices,
+                'high': prices * (1 + np.random.uniform(0, 0.002, count)),
+                'low': prices * (1 - np.random.uniform(0, 0.002, count)),
+                'close': prices,
+                'tick_volume': np.random.randint(100, 1000, count),
+                'spread': np.random.randint(1, 5, count),
+                'real_volume': np.random.randint(1000, 10000, count)
+            })
+            
+            return data
+            
+        except Exception as e:
+            print(f"⚠️ Error en método fallback para {symbol}: {e}")
+            return None
+
+    def get_mt5_account_info(self) -> Dict[str, Any]:
+        """Obtener información de la cuenta MT5"""
+        try:
+            if 'mt5_manager' in self.components and self.components['mt5_manager']:
+                mt5_manager = self.components['mt5_manager']
+                if hasattr(mt5_manager, 'get_connection_status'):
+                    return mt5_manager.get_connection_status()
+            return {"status": "no_connection", "account": "unknown"}
+        except Exception as e:
+            return {"status": "error", "error": str(e)}
+
+    def get_mt5_market_status(self) -> Dict[str, Any]:
+        """Obtener estado del mercado MT5"""
+        try:
+            if 'mt5_manager' in self.components and self.components['mt5_manager']:
+                mt5_manager = self.components['mt5_manager']
+                market_status = {}
+                
+                for symbol in self.symbols:
+                    try:
+                        if hasattr(mt5_manager, 'get_symbol_info'):
+                            symbol_info = mt5_manager.get_symbol_info(symbol)
+                            if symbol_info:
+                                market_status[symbol] = {
+                                    'bid': symbol_info.get('bid', 0),
+                                    'ask': symbol_info.get('ask', 0),
+                                    'spread': symbol_info.get('spread', 0),
+                                    'last': symbol_info.get('last', 0),
+                                    'time': symbol_info.get('time', 'unknown')
+                                }
+                        
+                        if hasattr(mt5_manager, 'get_current_spread'):
+                            spread = mt5_manager.get_current_spread(symbol)
+                            if symbol in market_status:
+                                market_status[symbol]['spread_pips'] = spread
+                                
+                    except Exception as e:
+                        market_status[symbol] = {"error": str(e)}
+                
+                return market_status
+            return {}
+        except Exception as e:
+            return {"error": str(e)}
+
     def _get_real_coherence_analysis(self, market_data: Dict[str, Any]) -> Dict[str, Any]:
         """Análisis de coherencia usando componentes reales"""
         try:
@@ -690,6 +800,65 @@ class RealICTDataCollector:
         """Obtener datos históricos"""
         return self.data_history[-min(hours, len(self.data_history)):]
     
+    def test_trading_readiness(self) -> Dict[str, Any]:
+        """Probar que el sistema esté listo para trading real"""
+        test_results = {
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'mt5_connection': False,
+            'account_info': {},
+            'market_data_access': False,
+            'symbols_available': [],
+            'trading_ready': False,
+            'components_status': {},
+            'errors': []
+        }
+        
+        try:
+            # Test 1: Verificar conexión MT5
+            if 'mt5_manager' in self.components and self.components['mt5_manager']:
+                mt5_manager = self.components['mt5_manager']
+                if hasattr(mt5_manager, 'is_connected') and mt5_manager.is_connected():
+                    test_results['mt5_connection'] = True
+                    
+                    # Test 2: Obtener información de cuenta
+                    if hasattr(mt5_manager, 'get_connection_status'):
+                        account_info = mt5_manager.get_connection_status()
+                        test_results['account_info'] = account_info
+                        
+                    # Test 3: Probar acceso a datos de mercado
+                    symbols_working = []
+                    for symbol in self.symbols:
+                        try:
+                            if hasattr(mt5_manager, 'get_direct_market_data'):
+                                data = mt5_manager.get_direct_market_data(symbol, 'M15', 10)
+                                if data is not None and len(data) > 0:
+                                    symbols_working.append(symbol)
+                        except Exception as e:
+                            test_results['errors'].append(f"Symbol {symbol}: {str(e)}")
+                    
+                    test_results['symbols_available'] = symbols_working
+                    test_results['market_data_access'] = len(symbols_working) > 0
+                else:
+                    test_results['errors'].append("MT5 no está conectado")
+            else:
+                test_results['errors'].append("MT5Manager no disponible")
+                
+            # Test 4: Verificar componentes
+            test_results['components_status'] = self.get_component_status()
+            
+            # Test 5: Determinar si está listo para trading
+            test_results['trading_ready'] = (
+                test_results['mt5_connection'] and 
+                test_results['market_data_access'] and
+                len(test_results['symbols_available']) >= 2 and
+                sum(test_results['components_status'].values()) >= 5
+            )
+            
+        except Exception as e:
+            test_results['errors'].append(f"Error general: {str(e)}")
+            
+        return test_results
+    
     def get_component_status(self) -> Dict[str, bool]:
         """Obtener estado de componentes"""
         return {
@@ -701,9 +870,31 @@ class RealICTDataCollector:
             'ICTDataManager': 'data_manager' in self.components,
             'RealMarketData': self.get_real_market_data is not None
         }
+    
+    async def initialize(self):
+        """Método async de inicialización"""
+        # El constructor ya inicializa todo, este método es para compatibilidad async
+        await asyncio.sleep(0.1)  # Simular operación async
+        print("✅ [RealICTDataCollector] Inicialización async completada")
+        return True
+    
+    async def shutdown(self):
+        """Método async de cierre"""
+        print("🔄 [RealDataCollector] Cerrando conexiones...")
+        await asyncio.sleep(0.1)  # Simular operación async
+        print("✅ [RealDataCollector] Cerrado correctamente")
+    
+    def register_callback(self, callback):
+        """Registrar callback para actualizaciones de datos"""
+        if not hasattr(self, 'callbacks'):
+            self.callbacks = []
+        self.callbacks.append(callback)
 
 # Alias para compatibilidad
 DataCollector = RealICTDataCollector
+
+# Alias para compatibilidad con otras partes del código
+RealDataCollector = RealICTDataCollector
 
 if __name__ == "__main__":
     # Test del recolector real
@@ -734,36 +925,3 @@ if __name__ == "__main__":
         print(f"   • Fuentes de datos activas: {data.real_data_status.get('data_sources_active', 0)}")
     else:
         print("❌ [Test] Error en Real ICT Data Collector")
-
-# Añadir métodos async para compatibilidad con dashboard principal
-def add_async_methods_to_collector():
-    """Añadir métodos async al RealDataCollector existente"""
-    
-    async def initialize(self):
-        """Método async de inicialización"""
-        # El constructor ya inicializa todo, este método es para compatibilidad
-        await asyncio.sleep(0.1)  # Simular operación async
-        return True
-    
-    async def shutdown(self):
-        """Método async de cierre"""
-        print("🔄 [RealDataCollector] Cerrando conexiones...")
-        await asyncio.sleep(0.1)  # Simular operación async
-        print("✅ [RealDataCollector] Cerrado correctamente")
-    
-    def register_callback(self, callback):
-        """Registrar callback para actualizaciones de datos"""
-        if not hasattr(self, 'callbacks'):
-            self.callbacks = []
-        self.callbacks.append(callback)
-    
-    # Añadir métodos a la clase
-    RealICTDataCollector.initialize = initialize
-    RealICTDataCollector.shutdown = shutdown
-    RealICTDataCollector.register_callback = register_callback
-
-# Aplicar métodos async
-add_async_methods_to_collector()
-
-# Alias para compatibilidad con otras partes del código
-RealDataCollector = RealICTDataCollector

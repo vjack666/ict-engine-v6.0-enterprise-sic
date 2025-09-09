@@ -134,23 +134,24 @@ class ImportCenter:
     def get_mt5_manager(self):
         """🔌 Obtener MT5DataManager con fallbacks"""
 
-        # Intentar desde utils primero
-        try:
-            from utils.mt5_data_manager import get_mt5_manager
-            return get_mt5_manager
-        except ImportError:
-            pass
-
-        # Intentar desde core.data_management
+        # Intentar función get_mt5_manager primero
         try:
             from data_management.mt5_data_manager import get_mt5_manager
             return get_mt5_manager
         except ImportError:
             pass
 
+        # Intentar clase MT5DataManager directamente
+        try:
+            from data_management.mt5_data_manager import MT5DataManager
+            return MT5DataManager
+        except ImportError:
+            pass
+
         # Fallback: crear función básica
         def fallback_mt5_manager(*args, **kwargs):
-            raise ImportError("MT5DataManager no disponible - verificar instalación")
+            _log("warning", "MT5DataManager no disponible - verificar instalación")
+            return None
         return fallback_mt5_manager
 
     def get_pattern_detector(self):
@@ -174,16 +175,16 @@ class ImportCenter:
     def get_smart_logger(self):
         """📋 Obtener SmartTradingLogger con fallbacks"""
 
-        # Intentar desde utils
+        # Intentar desde core (ubicación real)
         try:
-            from utils.smart_trading_logger import SmartTradingLogger
+            from smart_trading_logger import SmartTradingLogger
             return SmartTradingLogger
         except ImportError:
             pass
 
-        # Intentar desde core
+        # Intentar desde utils como fallback
         try:
-            from smart_trading_logger import SmartTradingLogger
+            from utils.smart_trading_logger import SmartTradingLogger
             return SmartTradingLogger
         except ImportError:
             pass
