@@ -12,6 +12,7 @@ Autor: ICT Engine v6.1.0 Team
 
 import logging
 import sys
+import json
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any
@@ -46,7 +47,7 @@ class SmartTradingLogger:
             self._setup_handlers()
     
     def _setup_handlers(self):
-        """🔧 Configurar handlers del logger"""
+        """🔧 Configurar handlers del logger con archivos diarios organizados"""
         
         # Formatter
         formatter = logging.Formatter(
@@ -60,22 +61,50 @@ class SmartTradingLogger:
         console_handler.setLevel(logging.INFO)
         self.logger.addHandler(console_handler)
         
-        # File handler (opcional) - ESTRUCTURA CORRECTA DE CARPETAS
+        # File handlers organizados por categoría y fecha
+        self._setup_daily_file_handlers(formatter)
+    
+    def _setup_daily_file_handlers(self, formatter):
+        """📅 Configurar handlers de archivos diarios organizados"""
         try:
-            # Usar la estructura oficial 05-LOGS/application en lugar de raíz/logs
             project_root = Path(__file__).parent.parent
-            logs_dir = project_root / "05-LOGS" / "application"
-            logs_dir.mkdir(parents=True, exist_ok=True)
+            date_str = datetime.now().strftime('%Y-%m-%d')
             
-            log_file = logs_dir / f"ict_engine_{datetime.now().strftime('%Y%m%d')}.log"
-            file_handler = logging.FileHandler(log_file, encoding='utf-8')
+            # Estructura de logging diario
+            log_categories = {
+                'general': project_root / "05-LOGS" / "application",
+                'ict': project_root / "01-CORE" / "data" / "logs" / "ict",
+                'trading': project_root / "01-CORE" / "data" / "logs" / "trading",
+                'structured': project_root / "01-CORE" / "data" / "logs" / "structured",
+                'daily': project_root / "01-CORE" / "data" / "logs" / "daily"
+            }
+            
+            # Crear directorios si no existen
+            for category, log_dir in log_categories.items():
+                log_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Handler principal para logs generales
+            general_log = log_categories['general'] / f"ict_engine_{date_str}.log"
+            file_handler = logging.FileHandler(general_log, encoding='utf-8')
             file_handler.setFormatter(formatter)
             file_handler.setLevel(logging.DEBUG)
             self.logger.addHandler(file_handler)
             
-        except Exception:
-            # Si no se puede crear archivo, continuar sin file logging
-            pass
+            # Handler para resumen diario
+            daily_summary_log = log_categories['daily'] / f"summary_{date_str}.log"
+            summary_handler = logging.FileHandler(daily_summary_log, encoding='utf-8')
+            summary_handler.setFormatter(formatter)
+            summary_handler.setLevel(logging.INFO)
+            self.logger.addHandler(summary_handler)
+            
+            # Guardar referencias para uso posterior
+            self.log_categories = log_categories
+            self.date_str = date_str
+            
+        except Exception as e:
+            # Si no se puede crear archivos, continuar sin file logging
+            self.log_categories = {}
+            self.date_str = datetime.now().strftime('%Y-%m-%d')
     
     def debug(self, message: str, component: str = "CORE", **kwargs):
         """🔍 Log debug message"""
@@ -96,6 +125,126 @@ class SmartTradingLogger:
     def critical(self, message: str, component: str = "CORE", **kwargs):
         """🚨 Log critical message"""
         self.logger.critical(f"[{component}] {message}")
+    
+    # ===== MÉTODOS ESPECIALIZADOS PARA ICT ENGINE =====
+    
+    def log_ict_pattern(self, pattern_type: str, pattern_data: Dict[str, Any], symbol: str = "UNKNOWN"):
+        """📊 Log específico para patrones ICT con archivo diario estructurado"""
+        try:
+            if hasattr(self, 'log_categories') and 'ict' in self.log_categories:
+                # Archivo JSON diario para patrones ICT
+                ict_file = self.log_categories['ict'] / f"patterns_{self.date_str}.json"
+                
+                pattern_entry = {
+                    'timestamp': datetime.now().isoformat(),
+                    'pattern_type': pattern_type,
+                    'symbol': symbol,
+                    'data': pattern_data
+                }
+                
+                # Leer archivo existente o crear nuevo
+                patterns_data = []
+                if ict_file.exists():
+                    try:
+                        with open(ict_file, 'r', encoding='utf-8') as f:
+                            patterns_data = json.load(f)
+                    except:
+                        patterns_data = []
+                
+                # Agregar nuevo patrón
+                patterns_data.append(pattern_entry)
+                
+                # Guardar archivo actualizado
+                with open(ict_file, 'w', encoding='utf-8') as f:
+                    json.dump(patterns_data, f, indent=2, ensure_ascii=False)
+            
+            # Log también en consola/archivo principal
+            self.info(f"ICT Pattern Detected: {pattern_type} for {symbol}", "ICT_PATTERNS")
+            
+        except Exception as e:
+            self.error(f"Error logging ICT pattern: {str(e)}", "ICT_LOGGER")
+    
+    def log_order_blocks(self, blocks_data: Dict[str, Any], symbol: str = "UNKNOWN"):
+        """🧱 Log específico para Order Blocks detectados"""
+        try:
+            if hasattr(self, 'log_categories') and 'ict' in self.log_categories:
+                # Archivo específico para Order Blocks
+                ob_file = self.log_categories['ict'] / f"order_blocks_{self.date_str}.json"
+                
+                ob_entry = {
+                    'timestamp': datetime.now().isoformat(),
+                    'symbol': symbol,
+                    'blocks_detected': blocks_data.get('blocks_count', 0),
+                    'bullish_blocks': blocks_data.get('bullish_count', 0),
+                    'bearish_blocks': blocks_data.get('bearish_count', 0),
+                    'blocks_details': blocks_data.get('blocks', []),
+                    'analysis_timeframe': blocks_data.get('timeframe', 'unknown'),
+                    'confidence_score': blocks_data.get('confidence', 0.0)
+                }
+                
+                # Manejar archivo JSON acumulativo
+                self._append_to_json_file(ob_file, ob_entry)
+            
+            # Log resumen en consola
+            blocks_count = blocks_data.get('blocks_count', 0)
+            self.info(f"Order Blocks Analysis: {blocks_count} blocks detected for {symbol}", "ORDER_BLOCKS")
+            
+        except Exception as e:
+            self.error(f"Error logging Order Blocks: {str(e)}", "OB_LOGGER")
+    
+    def log_trading_session_summary(self, summary_data: Dict[str, Any]):
+        """📈 Log resumen de sesión de trading"""
+        try:
+            if hasattr(self, 'log_categories') and 'daily' in self.log_categories:
+                # Archivo de resumen diario
+                summary_file = self.log_categories['daily'] / f"session_summary_{self.date_str}.json"
+                
+                summary_entry = {
+                    'session_timestamp': datetime.now().isoformat(),
+                    'patterns_detected': summary_data.get('total_patterns', 0),
+                    'symbols_analyzed': summary_data.get('symbols', []),
+                    'execution_time': summary_data.get('execution_time', 0.0),
+                    'system_performance': summary_data.get('performance', {}),
+                    'memory_usage': summary_data.get('memory_stats', {}),
+                    'errors_count': summary_data.get('errors', 0)
+                }
+                
+                self._append_to_json_file(summary_file, summary_entry)
+            
+            # Log en consola
+            patterns = summary_data.get('total_patterns', 0)
+            self.info(f"Session Summary: {patterns} patterns analyzed", "SESSION")
+            
+        except Exception as e:
+            self.error(f"Error logging session summary: {str(e)}", "SESSION_LOGGER")
+    
+    def _append_to_json_file(self, file_path: Path, new_entry: Dict[str, Any]):
+        """🔧 Helper para agregar entradas a archivos JSON"""
+        try:
+            # Leer archivo existente
+            data = []
+            if file_path.exists():
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    if not isinstance(data, list):
+                        data = [data]
+                except:
+                    data = []
+            
+            # Agregar nueva entrada
+            data.append(new_entry)
+            
+            # Mantener solo últimas 1000 entradas para eficiencia
+            if len(data) > 1000:
+                data = data[-1000:]
+            
+            # Guardar archivo
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+                
+        except Exception as e:
+            self.error(f"Error appending to JSON file: {str(e)}", "JSON_HELPER")
 
 # Instancia global del logger
 _smart_logger: Optional[SmartTradingLogger] = None
@@ -125,6 +274,89 @@ def log_error(message: str, component: str = "CORE"):
 def log_debug(message: str, component: str = "CORE"):
     """🔍 Log debug rápido"""
     get_smart_logger().debug(message, component)
+
+# ===== FUNCIONES ESPECIALIZADAS ICT =====
+
+def log_ict_pattern_detected(pattern_type: str, pattern_data: Dict[str, Any], symbol: str = "UNKNOWN"):
+    """📊 Log rápido para patrones ICT detectados"""
+    get_smart_logger().log_ict_pattern(pattern_type, pattern_data, symbol)
+
+def log_order_blocks_analysis(blocks_data: Dict[str, Any], symbol: str = "UNKNOWN"):
+    """🧱 Log rápido para análisis de Order Blocks"""
+    get_smart_logger().log_order_blocks(blocks_data, symbol)
+
+def log_session_summary(summary_data: Dict[str, Any]):
+    """📈 Log rápido para resumen de sesión"""
+    get_smart_logger().log_trading_session_summary(summary_data)
+
+def create_daily_summary_report():
+    """📋 Crear reporte diario consolidado"""
+    try:
+        logger = get_smart_logger()
+        if hasattr(logger, 'log_categories') and 'daily' in logger.log_categories:
+            date_str = datetime.now().strftime('%Y-%m-%d')
+            
+            # Consolidar datos del día
+            summary_data = {
+                'date': date_str,
+                'report_generated': datetime.now().isoformat(),
+                'files_processed': _count_daily_files(logger.log_categories),
+                'total_patterns': _count_patterns_in_files(logger.log_categories, date_str),
+                'system_health': 'OPERATIONAL'
+            }
+            
+            # Crear reporte
+            report_file = logger.log_categories['daily'] / f"daily_report_{date_str}.json"
+            with open(report_file, 'w', encoding='utf-8') as f:
+                json.dump(summary_data, f, indent=2, ensure_ascii=False)
+            
+            log_info(f"Daily report generated: {report_file}", "DAILY_REPORT")
+            return report_file
+            
+    except Exception as e:
+        log_error(f"Error creating daily summary: {str(e)}", "DAILY_REPORT")
+        return None
+
+def _count_daily_files(log_categories: Dict[str, Path]) -> Dict[str, int]:
+    """🔢 Contar archivos generados en el día"""
+    date_str = datetime.now().strftime('%Y-%m-%d')
+    file_counts = {}
+    
+    for category, path in log_categories.items():
+        if path.exists():
+            daily_files = list(path.glob(f"*{date_str}*"))
+            file_counts[category] = len(daily_files)
+        else:
+            file_counts[category] = 0
+    
+    return file_counts
+
+def _count_patterns_in_files(log_categories: Dict[str, Path], date_str: str) -> int:
+    """📊 Contar patrones detectados en el día"""
+    total_patterns = 0
+    
+    try:
+        # Contar desde archivo de patrones ICT
+        if 'ict' in log_categories:
+            patterns_file = log_categories['ict'] / f"patterns_{date_str}.json"
+            if patterns_file.exists():
+                with open(patterns_file, 'r', encoding='utf-8') as f:
+                    patterns_data = json.load(f)
+                    total_patterns += len(patterns_data) if isinstance(patterns_data, list) else 1
+        
+        # Contar desde archivo de Order Blocks
+        if 'ict' in log_categories:
+            ob_file = log_categories['ict'] / f"order_blocks_{date_str}.json"
+            if ob_file.exists():
+                with open(ob_file, 'r', encoding='utf-8') as f:
+                    ob_data = json.load(f)
+                    if isinstance(ob_data, list):
+                        total_patterns += sum(entry.get('blocks_detected', 0) for entry in ob_data)
+    
+    except Exception:
+        pass
+    
+    return total_patterns
 
 # Alias para compatibilidad
 SmartLogger = SmartTradingLogger

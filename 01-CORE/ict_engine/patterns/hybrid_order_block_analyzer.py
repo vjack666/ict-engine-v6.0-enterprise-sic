@@ -31,7 +31,11 @@ try:
     from .simple_order_blocks import SimpleOrderBlockDetector, BasicOrderBlock
     from ..advanced_patterns.order_block_mitigation_enterprise import (
         OrderBlockMitigationDetectorEnterprise, 
-        OrderBlockMitigation
+        OrderBlockMitigation,
+        TradingDirection,
+        OrderBlockType,
+        OrderBlockStrength,
+        OrderBlockStatus
     )
     ENTERPRISE_AVAILABLE = True
 except ImportError:

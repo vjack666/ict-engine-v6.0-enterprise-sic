@@ -851,10 +851,25 @@ except Exception as e:
             
             # Importar e inicializar componentes reales
             from run_complete_system import main as run_complete_analysis
-            from dashboard_bridge import DashboardBridge
             
-            # Crear bridge para conexión
-            bridge = DashboardBridge()
+            # Importar dashboard_bridge de forma segura
+            try:
+                from dashboard_bridge import DashboardBridge
+                bridge = DashboardBridge()
+                print("✅ DashboardBridge importado exitosamente")
+            except ImportError as e:
+                print(f"⚠️ Error importando dashboard_bridge: {e}")
+                print("🔄 Creando dashboard_bridge dinámicamente...")
+                self.create_dashboard_bridge()
+                # Reintentar import
+                try:
+                    from dashboard_bridge import DashboardBridge
+                    bridge = DashboardBridge()
+                    print("✅ DashboardBridge creado e importado exitosamente")
+                except ImportError as retry_e:
+                    print(f"❌ Error crítico con dashboard_bridge: {retry_e}")
+                    print("💡 Ejecutando análisis sin dashboard...")
+                    return self.run_production_analysis()
             
             print("🔗 Inicializando bridge de conexión...")
             initialized_components = bridge.initialize_system_components()
@@ -889,7 +904,7 @@ except Exception as e:
                 self.run_production_analysis()
                 
         except ImportError as e:
-            print(f"❌ Error importando dashboard bridge: {e}")
+            print(f"❌ Error importando componentes: {e}")
             print("💡 Creando dashboard bridge...")
             self.create_dashboard_bridge()
             print("🔄 Reintentando integración...")
@@ -899,7 +914,13 @@ except Exception as e:
                 bridge = DashboardBridge()
                 initialized_components = bridge.initialize_system_components()
                 if initialized_components:
-                    bridge.launch_dashboard_with_real_data(initialized_components)
+                    dashboard_success = bridge.launch_dashboard_with_real_data(initialized_components)
+                    if not dashboard_success:
+                        print("⚠️ Dashboard enterprise no disponible, usando básico...")
+                        bridge.launch_basic_dashboard()
+                else:
+                    print("❌ No se pudieron inicializar componentes")
+                    self.run_production_analysis()
             except Exception as retry_error:
                 print(f"❌ Error en reintento: {retry_error}")
                 print("💡 Ejecutando sistema básico...")
@@ -1189,13 +1210,16 @@ class DashboardBridge:
             
             for attempt in range(max_wait_time // wait_interval):
                 try:
-                    # Intentar importar MT5 para verificar si está disponible
-                    import MetaTrader5 as mt5
+                    # Usar MT5DataManager en lugar de llamar directamente a MT5
+                    from data_management.mt5_data_manager import MT5DataManager
                     
-                    # Intentar inicializar MT5
-                    if mt5.initialize():
+                    # Crear instancia del manager para verificar conexión
+                    mt5_manager = MT5DataManager()
+                    
+                    # Intentar conectar usando el manager
+                    if mt5_manager.connect():
                         print("✅ MT5 disponible y listo")
-                        mt5.shutdown()
+                        mt5_manager.disconnect()  # Desconectar después de verificar
                         break
                     else:
                         if attempt == 0:
@@ -1203,7 +1227,7 @@ class DashboardBridge:
                         time.sleep(wait_interval)
                         
                 except ImportError:
-                    print("⚠️ MT5 no está instalado o no disponible")
+                    print("⚠️ MT5DataManager no está disponible")
                     break
                 except Exception as e:
                     if attempt == 0:

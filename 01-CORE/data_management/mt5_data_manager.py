@@ -258,6 +258,34 @@ class MT5DataManager:
         except Exception as e:
             self._log_error(f"Error obteniendo datos de {symbol}", e)
             return None
+    
+    def get_candles(self, symbol: str, timeframe: str, count: int = 500):
+        """
+        📊 Obtener velas de MT5 - Método estándar para compatibilidad
+        
+        Args:
+            symbol: Símbolo del instrumento
+            timeframe: Marco temporal
+            count: Número de velas
+            
+        Returns:
+            DataFrame con datos OHLCV o None
+        """
+        return self.get_direct_market_data(symbol, timeframe, count)
+
+    def get_current_data(self, symbol: str, timeframe: str, count: int = 500):
+        """
+        📊 Alias para get_candles - compatibilidad con ICTDataManager
+        
+        Args:
+            symbol: Símbolo del instrumento
+            timeframe: Marco temporal
+            count: Número de velas
+            
+        Returns:
+            DataFrame con datos OHLCV o None
+        """
+        return self.get_candles(symbol, timeframe, count)
 
     def get_symbol_info(self, symbol: str) -> Optional[Dict[str, Any]]:
         """Obtiene información básica de un símbolo"""

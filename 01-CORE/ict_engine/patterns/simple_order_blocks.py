@@ -45,6 +45,13 @@ except ImportError:
             print(f"⚠️ [ORDER_BLOCKS] {msg}")
         def error(self, msg, component="ORDER_BLOCKS"): 
             print(f"❌ [ORDER_BLOCKS] {msg}")
+        def log_order_blocks(self, blocks_data, symbol="UNKNOWN"):
+            blocks_count = blocks_data.get('blocks_count', 0)
+            print(f"📦 [ORDER_BLOCKS] {blocks_count} blocks detected for {symbol}")
+        def log_trading_session_summary(self, session_data):
+            patterns = session_data.get('total_patterns', 0)
+            symbols = session_data.get('symbols', ['UNKNOWN'])
+            print(f"📈 [SESSION] Session completed: {patterns} blocks for {', '.join(symbols)}")
     
     _fallback = FallbackLogger()
     get_smart_logger = lambda: _fallback
@@ -227,6 +234,9 @@ class SimpleOrderBlockDetector:
             
             # 💾 GUARDAR DATOS ORGANIZADOS usando estructura existente
             self._save_organized_results(basic_blocks, symbol, timeframe, current_price)
+            
+            # 📈 GENERAR RESUMEN DE SESIÓN usando logging centralizado
+            self._generate_session_summary(basic_blocks, symbol, timeframe, current_price)
         
         return basic_blocks[:5]  # Top 5 más relevantes
     
@@ -264,8 +274,14 @@ class SimpleOrderBlockDetector:
         
         candle = data.iloc[idx]
         
+        # Asegurar que current_price es numérico
+        try:
+            current_price = float(current_price)
+        except (ValueError, TypeError):
+            current_price = float(candle['close'])  # Fallback al precio de cierre
+        
         # 📊 CALCULAR MÉTRICAS BÁSICAS
-        distance_pips = abs(current_price - candle['low']) * 10000
+        distance_pips = abs(current_price - float(candle['low'])) * 10000
         
         # Volume confirmation básico
         avg_volume = data['volume'].iloc[max(0, idx-10):idx].mean() if 'volume' in data.columns else 1
@@ -312,8 +328,14 @@ class SimpleOrderBlockDetector:
         
         candle = data.iloc[idx]
         
+        # Asegurar que current_price es numérico
+        try:
+            current_price = float(current_price)
+        except (ValueError, TypeError):
+            current_price = float(candle['close'])  # Fallback al precio de cierre
+        
         # 📊 CALCULAR MÉTRICAS BÁSICAS
-        distance_pips = abs(current_price - candle['high']) * 10000
+        distance_pips = abs(current_price - float(candle['high'])) * 10000
         
         # Volume confirmation básico
         avg_volume = data['volume'].iloc[max(0, idx-10):idx].mean() if 'volume' in data.columns else 1
@@ -404,34 +426,95 @@ class SimpleOrderBlockDetector:
             "blocks": []
         }
         
-        # Agregar detalles de cada block
-        for block in blocks:
-            block_data = {
-                "type": block.type,
-                "price": block.price,
-                "confidence": block.confidence,
-                "distance_pips": block.distance_pips,
-                "candle_index": block.candle_index,
-                "volume_confirmation": block.volume_confirmation,
-                "timestamp": block.timestamp.isoformat() if hasattr(block.timestamp, 'isoformat') else str(block.timestamp),
-                "entry_price": block.entry_price,
-                "stop_loss": block.stop_loss,
-                "take_profit": block.take_profit,
-                "risk_reward": block.risk_reward
-            }
-            results_data["blocks"].append(block_data)
-        
-        # Guardar en carpeta existente 04-DATA/reports
-        filename = f"order_blocks_{symbol}_{timeframe}_{timestamp}.json"
-        filepath = self.order_blocks_data_dir / filename
-        
+        # Guardar en carpeta existente 04-DATA/reports usando logging centralizado
         try:
+            # Usar el sistema de logging centralizado para Order Blocks
+            blocks_data = {
+                "symbol": symbol,
+                "timeframe": timeframe,
+                "blocks_count": len(blocks),
+                "bullish_count": len([b for b in blocks if b.type == 'demand_zone']),
+                "bearish_count": len([b for b in blocks if b.type == 'supply_zone']),
+                "blocks": [],
+                "confidence": sum(b.confidence for b in blocks) / len(blocks) if blocks else 0
+            }
+            
+            # Agregar detalles de cada block para logging estructurado
+            for block in blocks:
+                block_data = {
+                    "type": block.type,
+                    "price": float(block.price),
+                    "confidence": float(block.confidence),
+                    "distance_pips": float(block.distance_pips),
+                    "candle_index": int(block.candle_index),
+                    "volume_confirmation": bool(block.volume_confirmation),
+                    "timestamp": block.timestamp.isoformat() if hasattr(block.timestamp, 'isoformat') else str(block.timestamp),
+                    "entry_price": float(block.entry_price),
+                    "stop_loss": float(block.stop_loss),
+                    "take_profit": float(block.take_profit),
+                    "risk_reward": float(block.risk_reward)
+                }
+                blocks_data["blocks"].append(block_data)
+            
+            # Usar el sistema de logging centralizado
+            self.logger.log_order_blocks(blocks_data, symbol)
+            
+            # También guardar archivo detallado en reports para análisis posterior
+            filename = f"order_blocks_{symbol}_{timeframe}_{timestamp}.json"
+            filepath = self.order_blocks_data_dir / filename
+            
+            results_data = {
+                "timestamp": timestamp,
+                "symbol": symbol,
+                "timeframe": timeframe,
+                "current_price": current_price,
+                "total_blocks": len(blocks),
+                "demand_zones": len([b for b in blocks if b.type == 'demand_zone']),
+                "supply_zones": len([b for b in blocks if b.type == 'supply_zone']),
+                "avg_confidence": sum(b.confidence for b in blocks) / len(blocks) if blocks else 0,
+                "blocks": blocks_data["blocks"]
+            }
+            
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(results_data, f, indent=2, ensure_ascii=False)
             
             log_info(f"💾 Resultados guardados: {filepath.name}", "ORDER_BLOCKS")
-            print(f"💾 Datos guardados en: {filepath}")
             
         except Exception as e:
-            log_warning(f"Error guardando resultados: {e}", "ORDER_BLOCKS")
-            print(f"⚠️  Error guardando: {e}")
+            log_error(f"Error guardando resultados: {e}", "ORDER_BLOCKS")
+            
+    def _generate_session_summary(self, blocks: List[BasicOrderBlock], 
+                                symbol: str, timeframe: str, current_price: float):
+        """📈 Generar resumen de sesión usando logging centralizado"""
+        try:
+            # Calcular estadísticas de la sesión
+            demand_zones = [b for b in blocks if b.type == 'demand_zone']
+            supply_zones = [b for b in blocks if b.type == 'supply_zone']
+            avg_confidence = sum(b.confidence for b in blocks) / len(blocks) if blocks else 0
+            high_conf_blocks = [b for b in blocks if b.confidence >= 70]
+            
+            # Preparar datos para logging centralizado
+            session_data = {
+                "symbols": [symbol],
+                "total_patterns": len(blocks),
+                "execution_time": 0.1,  # Tiempo estimado
+                "performance": {
+                    "demand_zones": len(demand_zones),
+                    "supply_zones": len(supply_zones),
+                    "avg_confidence": avg_confidence,
+                    "high_confidence_blocks": len(high_conf_blocks),
+                    "current_price": current_price,
+                    "timeframe": timeframe
+                },
+                "memory_stats": {
+                    "blocks_analyzed": len(blocks),
+                    "blocks_relevant": len([b for b in blocks if self._is_relevant_block(b, current_price)])
+                },
+                "errors": 0
+            }
+            
+            # Usar sistema de logging centralizado para resumen de sesión
+            self.logger.log_trading_session_summary(session_data)
+            
+        except Exception as e:
+            log_error(f"Error generando resumen de sesión: {e}", "ORDER_BLOCKS")

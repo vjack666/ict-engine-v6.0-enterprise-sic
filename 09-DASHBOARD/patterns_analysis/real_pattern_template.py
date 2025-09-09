@@ -40,6 +40,9 @@ class RealPatternDashboard(BasePatternDashboard):
         self.real_config = None
         self.advanced_pattern_module = None
         
+        # Configurar rutas del proyecto
+        self.project_root = project_root
+        
         # Conectar con sistema real
         self._connect_to_real_system()
         
@@ -62,12 +65,12 @@ class RealPatternDashboard(BasePatternDashboard):
                 self.advanced_pattern_module = SilverBulletDetectorEnterprise()
                 print(f"✅ {self.pattern_name}: Módulo enterprise conectado")
             elif self.pattern_name == 'judas_swing':
-                from ict_engine.advanced_patterns.judas_swing_enterprise import JudasSwingEnterprise
-                self.advanced_pattern_module = JudasSwingEnterprise()
+                from ict_engine.advanced_patterns.judas_swing_enterprise import JudasSwingDetectorEnterprise
+                self.advanced_pattern_module = JudasSwingDetectorEnterprise()
                 print(f"✅ {self.pattern_name}: Módulo enterprise conectado")
             elif self.pattern_name == 'liquidity_grab':
-                from ict_engine.advanced_patterns.liquidity_grab_enterprise import LiquidityGrabEnterprise
-                self.advanced_pattern_module = LiquidityGrabEnterprise()
+                from ict_engine.advanced_patterns.liquidity_grab_enterprise import LiquidityGrabDetectorEnterprise
+                self.advanced_pattern_module = LiquidityGrabDetectorEnterprise()
                 print(f"✅ {self.pattern_name}: Módulo enterprise conectado")
         except ImportError as e:
             print(f"ℹ️ {self.pattern_name}: Módulo enterprise no disponible: {e}")

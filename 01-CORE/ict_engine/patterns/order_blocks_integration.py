@@ -230,10 +230,17 @@ class OrderBlocksPatternDetector:
                     }
                 }
                 
-                # Usar la API de memoria unificada
-                self.memory_system.store_pattern_memory(
+                # 🎯 GUARDAR EN MEMORIA UNIFICADA CON FALLBACK ROBUSTO
+                # ===================================================
+                # Este método maneja la integración con el sistema de memoria unificada
+                # del ICT Engine v6.0. Incluye múltiples estrategias de fallback para
+                # garantizar que los patrones se guarden correctamente incluso si 
+                # el sistema de memoria no está completamente disponible.
+                
+                success = self._store_pattern_with_fallback(
                     symbol=symbol,
-                    pattern_data=memory_data
+                    pattern_data=memory_data,
+                    pattern_full=pattern
                 )
                 
         except Exception as e:
@@ -282,6 +289,141 @@ class OrderBlocksPatternDetector:
             base_stats['avg_patterns_per_detection'] = base_stats['patterns_found'] / max(1, base_stats['successful_detections'])
             
         return base_stats
+    
+    def _store_pattern_with_fallback(self, 
+                                   symbol: str, 
+                                   pattern_data: Dict[str, Any], 
+                                   pattern_full: Dict[str, Any]) -> bool:
+        """
+        🎯 MÉTODO DE ALMACENAMIENTO CON FALLBACK ROBUSTO v6.0
+        ====================================================
+        
+        Este método implementa múltiples estrategias para guardar patrones
+        en el sistema de memoria unificada, con fallbacks robustos para
+        garantizar que los datos no se pierdan.
+        
+        ESTRATEGIAS DE FALLBACK:
+        1. 🏆 Método store_pattern_memory (preferido)
+        2. 🥈 Método store_pattern (alternativo)
+        3. 🥉 Método add_pattern (básico)
+        4. 📁 Almacenamiento local como último recurso
+        
+        Args:
+            symbol: Símbolo del instrumento (ej. EURUSD)
+            pattern_data: Datos del patrón en formato memoria
+            pattern_full: Patrón completo con todos los datos
+            
+        Returns:
+            bool: True si el almacenamiento fue exitoso
+        """
+        
+        if not self.memory_system:
+            if self.logger:
+                log_warning(f"Memory system not available for {symbol}")
+            return False
+            
+        try:
+            # 🏆 ESTRATEGIA 1: store_pattern_memory (método preferido)
+            # Nota: Este método puede no existir, por eso usamos hasattr()
+            if hasattr(self.memory_system, 'store_pattern_memory'):
+                # type: ignore - Método verificado dinámicamente con hasattr()
+                self.memory_system.store_pattern_memory(  # type: ignore
+                    symbol=symbol,
+                    pattern_data=pattern_data
+                )
+                if self.logger:
+                    log_info(f"Pattern stored using store_pattern_memory for {symbol}")
+                return True
+                
+        except Exception as e:
+            if self.logger:
+                log_warning(f"store_pattern_memory failed for {symbol}: {e}")
+                
+        try:
+            # 🥈 ESTRATEGIA 2: store_pattern (método alternativo)
+            # Nota: Este método puede no existir, por eso usamos hasattr()
+            if hasattr(self.memory_system, 'store_pattern'):
+                # type: ignore - Método verificado dinámicamente con hasattr()
+                self.memory_system.store_pattern(  # type: ignore
+                    pattern_type=pattern_data['pattern_type'],
+                    symbol=symbol,
+                    data=pattern_data
+                )
+                if self.logger:
+                    log_info(f"Pattern stored using store_pattern for {symbol}")
+                return True
+                
+        except Exception as e:
+            if self.logger:
+                log_warning(f"store_pattern failed for {symbol}: {e}")
+                
+        try:
+            # 🥉 ESTRATEGIA 3: add_pattern (método básico)
+            # Nota: Este método puede no existir, por eso usamos hasattr()
+            if hasattr(self.memory_system, 'add_pattern'):
+                # type: ignore - Método verificado dinámicamente con hasattr()
+                self.memory_system.add_pattern(pattern_data)  # type: ignore
+                if self.logger:
+                    log_info(f"Pattern stored using add_pattern for {symbol}")
+                return True
+                
+        except Exception as e:
+            if self.logger:
+                log_warning(f"add_pattern failed for {symbol}: {e}")
+                
+        try:
+            # 📁 ESTRATEGIA 4: Almacenamiento local (último recurso)
+            self._store_pattern_locally(symbol, pattern_full)
+            if self.logger:
+                log_info(f"Pattern stored locally as fallback for {symbol}")
+            return True
+            
+        except Exception as e:
+            if self.logger:
+                log_warning(f"Local storage fallback failed for {symbol}: {e}")
+                
+        return False
+    
+    def _store_pattern_locally(self, symbol: str, pattern: Dict[str, Any]):
+        """
+        📁 ALMACENAMIENTO LOCAL COMO ÚLTIMO RECURSO
+        ==========================================
+        
+        Guarda el patrón en un archivo local cuando el sistema
+        de memoria unificada no está disponible.
+        """
+        
+        try:
+            import json
+            from pathlib import Path
+            
+            # Crear directorio de respaldo si no existe
+            backup_dir = Path("04-DATA/patterns_backup")
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Archivo por símbolo y fecha
+            date_str = datetime.now().strftime("%Y%m%d")
+            backup_file = backup_dir / f"{symbol}_{date_str}_order_blocks.json"
+            
+            # Cargar patrones existentes o crear lista nueva
+            patterns = []
+            if backup_file.exists():
+                with open(backup_file, 'r', encoding='utf-8') as f:
+                    patterns = json.load(f)
+                    
+            # Agregar nuevo patrón
+            patterns.append({
+                'timestamp': pattern['timestamp'].isoformat() if isinstance(pattern['timestamp'], datetime) else str(pattern['timestamp']),
+                'pattern': pattern
+            })
+            
+            # Guardar actualizado
+            with open(backup_file, 'w', encoding='utf-8') as f:
+                json.dump(patterns, f, indent=2, ensure_ascii=False)
+                
+        except Exception as e:
+            if self.logger:
+                log_warning(f"Local backup storage failed: {e}")
     
     def reset_stats(self):
         """Resetear estadísticas de performance"""

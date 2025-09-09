@@ -91,6 +91,48 @@ class OrderBlockStrength(Enum):
 
 
 @dataclass
+class OrderBlockMitigation:
+    """🎯 Order Block Mitigation Pattern v6.0"""
+    # Identificación básica
+    id: str
+    block_type: OrderBlockType
+    strength: OrderBlockStrength
+    status: OrderBlockStatus
+    
+    # Precios de formación
+    high: float
+    low: float
+    close: float
+    open: float
+    
+    # Niveles clave
+    mitigation_level: float
+    origin_price: float
+    
+    # Métricas
+    confidence: float
+    size_pips: float
+    age_candles: int
+    volume_confirmation: float
+    
+    # Trading levels
+    entry_zone: Tuple[float, float]
+    stop_loss: float
+    take_profit: float
+    
+    # Metadata
+    timestamp: datetime
+    symbol: str
+    timeframe: str
+    narrative: str = ""
+    
+    # Validaciones
+    is_active: bool = True
+    mitigation_percentage: float = 0.0
+    institutional_footprint: bool = False
+
+
+@dataclass
 class OrderBlockMitigationSignal:
     """🎯 Señal Order Block Mitigation Enterprise v6.0"""
     signal_type: OrderBlockType

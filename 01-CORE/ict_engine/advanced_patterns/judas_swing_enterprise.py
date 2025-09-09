@@ -189,6 +189,76 @@ class JudasSwingDetectorEnterprise:
         
         log_info("✅ Judas Swing Detector Enterprise v6.0 inicializado correctamente", "judas_swing_enterprise")
 
+    def detect(self, data: DataFrameType, symbol: str, timeframe: str, **kwargs) -> Dict[str, Any]:
+        """
+        🎯 Método detect unificado para compatibilidad con dashboard
+        
+        Args:
+            data: Datos de velas
+            symbol: Símbolo del instrumento  
+            timeframe: Marco temporal
+            **kwargs: Argumentos adicionales
+            
+        Returns:
+            Dict con resultado de detección compatible con dashboard
+        """
+        try:
+            # Usar el método principal de detección
+            signals = self.detect_judas_swing_patterns(
+                data=data,
+                symbol=symbol,
+                timeframe=timeframe,
+                current_price=kwargs.get('current_price', 0.0),
+                detected_order_blocks=kwargs.get('detected_order_blocks'),
+                market_structure_context=kwargs.get('market_structure_context')
+            )
+            
+            if not signals:
+                return {
+                    'confidence': 0.0,
+                    'strength': 0.0,
+                    'direction': 'NEUTRAL',
+                    'entry_zone': (0.0, 0.0),
+                    'stop_loss': 0.0,
+                    'take_profit_1': 0.0,
+                    'narrative': 'No se detectaron patrones Judas Swing válidos',
+                    'source': 'judas_swing_enterprise'
+                }
+            
+            # Tomar la mejor señal
+            best_signal = max(signals, key=lambda s: s.confidence)
+            
+            # Convertir a formato compatible con dashboard
+            return {
+                'confidence': best_signal.confidence,
+                'strength': best_signal.fake_breakout_strength,
+                'direction': best_signal.direction.value if hasattr(best_signal.direction, 'value') else str(best_signal.direction),
+                'entry_zone': best_signal.entry_zone,
+                'stop_loss': best_signal.stop_loss,
+                'take_profit_1': best_signal.take_profit_1,
+                'take_profit_2': best_signal.take_profit_2,
+                'risk_reward_ratio': abs(best_signal.take_profit_1 - best_signal.entry_price) / abs(best_signal.entry_price - best_signal.stop_loss) if best_signal.stop_loss != best_signal.entry_price else 0.0,
+                'probability': best_signal.confidence * 0.8,  # Conservative estimate
+                'session': 'JUDAS_SWING',
+                'confluences': ['POI Confluence'] if best_signal.poi_confluence else [],
+                'invalidation_criteria': f'Precio por encima de {best_signal.stop_loss} pips' if best_signal.direction == 'SELL' else f'Precio por debajo de {best_signal.stop_loss} pips',
+                'narrative': best_signal.narrative,
+                'source': 'judas_swing_enterprise'
+            }
+            
+        except Exception as e:
+            log_error(f"Error en detect method: {e}", "judas_swing_enterprise")
+            return {
+                'confidence': 0.0,
+                'strength': 0.0,
+                'direction': 'NEUTRAL',
+                'entry_zone': (0.0, 0.0),
+                'stop_loss': 0.0,
+                'take_profit_1': 0.0,
+                'narrative': f'Error en detección Judas Swing: {str(e)}',
+                'source': 'judas_swing_enterprise_error'
+            }
+
     def detect_judas_swing_patterns(self, 
                                    data: DataFrameType,
                                    symbol: str,

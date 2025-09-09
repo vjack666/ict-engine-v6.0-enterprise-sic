@@ -218,6 +218,76 @@ class LiquidityGrabDetectorEnterprise:
         
         log_info("✅ Liquidity Grab Detector Enterprise v6.0 inicializado correctamente")
 
+    def detect(self, data: DataFrameType, symbol: str, timeframe: str, **kwargs) -> Dict[str, Any]:
+        """
+        🎯 Método detect unificado para compatibilidad con dashboard
+        
+        Args:
+            data: Datos de velas
+            symbol: Símbolo del instrumento  
+            timeframe: Marco temporal
+            **kwargs: Argumentos adicionales
+            
+        Returns:
+            Dict con resultado de detección compatible con dashboard
+        """
+        try:
+            # Usar el método principal de detección
+            signals = self.detect_liquidity_grab_patterns(
+                data=data,
+                symbol=symbol,
+                timeframe=timeframe,
+                current_price=kwargs.get('current_price', 0.0),
+                detected_order_blocks=kwargs.get('detected_order_blocks'),
+                market_structure_context=kwargs.get('market_structure_context')
+            )
+            
+            if not signals:
+                return {
+                    'confidence': 0.0,
+                    'strength': 0.0,
+                    'direction': 'NEUTRAL',
+                    'entry_zone': (0.0, 0.0),
+                    'stop_loss': 0.0,
+                    'take_profit_1': 0.0,
+                    'narrative': 'No se detectaron patrones Liquidity Grab válidos',
+                    'source': 'liquidity_grab_enterprise'
+                }
+            
+            # Tomar la mejor señal
+            best_signal = max(signals, key=lambda s: s.confidence)
+            
+            # Convertir a formato compatible con dashboard
+            return {
+                'confidence': best_signal.confidence,
+                'strength': getattr(best_signal, 'grab_strength', best_signal.confidence),
+                'direction': best_signal.direction.value if hasattr(best_signal.direction, 'value') else str(best_signal.direction),
+                'entry_zone': (best_signal.entry_price - 5, best_signal.entry_price + 5),
+                'stop_loss': best_signal.stop_loss,
+                'take_profit_1': best_signal.take_profit_1,
+                'take_profit_2': getattr(best_signal, 'take_profit_2', None),
+                'risk_reward_ratio': abs(best_signal.take_profit_1 - best_signal.entry_price) / abs(best_signal.entry_price - best_signal.stop_loss) if best_signal.stop_loss != best_signal.entry_price else 0.0,
+                'probability': best_signal.confidence * 0.75,  # Conservative estimate
+                'session': 'LIQUIDITY_GRAB',
+                'confluences': getattr(best_signal, 'confluences', []),
+                'invalidation_criteria': f'Precio por encima de {best_signal.stop_loss}' if best_signal.direction == 'SELL' else f'Precio por debajo de {best_signal.stop_loss}',
+                'narrative': best_signal.narrative,
+                'source': 'liquidity_grab_enterprise'
+            }
+            
+        except Exception as e:
+            log_error(f"Error en detect method: {e}", "liquidity_grab_enterprise")
+            return {
+                'confidence': 0.0,
+                'strength': 0.0,
+                'direction': 'NEUTRAL',
+                'entry_zone': (0.0, 0.0),
+                'stop_loss': 0.0,
+                'take_profit_1': 0.0,
+                'narrative': f'Error en detección Liquidity Grab: {str(e)}',
+                'source': 'liquidity_grab_enterprise_error'
+            }
+
     def detect_liquidity_grab_patterns(self, 
                                       data: DataFrameType,
                                       symbol: str,

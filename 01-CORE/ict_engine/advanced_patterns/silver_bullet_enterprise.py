@@ -1073,34 +1073,51 @@ class SilverBulletDetectorEnterprise:
             filtered_signals = []
             
             for signal in signals:
-                # Si ya tiene quality_score, usarlo; sino calcularlo
-                if hasattr(signal, 'quality_score'):
-                    quality_score = signal.quality_score
-                else:
-                    # Calcular quality score sobre la marcha
-                    signal_data = {
-                        'confidence': signal.confidence,
-                        'killzone_timing': signal.killzone_timing,
-                        'structure_confluence': signal.structure_confluence,
-                        'memory_confirmation': signal.memory_confirmation,
-                        'order_block_present': signal.order_block_present,
-                        'timeframe_alignment': signal.timeframe_alignment,
-                        'signal_type': signal.signal_type.value if hasattr(signal.signal_type, 'value') else str(signal.signal_type),
-                        'entry_price': signal.entry_price,
-                        'timeframe': signal.timeframe
-                    }
-                    quality_score = self._calculate_pattern_quality_score(signal_data)
+                # Calcular quality score basado en los atributos disponibles
+                quality_score = self._calculate_signal_quality_score(signal)
                 
                 if quality_score >= min_quality:
                     filtered_signals.append(signal)
             
-            self._log_info(f"📊 Filtrado por calidad: {len(filtered_signals)}/{len(signals)} señales (min_quality: {min_quality})")
-            
+            self._log_debug(f"🔍 Filtradas {len(filtered_signals)}/{len(signals)} señales con quality >= {min_quality}")
             return filtered_signals
             
         except Exception as e:
-            self._log_error(f"Error filtrando señales por calidad: {e}")
-            return signals  # Retornar todas las señales si hay error
+            self._log_error(f"❌ Error al filtrar señales por calidad: {e}")
+            return signals  # Retornar todas si hay error
+    
+    def _calculate_signal_quality_score(self, signal: 'SilverBulletSignal') -> float:
+        """🎯 Calcular quality score de una señal basado en sus atributos"""
+        try:
+            score = 0.0
+            
+            # Base: confidence score (40%)
+            score += signal.confidence * 0.4
+            
+            # Confluencias estructurales (35%)
+            confluence_score = 0.0
+            if signal.structure_confluence:
+                confluence_score += 0.3
+            if signal.killzone_timing:
+                confluence_score += 0.25
+            if signal.order_block_present:
+                confluence_score += 0.2
+            if signal.memory_confirmation:
+                confluence_score += 0.15
+            if signal.timeframe_alignment:
+                confluence_score += 0.1
+            
+            score += confluence_score * 0.35
+            
+            # Institutional bias (25%)
+            bias_score = min(abs(signal.institutional_bias), 1.0)
+            score += bias_score * 0.25
+            
+            return min(score, 1.0)  # Cap at 1.0
+            
+        except Exception as e:
+            self._log_error(f"❌ Error calculando quality score: {e}")
+            return signal.confidence  # Fallback a confidence
 
     def get_current_killzone(self) -> str:
         """⭐ NUEVO: Determinar killzone actual basado en hora (del sistema validado)"""
@@ -1159,6 +1176,78 @@ class SilverBulletDetectorEnterprise:
             self.logger.log_debug(message, "silver_bullet_enterprise")
         else:
             print(f"[DEBUG] {message}")
+    
+    def detect(self, data, symbol: str, timeframe: str, **kwargs) -> Dict[str, Any]:
+        """
+        🎯 Método detect unificado para compatibilidad con dashboard
+        
+        Args:
+            data: DataFrame con datos OHLCV
+            symbol: Símbolo del instrumento
+            timeframe: Marco temporal
+            **kwargs: Argumentos adicionales
+            
+        Returns:
+            Dict con resultado de detección compatible con dashboard
+        """
+        try:
+            # Obtener precio actual de los datos
+            current_price = float(data.iloc[-1]['close']) if len(data) > 0 else 0.0
+            
+            # Usar el método principal de detección
+            signals = self.detect_silver_bullet_patterns(
+                data=data,
+                symbol=symbol,
+                timeframe=timeframe,
+                current_price=current_price,
+                detected_order_blocks=kwargs.get('detected_order_blocks'),
+                market_structure_context=kwargs.get('market_structure_context')
+            )
+            
+            if not signals:
+                return {
+                    'confidence': 0.0,
+                    'direction': 'NEUTRAL',
+                    'entry_zone': (0.0, 0.0),
+                    'stop_loss': 0.0,
+                    'take_profit_1': 0.0,
+                    'narrative': 'No se detectaron patrones Silver Bullet válidos',
+                    'source': 'silver_bullet_enterprise'
+                }
+            
+            # Tomar la mejor señal
+            best_signal = max(signals, key=lambda s: s.confidence)
+            
+            # Convertir a formato compatible con dashboard
+            return {
+                'confidence': best_signal.confidence,
+                'direction': best_signal.direction.value if hasattr(best_signal.direction, 'value') else str(best_signal.direction),
+                'entry_zone': best_signal.entry_zone,
+                'stop_loss': best_signal.stop_loss,
+                'take_profit_1': best_signal.take_profit_1,
+                'take_profit_2': best_signal.take_profit_2,
+                'institutional_bias': getattr(best_signal, 'institutional_bias', 0.0),
+                'structure_confluence': getattr(best_signal, 'structure_confluence', False),
+                'killzone_timing': getattr(best_signal, 'killzone_timing', False),
+                'order_block_present': getattr(best_signal, 'order_block_present', False),
+                'timeframe_alignment': getattr(best_signal, 'timeframe_alignment', False),
+                'memory_confirmation': getattr(best_signal, 'memory_confirmation', False),
+                'session_context': getattr(best_signal, 'session_context', {}),
+                'narrative': best_signal.narrative,
+                'source': 'silver_bullet_enterprise'
+            }
+            
+        except Exception as e:
+            self._log_error(f"Error en detect method: {e}")
+            return {
+                'confidence': 0.0,
+                'direction': 'NEUTRAL',
+                'entry_zone': (0.0, 0.0),
+                'stop_loss': 0.0,
+                'take_profit_1': 0.0,
+                'narrative': f'Error en detección Silver Bullet: {str(e)}',
+                'source': 'silver_bullet_enterprise_error'
+            }
 
 
 # ===========================================
