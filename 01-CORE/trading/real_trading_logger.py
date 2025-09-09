@@ -13,9 +13,32 @@ from typing import Dict, List, Optional, Any
 import logging
 from pathlib import Path
 import csv
+import sys
 
-# Import existing ICT Engine modules
-from ..utils.smart_trading_logger import SmartTradingLogger
+# Agregar path del proyecto para imports
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+# Import central logger
+try:
+    from smart_trading_logger import get_smart_logger, log_info, log_warning, log_error, log_debug, SmartTradingLogger  # type: ignore
+    _central_logger = get_smart_logger("RealTradingLogger")
+except ImportError:
+    # Fallback para compatibilidad
+    class SmartTradingLogger:
+        def __init__(self, name="ICT_Engine", level="INFO"):
+            self.logger = logging.getLogger(name)
+        def info(self, msg): self.logger.info(msg)
+        def warning(self, msg): self.logger.warning(msg)
+        def error(self, msg): self.logger.error(msg)
+        def debug(self, msg): self.logger.debug(msg)
+    
+    _central_logger = SmartTradingLogger()
+    def log_info(message, component="CORE"): _central_logger.info(f"[{component}] {message}")
+    def log_warning(message, component="CORE"): _central_logger.warning(f"[{component}] {message}")
+    def log_error(message, component="CORE"): _central_logger.error(f"[{component}] {message}")
+    def log_debug(message, component="CORE"): _central_logger.debug(f"[{component}] {message}")
 
 class RealTradingLogger:
     """
@@ -48,9 +71,15 @@ class RealTradingLogger:
     - Compliance and regulatory logs
     """
     
-    def __init__(self, base_logger: Optional[SmartTradingLogger] = None):
+    def __init__(self, base_logger=None):
         """Initialize real trading logger"""
-        self.base_logger = base_logger or SmartTradingLogger()
+        if base_logger is None:
+            try:
+                self.base_logger = get_smart_logger("RealTradingLogger") 
+            except:
+                self.base_logger = _central_logger
+        else:
+            self.base_logger = base_logger
         
         # Setup specialized log directories
         self.log_dir = Path("04-DATA/logs/trading")
@@ -394,7 +423,7 @@ class RealTradingLogger:
             self.base_logger.error(f"🚨 Compliance violation: {check_type} - {details}")
     
     # UTILITY METHODS
-    def export_daily_logs(self, date: datetime = None) -> Dict[str, str]:
+    def export_daily_logs(self, date: Optional[datetime] = None) -> Dict[str, str]:
         """Export daily logs to CSV format"""
         if date is None:
             date = datetime.now()
