@@ -44,7 +44,7 @@ class FVGIntegrationPatch:
     """
     
     def __init__(self):
-        self.logger = SmartTradingLogger()
+        self.logger = SmartTradingLogger(name="FVG_Memory")
         self.fvg_memory = FVGMemoryManager()
         
         self.logger.info("🔗 FVG Integration Patch inicializado", 

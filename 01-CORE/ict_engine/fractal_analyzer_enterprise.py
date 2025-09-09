@@ -517,7 +517,7 @@ class FractalAnalyzerEnterprise:
             timeframe: Marco temporal
         """
         # ✅ REGLA #4: SLUC v2.1 obligatorio
-        self.logger = SmartTradingLogger()
+        self.logger = SmartTradingLogger(name="FractalAnalyzer")
         
         # Configuración enterprise
         self.config = FRACTAL_CONFIG_ENTERPRISE.copy()
@@ -1579,7 +1579,7 @@ def create_fractal_analyzer_enterprise(symbol: str = "EURUSD", timeframe: str = 
     
     ✅ REGLA #4: Logging SLUC obligatorio
     """
-    logger = SmartTradingLogger()
+    logger = SmartTradingLogger(name="FractalAnalyzer")
     
     try:
         analyzer = FractalAnalyzerEnterprise(symbol=symbol, timeframe=timeframe)

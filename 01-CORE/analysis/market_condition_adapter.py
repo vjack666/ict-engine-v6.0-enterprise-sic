@@ -40,7 +40,7 @@ class MarketConditionAdapter:
     def __init__(self, fvg_memory_manager=None):
         """Inicializa el adaptador con condiciones de mercado."""
         
-        self.logger = SmartTradingLogger()
+        self.logger = SmartTradingLogger(name="MarketContext")
         self.fvg_memory = fvg_memory_manager
         
         # === ANÁLISIS DE COHERENCIA ACTUAL ===

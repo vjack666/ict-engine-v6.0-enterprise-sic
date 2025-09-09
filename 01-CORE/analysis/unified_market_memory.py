@@ -51,7 +51,7 @@ class UnifiedMarketMemory:
         # === CONFIGURACIÓN ENTERPRISE ===
         self.memory_config_path = memory_config_path
         self.cache_config_path = cache_config_path
-        self.logger = SmartTradingLogger()
+        self.logger = SmartTradingLogger(name="UnifiedMemorySystem")
         
         self.logger.info(
             "🧠 Inicializando Unified Market Memory v6.0 Enterprise",

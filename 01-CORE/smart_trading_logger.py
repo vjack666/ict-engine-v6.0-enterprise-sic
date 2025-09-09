@@ -17,21 +17,40 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 
+# Importar configuración de modo silencioso
+try:
+    from .config.logging_mode_config import LoggingModeConfig
+except ImportError:
+    try:
+        from config.logging_mode_config import LoggingModeConfig
+    except ImportError:
+        # Fallback si no está disponible
+        class LoggingModeConfig:
+            @classmethod
+            def should_be_silent(cls, component_name: str) -> bool:
+                return False
+
 class SmartTradingLogger:
     """🔧 Logger inteligente para ICT Engine v6.1.0"""
     
-    def __init__(self, name: str = "ICT_Engine", level: str = "INFO", silent_mode: bool = False):
+    def __init__(self, name: str = "ICT_Engine", level: str = "INFO", silent_mode: Optional[bool] = None):
         """
         🏗️ Inicializar Smart Trading Logger
         
         Args:
             name: Nombre del logger
             level: Nivel de logging (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-            silent_mode: Si True, no muestra logs en consola
+            silent_mode: Si True, no muestra logs en consola. Si None, usa configuración automática
         """
         
         self.name = name
-        self.silent_mode = silent_mode
+        
+        # Auto-determinar modo silencioso si no se especifica
+        if silent_mode is None:
+            self.silent_mode = LoggingModeConfig.should_be_silent(name)
+        else:
+            self.silent_mode = silent_mode
+            
         self.logger = logging.getLogger(name)
         
         # Configurar nivel

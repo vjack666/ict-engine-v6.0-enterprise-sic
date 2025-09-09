@@ -1,0 +1,219 @@
+{
+  "timestamp": "2025-09-09T16:22:15.352985",
+  "project_root": "C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic",
+  "logging_systems": {
+    "SmartTradingLogger": {
+      "path": "C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\01-CORE\\smart_trading_logger.py",
+      "type": "Centralizado",
+      "status": "Activo",
+      "target_directory": "05-LOGS/",
+      "features": [
+        "Logging diario por componente",
+        "Separadores de sesión",
+        "Silent mode",
+        "Utility functions"
+      ]
+    },
+    "LegacyLogging": {
+      "path": "C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\01-CORE\\data\\logs",
+      "type": "Legacy",
+      "status": "Activo (recibiendo logs ICT_Engine)",
+      "target_directory": "01-CORE/data/logs/",
+      "features": [
+        "Logs automáticos del sistema",
+        "Múltiples categorías",
+        "Logs históricos"
+      ]
+    },
+    "FVGMemoryManager": {
+      "path": "C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\01-CORE\\analysis\\fvg_memory_manager.py",
+      "type": "Módulo específico",
+      "status": "Activo (generando logs [fvg_memory])",
+      "logger_class": "SmartTradingLogger",
+      "log_components": [
+        "fvg_memory",
+        "kill_zone",
+        "market_conditions"
+      ]
+    }
+  },
+  "log_locations": {
+    "05-LOGS": {
+      "path": "C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\05-LOGS",
+      "purpose": "Sistema centralizado SmartTradingLogger",
+      "subdirectories": [
+        "application",
+        "dashboard",
+        "general",
+        "patterns",
+        "trading"
+      ],
+      "recent_files": [
+        {
+          "name": "patterns_2025-09-09.log",
+          "path": "05-LOGS\\patterns\\patterns_2025-09-09.log",
+          "size": 78194,
+          "modified": "2025-09-09T16:09:01.542049"
+        },
+        {
+          "name": "dashboard.log",
+          "path": "05-LOGS\\application\\dashboard\\05-LOGS\\application\\dashboard.log",
+          "size": 2862,
+          "modified": "2025-09-09T16:08:58.577224"
+        },
+        {
+          "name": "general_2025-09-09.log",
+          "path": "05-LOGS\\general\\general_2025-09-09.log",
+          "size": 44526,
+          "modified": "2025-09-09T16:08:51.751004"
+        },
+        {
+          "name": "trading_2025-09-09.log",
+          "path": "05-LOGS\\trading\\trading_2025-09-09.log",
+          "size": 878,
+          "modified": "2025-09-09T15:59:09.006549"
+        },
+        {
+          "name": "dashboard_2025-09-09.log",
+          "path": "05-LOGS\\dashboard\\dashboard_2025-09-09.log",
+          "size": 811,
+          "modified": "2025-09-09T15:59:09.001728"
+        }
+      ]
+    },
+    "01-CORE/data/logs": {
+      "path": "C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\01-CORE\\data\\logs",
+      "purpose": "Sistema legacy - recibiendo logs ICT_Engine",
+      "subdirectories": [
+        "daily",
+        "dashboard",
+        "debug",
+        "errors",
+        "ict",
+        "metrics",
+        "mt5",
+        "poi",
+        "structured",
+        "tct",
+        "terminal_capture",
+        "trading"
+      ],
+      "recent_files": [
+        {
+          "name": "summary_2025-09-09.log",
+          "path": "01-CORE\\data\\logs\\daily\\summary_2025-09-09.log",
+          "size": 562188,
+          "modified": "2025-09-09T15:47:16.191234"
+        },
+        {
+          "name": "summary_2025-09-06.log",
+          "path": "01-CORE\\data\\logs\\daily\\summary_2025-09-06.log",
+          "size": 45649,
+          "modified": "2025-09-06T19:43:54.465072"
+        }
+      ]
+    },
+    "04-DATA\\logs": {
+      "path": "C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\04-DATA\\logs",
+      "purpose": "Logs adicionales",
+      "recent_files": []
+    },
+    "09-DASHBOARD\\data\\logs": {
+      "path": "C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\09-DASHBOARD\\data\\logs",
+      "purpose": "Logs adicionales",
+      "recent_files": []
+    }
+  },
+  "config_analysis": {
+    "SmartTradingLogger": {
+      "default_name": "ICT_Engine",
+      "default_level": "INFO",
+      "supports_silent_mode": true,
+      "log_directory": "05-LOGS"
+    },
+    "FVGMemoryManager": {
+      "uses_smart_logger": true,
+      "log_component": "fvg_memory",
+      "generates_kill_zone_logs": true,
+      "generates_config_logs": true
+    }
+  },
+  "issues_found": [
+    {
+      "type": "DUPLICACIÓN",
+      "severity": "MEDIUM",
+      "description": "Múltiples sistemas de logging activos simultáneamente",
+      "impact": "Logs dispersos en múltiples ubicaciones",
+      "affected_systems": [
+        "SmartTradingLogger",
+        "LegacyLogging",
+        "FVGMemoryManager"
+      ]
+    },
+    {
+      "type": "LOGS_NO_CENTRALIZADOS",
+      "severity": "HIGH",
+      "description": "Logs críticos van al sistema legacy en lugar del centralizado",
+      "impact": "Los logs [ICT_Engine] [fvg_memory] no están en 05-LOGS/",
+      "solution": "Redirigir logs de FVGMemoryManager a SmartTradingLogger centralizado"
+    },
+    {
+      "type": "CATEGORÍAS_FALTANTES",
+      "severity": "MEDIUM",
+      "description": "Faltan categorías específicas en 05-LOGS: ['fvg_memory', 'market_data', 'ict_signals', 'system_status']",
+      "impact": "Logs no organizados por tipo de contenido"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "HIGH",
+      "title": "Redirigir FVGMemoryManager al sistema centralizado",
+      "description": "Modificar FVGMemoryManager para usar el SmartTradingLogger centralizado",
+      "action": "Actualizar configuración de logger en fvg_memory_manager.py",
+      "expected_outcome": "Todos los logs [fvg_memory] en 05-LOGS/"
+    },
+    {
+      "priority": "MEDIUM",
+      "title": "Crear estructura de carpetas por categorías",
+      "description": "Organizar logs en carpetas específicas por tipo de contenido",
+      "action": "Crear: fvg_memory/, market_data/, ict_signals/, system_status/",
+      "expected_outcome": "Logs organizados y fáciles de encontrar"
+    },
+    {
+      "priority": "LOW",
+      "title": "Migrar logs históricos importantes",
+      "description": "Mover logs valiosos desde 01-CORE/data/logs a 05-LOGS/",
+      "action": "Script de migración selectiva",
+      "expected_outcome": "Historial completo en sistema centralizado"
+    },
+    {
+      "priority": "MEDIUM",
+      "title": "Unificar configuración de logging",
+      "description": "Crear configuración centralizada para todos los módulos",
+      "action": "Archivo de configuración único para logging",
+      "expected_outcome": "Configuración consistente en todo el sistema"
+    }
+  ],
+  "log_sources": {
+    "[ICT_Engine] [INFO] [fvg_memory] ⚡ Kill Zone london activa": {
+      "source_file": "01-CORE/analysis/fvg_memory_manager.py",
+      "method": "_adapt_to_market_conditions",
+      "line_approx": 209,
+      "frequency": "Durante kill zones activas",
+      "importance": "HIGH - Información de trading crítica"
+    },
+    "[ICT_Engine] [INFO] [fvg_memory] ⚙️ Configuración final": {
+      "source_file": "01-CORE/analysis/fvg_memory_manager.py",
+      "method": "_adapt_to_market_conditions",
+      "line_approx": 229,
+      "frequency": "En cada inicialización",
+      "importance": "MEDIUM - Configuración del sistema"
+    },
+    "[ICT_Engine] [INFO] [unified_memory] 🧠 Inicializando": {
+      "source_file": "Múltiples archivos del sistema memory",
+      "method": "Varios métodos de inicialización",
+      "frequency": "En cada startup",
+      "importance": "MEDIUM - Estado del sistema"
+    }
+  }
+}

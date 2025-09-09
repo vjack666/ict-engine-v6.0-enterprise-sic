@@ -39,6 +39,15 @@ print(f"[TOOL] Core path configurado: {core_path}")
 print(f"[TOOL] Data path configurado: {data_path}")
 print(f"[TOOL] Logs path configurado: {logs_path}")
 
+# ===== CONFIGURACIÓN MODO SILENCIOSO =====
+print("[SYSTEM] Configurando modo silencioso para dashboard...")
+try:
+    from config.logging_mode_config import LoggingModeConfig
+    LoggingModeConfig.enable_quiet_mode()
+    print("✅ Modo silencioso activado - logs solo en archivos")
+except Exception as e:
+    print(f"⚠️ Error configurando modo silencioso: {e}")
+
 # ===== SISTEMA DE LOGGING CENTRALIZADO =====
 try:
     from smart_trading_logger import get_centralized_logger
@@ -257,6 +266,20 @@ class ICTEnterpriseSystem:
             main_logger.log_system_status("Iniciando Dashboard Enterprise...", "DASHBOARD")
         print("\n[ROCKET] INICIANDO DASHBOARD ENTERPRISE CON DATOS REALES...")
         print("=" * 60)
+        
+        # ===== CONFIGURAR MODO SILENCIOSO PARA DASHBOARD =====
+        try:
+            print("🔇 Configurando modo silencioso para dashboard...")
+            # Activar modo silencioso para todos los loggers centralizados
+            for component in ['SYSTEM', 'DASHBOARD', 'PATTERNS', 'TRADING', 'GENERAL']:
+                try:
+                    logger = get_centralized_logger(component)
+                    logger.set_silent_mode(True)
+                except:
+                    pass  # Silenciar errores de configuración de logger
+            print("✅ Modo silencioso activado - logs solo en archivos")
+        except Exception as e:
+            print(f"⚠️ Warning: No se pudo configurar modo silencioso: {e}")
         
         try:
             # Asegurar que los componentes están inicializados

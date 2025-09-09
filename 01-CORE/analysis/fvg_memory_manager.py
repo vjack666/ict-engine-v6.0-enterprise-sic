@@ -42,7 +42,9 @@ class FVGMemoryManager:
     def __init__(self, memory_path: Optional[str] = None):
         """Inicializa el gestor de memoria FVG."""
         
-        self.logger = SmartTradingLogger()
+        # === LOGGER CENTRALIZADO ===
+        # Usar logger centralizado en 05-LOGS/ con modo silencioso automático
+        self.logger = SmartTradingLogger(name="FVG_Memory", level="INFO")
         
         # === CONFIGURACIÓN DE DIRECTORIOS ===
         if memory_path:

@@ -50,7 +50,7 @@ class ICTHistoricalAnalyzerV6:
         
         # === CONFIGURACIÓN ENTERPRISE ===
         self.cache_config = self._load_cache_config(cache_config_path)
-        self.logger = SmartTradingLogger()
+        self.logger = SmartTradingLogger(name="HistoricalAnalyzer")
         
         self.logger.info("📈 Inicializando ICT Historical Analyzer v6.0 Enterprise", 
                          component="historical_memory")

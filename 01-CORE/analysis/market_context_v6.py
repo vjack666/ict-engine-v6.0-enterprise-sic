@@ -47,7 +47,7 @@ class MarketContextV6:
         
         # === CONFIGURACIÓN ENTERPRISE ===
         self.memory_config = self._load_memory_config(memory_config_path)
-        self.logger = SmartTradingLogger()
+        self.logger = SmartTradingLogger(name="MarketContext")
         
         self.logger.info("🧠 Inicializando Market Context v6.0 Enterprise", 
                          component="market_memory")
