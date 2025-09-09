@@ -10,9 +10,18 @@ Dependencias:
 import MetaTrader5 as mt5
 import time
 import threading
+import logging
 from datetime import datetime
 from typing import Optional, Dict, Any
-from utils.smart_trading_logger import SmartTradingLogger
+
+try:
+    from smart_trading_logger import SmartTradingLogger
+except ImportError:
+    import logging
+    class SmartTradingLogger:
+        @staticmethod
+        def get_logger(name: str):
+            return logging.getLogger(name)
 
 class MT5ConnectionManager:
     """
@@ -22,7 +31,12 @@ class MT5ConnectionManager:
     
     def __init__(self):
         """Inicializar el gestor de conexiones MT5"""
-        self.logger = SmartTradingLogger()
+        # Initialize logger correctly  
+        if hasattr(SmartTradingLogger, 'get_logger'):
+            self.logger = SmartTradingLogger.get_logger(__name__)
+        else:
+            self.logger = logging.getLogger(__name__)
+        
         self.is_connected = False
         self.connection_attempts = 0
         self.max_attempts = 3

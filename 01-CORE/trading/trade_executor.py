@@ -15,7 +15,16 @@ from enum import Enum
 # Import existing ICT Engine modules
 from data_management.mt5_connection_manager import MT5ConnectionManager, get_mt5_connection
 from risk_management.risk_manager import RiskManager
-from utils.smart_trading_logger import SmartTradingLogger
+
+try:
+    from smart_trading_logger import SmartTradingLogger
+except ImportError:
+    import logging
+    class SmartTradingLogger:
+        @staticmethod
+        def get_logger(name: str):
+            return logging.getLogger(name)
+
 from .trade_validator import TradeValidator, TradingLimits
 
 # Import MT5 for trading operations
@@ -71,7 +80,13 @@ class TradeExecutor:
         # Use existing ICT Engine modules
         self.mt5_manager = get_mt5_connection()
         self.risk_manager = RiskManager()
-        self.logger = SmartTradingLogger()
+        
+        # Initialize logger correctly
+        if hasattr(SmartTradingLogger, 'get_logger'):
+            self.logger = SmartTradingLogger.get_logger(__name__)
+        else:
+            self.logger = logging.getLogger(__name__)
+            
         self.validator = validator or TradeValidator()
         
         # Track execution statistics
