@@ -2052,28 +2052,92 @@ class AdvancedCandleDownloader:
             self._log_error(f"Error finalizando batch download: {e}")
 
     def stop_download(self) -> None:
-        """🛑 Detiene todas las descargas con cleanup v6.0"""
+        """🛑 Detiene todas las descargas con cleanup optimizado v6.0"""
         if not self.is_downloading:
             return
 
-        self._log_info("Deteniendo descargas v6.0...")
+        print("🛑 Deteniendo descargas con optimización...")
+        start_time = time.time()
+        
+        # Marcar parada inmediatamente
         self.stop_event.set()
-
-        if self.worker_thread and self.worker_thread.is_alive():
-            self.worker_thread.join(timeout=15.0)
-
-        # Cleanup avanzado
-        with self.lock:
-            self.active_downloads.clear()
-            self.download_queue.clear()
-
         self.is_downloading = False
 
-        # Guardar sesión de debug si está habilitado
-        if self._enable_debug:
-            debugger.save_session_log(f"candle_downloader_session_{int(time.time())}.json")
+        # === SHUTDOWN OPTIMIZADO ===
+        shutdown_tasks = []
+        
+        # 1. Detener worker thread con timeout
+        if self.worker_thread and self.worker_thread.is_alive():
+            print("   🔧 Deteniendo worker thread...")
+            def stop_worker():
+                try:
+                    self.worker_thread.join(timeout=8.0)  # type: ignore # Reducido de 15 a 8 segundos
+                    if self.worker_thread.is_alive():  # type: ignore
+                        print("   ⚠️ Worker thread timeout - forzando")
+                    else:
+                        print("   ✅ Worker thread detenido")
+                except Exception as e:
+                    print(f"   ❌ Error deteniendo worker: {e}")
+            
+            import threading
+            worker_stop_thread = threading.Thread(target=stop_worker, daemon=True)
+            worker_stop_thread.start()
+            shutdown_tasks.append(('Worker', worker_stop_thread))
 
-        self._log_info("Descargas detenidas y cleanup completado")
+        # 2. Cleanup paralelo de estructuras de datos
+        def cleanup_data():
+            try:
+                with self.lock:
+                    self.active_downloads.clear()
+                    self.download_queue.clear()
+                    # Clear any pending futures
+                    if hasattr(self, '_pending_futures'):
+                        for future in getattr(self, '_pending_futures', []):
+                            try:
+                                future.cancel()
+                            except:
+                                pass
+                        self._pending_futures.clear()  # type: ignore
+                print("   ✅ Estructuras de datos limpiadas")
+            except Exception as e:
+                print(f"   ❌ Error en cleanup: {e}")
+        
+        cleanup_thread = threading.Thread(target=cleanup_data, daemon=True)
+        cleanup_thread.start()
+        shutdown_tasks.append(('Cleanup', cleanup_thread))
+
+        # === ESPERAR COMPLETAR CON TIMEOUT ===
+        for task_name, thread in shutdown_tasks:
+            try:
+                thread.join(timeout=3.0)  # 3 segundos máximo por tarea
+                if thread.is_alive():
+                    print(f"   ⚠️ {task_name}: Timeout - continuando")
+            except Exception as e:
+                print(f"   ❌ {task_name}: Error - {e}")
+
+        # === CLEANUP FINAL RÁPIDO ===
+        # Guardar sesión de debug solo si es necesario
+        if self._enable_debug and hasattr(self, 'save_debug_session'):
+            try:
+                # Hacer esto en background para no bloquear
+                def save_debug():
+                    try:
+                        if hasattr(debugger, 'save_session_log'):
+                            debugger.save_session_log(f"candle_downloader_session_{int(time.time())}.json")
+                    except:
+                        pass
+                
+                debug_thread = threading.Thread(target=save_debug, daemon=True)
+                debug_thread.start()
+            except:
+                pass  # Silenciar errores de debug
+
+        stop_time = time.time() - start_time
+        print(f"✅ Descargas detenidas en {stop_time:.2f}s")
+        
+        # Advertir si tardó mucho
+        if stop_time > 10:
+            print(f"⚠️ Stop download tardó {stop_time:.2f}s - considerar optimización")
 
     def get_status(self) -> Dict[str, Any]:
         """📊 Obtiene estado detallado v6.0 con métricas SIC"""

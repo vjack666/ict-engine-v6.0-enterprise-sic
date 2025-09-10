@@ -435,10 +435,11 @@ class ICTDataManager:
         results = {}
         futures = {}
         
-        # Enviar tareas al executor
+        # Enviar tareas al executor si está disponible
         for task in tasks:
-            future = self.executor.submit(self._download_single_task, task, mode)
-            futures[future] = task['key']
+            if self.executor is not None:
+                future = self.executor.submit(self._download_single_task, task, mode)
+                futures[future] = task['key']
         
         # Procesar resultados conforme se completan
         completed_count = 0
@@ -1324,31 +1325,93 @@ class ICTDataManager:
         return recommendations
     
     def shutdown(self) -> None:
-        """🛑 Cerrar limpiamente el ICT Data Manager y todos sus threads"""
+        """🛑 Cerrar limpiamente el ICT Data Manager con optimización de velocidad"""
         
-        print("🛑 Iniciando shutdown del ICT Data Manager...")
+        print("🛑 Iniciando shutdown optimizado del ICT Data Manager...")
+        start_time = time.time()
         
-        # Detener enhancement background
+        # === SHUTDOWN PARALELO Y OPTIMIZADO ===
+        shutdown_tasks = []
+        
+        # 1. Detener enhancement background con timeout
         if self.enhancement_active:
             print("   📈 Deteniendo background enhancement...")
             self.enhancement_active = False
             
-            # Esperar a que el thread termine limpiamente
-            if self.enhancement_thread and self.enhancement_thread.is_alive():
-                self.enhancement_thread.join(timeout=10)
-            print("✅ Background enhancement detenido")
+            def stop_enhancement():
+                if self.enhancement_thread and self.enhancement_thread.is_alive():
+                    self.enhancement_thread.join(timeout=5)  # 5 segundos máximo
+                    if self.enhancement_thread.is_alive():
+                        print("   ⚠️ Enhancement thread timeout - forzando")
+                    else:
+                        print("   ✅ Background enhancement detenido")
+            
+            import threading
+            stop_thread = threading.Thread(target=stop_enhancement, daemon=True)
+            stop_thread.start()
+            shutdown_tasks.append(('Enhancement', stop_thread))
         
-        # Cerrar ThreadPoolExecutor
+        # 2. Cerrar ThreadPoolExecutor con timeout
         if hasattr(self, 'executor') and self.executor:
             print("   🔧 Cerrando ThreadPoolExecutor...")
-            self.executor.shutdown(wait=True)
-            print("✅ ThreadPoolExecutor cerrado")
+            def close_executor():
+                try:
+                    self.executor.shutdown(wait=False)  # type: ignore # No esperar - más rápido
+                    print("   ✅ ThreadPoolExecutor cerrado")
+                except Exception as e:
+                    print(f"   ⚠️ Error cerrando executor: {e}")
+            
+            executor_thread = threading.Thread(target=close_executor, daemon=True)
+            executor_thread.start()
+            shutdown_tasks.append(('Executor', executor_thread))
         
-        # Limpiar referencias
+        # 3. Shutdown de downloader si existe
+        if hasattr(self, 'downloader') and self.downloader:
+            print("   📥 Deteniendo downloader...")
+            def stop_downloader():
+                try:
+                    if hasattr(self.downloader, 'stop_download'):
+                        self.downloader.stop_download()  # type: ignore
+                    print("   ✅ Downloader detenido")
+                except Exception as e:
+                    print(f"   ⚠️ Error deteniendo downloader: {e}")
+            
+            downloader_thread = threading.Thread(target=stop_downloader, daemon=True)
+            downloader_thread.start()
+            shutdown_tasks.append(('Downloader', downloader_thread))
+        
+        # === ESPERAR COMPLETAR CON TIMEOUT GLOBAL ===
+        for task_name, thread in shutdown_tasks:
+            try:
+                thread.join(timeout=2.0)  # 2 segundos máximo por tarea
+                if thread.is_alive():
+                    print(f"   ⚠️ {task_name}: Timeout - continuando")
+            except Exception as e:
+                print(f"   ❌ {task_name}: Error - {e}")
+        
+        # === CLEANUP RÁPIDO ===
+        print("   🧹 Limpieza final...")
+        
+        # Limpiar referencias inmediatamente
         self.enhancement_thread = None
         self.unified_memory = None
+        self.executor = None
         
-        print("✅ ICT Data Manager cerrado limpiamente")
+        # Force garbage collection si es necesario
+        try:
+            import gc
+            collected = gc.collect()
+            if collected > 10:  # Solo reportar si se recogió algo significativo
+                print(f"   🗑️ GC: {collected} objetos")
+        except Exception:
+            pass  # Silenciar errores de GC
+        
+        shutdown_time = time.time() - start_time
+        print(f"✅ ICT Data Manager cerrado en {shutdown_time:.2f}s")
+        
+        # Si tarda más de 10 segundos, advertir
+        if shutdown_time > 10:
+            print(f"⚠️ Shutdown tardó {shutdown_time:.2f}s - considerar optimización")
     
     def force_critical_data_refresh(self) -> Dict[str, Any]:
         """🔄 Forzar actualización de datos críticos para trading inmediato"""

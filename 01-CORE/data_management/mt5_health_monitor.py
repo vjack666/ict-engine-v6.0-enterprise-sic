@@ -166,28 +166,68 @@ class MT5HealthMonitor:
                 return False
                 
     def stop_monitoring(self) -> None:
-        """Detener el monitoreo de salud"""
+        """🛑 Detener el monitoreo de salud con optimización de velocidad"""
         with self._lock:
             if not self.monitoring_active:
                 return
                 
+            print("🛑 Deteniendo MT5 Health Monitor...")
+            start_time = time.time()
+            
             self.monitoring_active = False
             
-            # Log shutdown en la caja negra
-            if self.black_box_logger:
-                shutdown_data = {
-                    'final_status': self.current_status.value,
-                    'total_checks_performed': len(self.metrics_history),
-                    'final_failed_checks': self.failed_checks_count,
-                    'final_reconnection_attempts': self.reconnection_attempts
-                }
-                self.black_box_logger.log_system_shutdown(shutdown_data)
+            # === SHUTDOWN OPTIMIZADO ===
+            shutdown_tasks = []
             
-            if self.monitoring_thread and self.monitoring_thread.is_alive():
-                # Esperar a que termine el thread
-                self.monitoring_thread.join(timeout=10)
+            # 1. Log shutdown en background (no bloquear)
+            if self.black_box_logger:
+                def log_shutdown():
+                    try:
+                        shutdown_data = {
+                            'final_status': self.current_status.value,
+                            'total_checks_performed': len(self.metrics_history),
+                            'final_failed_checks': self.failed_checks_count,
+                            'final_reconnection_attempts': self.reconnection_attempts
+                        }
+                        self.black_box_logger.log_system_shutdown(shutdown_data)  # type: ignore
+                        print("   ✅ Shutdown logged")
+                    except Exception as e:
+                        print(f"   ⚠️ Error logging shutdown: {e}")
                 
-            self.logger.info("🛑 MT5 Health Monitoring detenido")
+                log_thread = threading.Thread(target=log_shutdown, daemon=True)
+                log_thread.start()
+                shutdown_tasks.append(('Logger', log_thread))
+            
+            # 2. Detener monitoring thread con timeout reducido
+            if self.monitoring_thread and self.monitoring_thread.is_alive():
+                def stop_monitor_thread():
+                    try:
+                        self.monitoring_thread.join(timeout=5)  # type: ignore # Reducido de 10 a 5 segundos
+                        if self.monitoring_thread.is_alive():  # type: ignore
+                            print("   ⚠️ Monitor thread timeout - forzando")
+                        else:
+                            print("   ✅ Monitor thread detenido")
+                    except Exception as e:
+                        print(f"   ❌ Error deteniendo monitor thread: {e}")
+                
+                monitor_stop_thread = threading.Thread(target=stop_monitor_thread, daemon=True)
+                monitor_stop_thread.start()
+                shutdown_tasks.append(('Monitor', monitor_stop_thread))
+            
+            # === ESPERAR COMPLETAR CON TIMEOUT ===
+            for task_name, thread in shutdown_tasks:
+                try:
+                    thread.join(timeout=2.0)  # 2 segundos máximo por tarea
+                    if thread.is_alive():
+                        print(f"   ⚠️ {task_name}: Timeout - continuando")
+                except Exception as e:
+                    print(f"   ❌ {task_name}: Error - {e}")
+            
+            stop_time = time.time() - start_time
+            self.logger.info(f"🛑 MT5 Health Monitoring detenido en {stop_time:.2f}s")
+            
+            # Cleanup final
+            self.monitoring_thread = None
             
     def _monitoring_loop(self) -> None:
         """Loop principal de monitoreo"""

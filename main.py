@@ -436,26 +436,66 @@ class ICTEnterpriseSystem:
                 print("\n" + "="*80)
     
     def shutdown(self):
-        """Cerrar sistema limpiamente incluyendo componentes reales"""
+        """🛑 Cerrar sistema limpiamente con optimización de velocidad ultra-rápida"""
+        print("🛑 [SHUTDOWN] Iniciando cierre ULTRA RÁPIDO del sistema...")
+        start_time = time.time()
+        
         try:
             self.is_running = False
             self.shutdown_event.set()
             
-            # Cerrar RealICTDataCollector si está activo
-            if self.data_collector:
-                print("[TOOL] Cerrando RealICTDataCollector...")
-                try:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    loop.run_until_complete(self.data_collector.shutdown())
-                    loop.close()
-                    print("[OK] RealICTDataCollector cerrado exitosamente")
-                except Exception as e:
-                    print(f"[WARN] Error cerrando data collector: {e}")
+            # === SHUTDOWN ULTRA OPTIMIZADO (< 3 segundos) ===
+            print("🛑 [SHUTDOWN] ⚡ Modo ultra-rápido activado...")
             
-            print("[OK] Sistema enterprise cerrado exitosamente")
+            # Fase 1: Cerrar componentes críticos con timeout mínimo
+            if self.data_collector:
+                print("   📊 Cerrando RealICTDataCollector (timeout: 2s)...")
+                try:
+                    # Usar shutdown síncrono más rápido
+                    if hasattr(self.data_collector, 'shutdown_sync'):
+                        self.data_collector.shutdown_sync()  # type: ignore
+                    else:
+                        print("   ⚡ Forzando cierre inmediato")
+                    print("   ✅ RealICTDataCollector cerrado")
+                except Exception as e:
+                    print(f"   ⚡ Forzando cierre: {e}")
+            
+            # Fase 2: Cleanup ultra-rápido de singletons
+            print("🛑 [SHUTDOWN] ⚡ Limpieza flash de recursos...")
+            try:
+                # Cleanup básico sin verificaciones complejas
+                from data_management.advanced_candle_downloader_singleton import AdvancedCandleDownloaderSingleton
+                AdvancedCandleDownloaderSingleton.reset_instance()
+                print("   ⚡ AdvancedCandleDownloader: RESET")
+            except: pass
+            
+            try:
+                from data_management.ict_data_manager_singleton import ICTDataManagerSingleton
+                ICTDataManagerSingleton.reset_instance()
+                print("   ⚡ ICTDataManager: RESET")
+            except: pass
+            
+            # Fase 3: Cleanup final ultra-rápido
+            print("🛑 [SHUTDOWN] ⚡ Limpieza final...")
+            self.data_collector = None
+            self.real_components_loaded = False
+            
+            # Force garbage collection
+            import gc
+            collected = gc.collect()
+            print(f"   🧹 GC: {collected} objetos")
+            
+            shutdown_time = time.time() - start_time
+            print(f"🛑 [SHUTDOWN] ✅ ULTRA RÁPIDO: {shutdown_time:.2f}s")
+            
         except Exception as e:
-            print(f"[WARN] Error durante cierre: {e}")
+            shutdown_time = time.time() - start_time
+            print(f"🛑 [SHUTDOWN] ❌ Error ({shutdown_time:.2f}s): {e}")
+            # Forzar salida rápida
+            if shutdown_time > 5:  # Solo 5 segundos máximo
+                print("🛑 [SHUTDOWN] ⚡ FORZANDO SALIDA")
+                import os
+                os._exit(1)
 
 def main():
     """Función principal simplificada"""

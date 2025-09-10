@@ -366,9 +366,35 @@ class RealICTDataCollector:
                     
                     if hasattr(detector, 'patterns_detected'):
                         for pattern in detector.patterns_detected:
-                            ptype = pattern.get('type', 'unknown')
-                            if ptype in pattern_types:
-                                pattern_types[ptype] += 1
+                            # ICTPattern es dataclass, no dict - usar atributos directamente
+                            try:
+                                if hasattr(pattern, 'pattern_type'):
+                                    ptype = getattr(pattern, 'pattern_type', 'unknown')
+                                elif hasattr(pattern, 'type'):
+                                    ptype = getattr(pattern, 'type', 'unknown')
+                                elif isinstance(pattern, dict):
+                                    ptype = pattern.get('type', 'unknown')
+                                else:
+                                    ptype = str(pattern) if pattern else 'unknown'
+                                
+                                # Mapear tipos de patrón conocidos
+                                pattern_mapping = {
+                                    'order_block': 'order_blocks',
+                                    'fair_value_gap': 'fair_value_gaps',
+                                    'fvg': 'fair_value_gaps',
+                                    'liquidity_grab': 'liquidity_grabs',
+                                    'bos': 'break_of_structure',
+                                    'choch': 'break_of_structure'
+                                }
+                                
+                                mapped_type = pattern_mapping.get(ptype.lower(), None)
+                                if mapped_type and mapped_type in pattern_types:
+                                    pattern_types[mapped_type] += 1
+                                elif ptype.lower() in pattern_types:
+                                    pattern_types[ptype.lower()] += 1
+                            except Exception as pe:
+                                print(f"⚠️ Error procesando pattern individual: {pe}")
+                                continue
                     
                     return {
                         'total_patterns': total_patterns,
@@ -911,10 +937,114 @@ class RealICTDataCollector:
         return True
     
     async def shutdown(self):
-        """Método async de cierre"""
-        print("🔄 [RealDataCollector] Cerrando conexiones...")
-        await asyncio.sleep(0.1)  # Simular operación async
-        print("✅ [RealDataCollector] Cerrado correctamente")
+        """🛑 Método async de cierre optimizado"""
+        print("� [RealDataCollector] Iniciando cierre optimizado...")
+        start_time = time.time()
+        
+        try:
+            # === SHUTDOWN OPTIMIZADO PARALELO ===
+            shutdown_tasks = []
+            
+            # 1. Cerrar MT5DataManager si existe
+            mt5_manager = self.components.get('mt5_data_manager')
+            if mt5_manager:
+                async def close_mt5():
+                    try:
+                        if hasattr(mt5_manager, 'shutdown'):
+                            await asyncio.wait_for(
+                                asyncio.to_thread(mt5_manager.shutdown),
+                                timeout=3.0
+                            )
+                        print("   ✅ MT5DataManager cerrado")
+                    except asyncio.TimeoutError:
+                        print("   ⚠️ MT5DataManager timeout - forzando")
+                    except Exception as e:
+                        print(f"   ⚠️ Error cerrando MT5DataManager: {e}")
+                
+                shutdown_tasks.append(close_mt5())
+            
+            # 2. Cerrar otros componentes si existen
+            pattern_detector = self.components.get('detector')
+            if pattern_detector:
+                async def close_detector():
+                    try:
+                        # Limpiar referencias del detector
+                        self.components['detector'] = None
+                        print("   ✅ Pattern detector limpiado")
+                    except Exception as e:
+                        print(f"   ⚠️ Error limpiando detector: {e}")
+                
+                shutdown_tasks.append(close_detector())
+            
+            # 3. Ejecutar tareas de cierre en paralelo con timeout
+            if shutdown_tasks:
+                try:
+                    await asyncio.wait_for(
+                        asyncio.gather(*shutdown_tasks, return_exceptions=True),
+                        timeout=5.0
+                    )
+                except asyncio.TimeoutError:
+                    print("   ⚠️ Algunas tareas de shutdown excedieron timeout")
+            
+            # === CLEANUP FINAL ===
+            # Limpiar callbacks y referencias
+            if hasattr(self, 'callbacks') and self.callbacks:
+                self.callbacks.clear()
+            
+            # Limpiar componentes
+            if hasattr(self, 'components') and self.components:
+                for comp_name in ['mt5_data_manager', 'detector', 'market_analyzer', 'downloader']:
+                    if comp_name in self.components:
+                        self.components[comp_name] = None
+            
+            shutdown_time = time.time() - start_time
+            print(f"✅ [RealDataCollector] Cerrado exitosamente en {shutdown_time:.2f}s")
+            
+        except Exception as e:
+            shutdown_time = time.time() - start_time
+            print(f"❌ [RealDataCollector] Error durante cierre ({shutdown_time:.2f}s): {e}")
+    
+    def shutdown_sync(self, timeout: float = 5.0):
+        """🛑 Método de cierre síncrono optimizado para compatibilidad"""
+        print("🛑 [RealDataCollector] Cierre síncrono optimizado...")
+        start_time = time.time()
+        
+        try:
+            # Cleanup síncrono rápido
+            mt5_manager = self.components.get('mt5_data_manager')
+            if mt5_manager and hasattr(mt5_manager, 'shutdown'):
+                # Ejecutar en thread para evitar bloqueo
+                import threading
+                def close_mt5():
+                    try:
+                        mt5_manager.shutdown()
+                    except Exception as e:
+                        print(f"   ⚠️ Error en MT5 shutdown: {e}")
+                
+                mt5_thread = threading.Thread(target=close_mt5, daemon=True)
+                mt5_thread.start()
+                mt5_thread.join(timeout=3.0)
+                
+                if mt5_thread.is_alive():
+                    print("   ⚠️ MT5 shutdown timeout")
+                else:
+                    print("   ✅ MT5DataManager cerrado")
+            
+            # Cleanup rápido de referencias
+            if hasattr(self, 'components') and self.components:
+                for comp_name in ['mt5_data_manager', 'detector', 'market_analyzer', 'downloader']:
+                    if comp_name in self.components:
+                        self.components[comp_name] = None
+            
+            if hasattr(self, 'callbacks') and self.callbacks:
+                self.callbacks.clear()
+            
+            shutdown_time = time.time() - start_time
+            print(f"✅ [RealDataCollector] Cierre síncrono completado en {shutdown_time:.2f}s")
+            
+        except Exception as e:
+            shutdown_time = time.time() - start_time
+            print(f"❌ [RealDataCollector] Error en cierre síncrono ({shutdown_time:.2f}s): {e}")
     
     def register_callback(self, callback):
         """Registrar callback para actualizaciones de datos"""
