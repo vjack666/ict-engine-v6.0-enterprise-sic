@@ -1,9 +1,29 @@
 #!/usr/bin/env python3
 """
-ICT ENGINE v6.0 ENTERPRISE - DASHBOARD REAL
-==============================================
-Sistema de trading con dashboard unificado y análisis en tiempo real
-Con datos reales MT5 únicamente - Sin mock data
+🚀 ICT ENGINE v6.0 ENTERPRISE - SISTEMA PRINCIPAL ÚNICO
+======================================================
+
+PUNTO DE ENTRADA ÚNICO del sistema ICT Engine v6.0 Enterprise
+- Dashboard unificado con análisis en tiempo real
+- Datos reales MT5 únicamente
+- Sistema de trading completo con patrones ICT
+- Gestión automática de memoria y recursos
+- Cierre optimizado con restauración de directorio
+
+USO:
+    python main.py
+
+CARACTERÍSTICAS:
+    ✅ Sistema único consolidado
+    ✅ Dashboard integrado (Textual + Terminal)
+    ✅ Análisis ICT en tiempo real
+    ✅ Gestión automática de recursos
+    ✅ Cierre limpio y optimizado
+    ✅ Restauración automática de directorio
+
+AUTOR: ICT Engine Team
+VERSIÓN: v6.0 Enterprise
+FECHA: 2025-09-10
 """
 
 import sys
@@ -497,8 +517,39 @@ class ICTEnterpriseSystem:
                 import os
                 os._exit(1)
 
+def emergency_signal_handler(signum, frame):
+    """Handler de emergencia para shutdown ultra-rápido"""
+    import os
+    print(f"\n⚡ [EMERGENCY] Señal {signum} - SHUTDOWN INMEDIATO")
+    
+    # Intentar restaurar directorio original si existe
+    try:
+        if 'original_dir' in globals() and globals()['original_dir'] is not None:
+            os.chdir(globals()['original_dir'])
+            print(f"⚡ [EMERGENCY] 📂 Directorio restaurado")
+    except:
+        pass  # Ignorar errores en emergency shutdown
+    
+    # Limpiar stdout/stderr
+    try:
+        sys.stdout.flush()
+        sys.stderr.flush()
+    except:
+        pass
+    
+    print("⚡ [EMERGENCY] 👋 Salida de emergencia")
+    os._exit(0)
+
 def main():
     """Función principal simplificada"""
+    # Guardar directorio original para restaurar al final
+    global original_dir
+    original_dir = os.getcwd()
+    
+    # Configurar handler de emergencia
+    signal.signal(signal.SIGINT, emergency_signal_handler)
+    signal.signal(signal.SIGTERM, emergency_signal_handler)
+    
     try:
         print("🚀 [MAIN] 🎯 INICIANDO ICT ENGINE v6.0 ENTERPRISE")
         print("🚀 [MAIN] " + "="*50)
@@ -553,11 +604,23 @@ def main():
         print(f"🚀 [MAIN] ❌ Error fatal: {e}")
         sys.exit(1)
     finally:
+        # Restaurar directorio original
+        try:
+            os.chdir(original_dir)
+            print(f"🚀 [MAIN] 📂 Directorio restaurado: {original_dir}")
+        except Exception as e:
+            print(f"🚀 [MAIN] ⚠️ No se pudo restaurar directorio: {e}")
+        
         # Cerrar sesión de logging
         if main_logger:
             main_logger.log_session_end()
             main_logger.info("📝 Sesión de logging cerrada correctamente", "SYSTEM")
         print("🚀 [MAIN] 📝 Sesión de logging cerrada")
+        print("🚀 [MAIN] 👋 ¡Hasta pronto!")
+        
+        # Asegurar que el terminal regrese al prompt
+        sys.stdout.flush()
+        sys.stderr.flush()
 
 if __name__ == "__main__":
     main()
