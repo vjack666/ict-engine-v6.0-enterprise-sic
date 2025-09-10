@@ -10,11 +10,64 @@ Dependencias:
 import time
 import threading
 import logging
+import sys
+import os
 from datetime import datetime
 from typing import Optional, Dict, Any, List
+from pathlib import Path
 
-# Usar el archivo dedicado a MT5 para conexión básica
-from .mt5_data_manager import get_mt5_manager, _lazy_import_mt5
+# Fix imports with absolute path resolution
+def _resolve_imports():
+    """Resolver imports con path absoluto para evitar errores relativos"""
+    current_dir = Path(__file__).parent
+    core_dir = current_dir.parent
+    project_root = core_dir.parent
+    
+    # Agregar paths al sys.path si no están
+    paths_to_add = [str(project_root), str(core_dir), str(current_dir)]
+    for path in paths_to_add:
+        if path not in sys.path:
+            sys.path.insert(0, path)
+
+# Resolver imports antes de cualquier import relativo
+_resolve_imports()
+
+# Ahora usar imports absolutos
+try:
+    from mt5_data_manager import get_mt5_manager, _lazy_import_mt5
+    MT5_MANAGER_AVAILABLE = True
+except ImportError:
+    # Fallback para imports relativos
+    try:
+        from .mt5_data_manager import get_mt5_manager, _lazy_import_mt5
+        MT5_MANAGER_AVAILABLE = True
+    except ImportError:
+        # Fallback absoluto con path manual
+        MT5_MANAGER_AVAILABLE = False
+        try:
+            import importlib.util
+            current_dir = Path(__file__).parent
+            mt5_manager_path = current_dir / "mt5_data_manager.py"
+            
+            if mt5_manager_path.exists():
+                spec = importlib.util.spec_from_file_location("mt5_data_manager", mt5_manager_path)
+                if spec and spec.loader:
+                    mt5_data_manager_module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(mt5_data_manager_module)
+                    get_mt5_manager = mt5_data_manager_module.get_mt5_manager
+                    _lazy_import_mt5 = mt5_data_manager_module._lazy_import_mt5
+                    MT5_MANAGER_AVAILABLE = True
+                else:
+                    raise ImportError("Could not create module spec")
+            else:
+                raise ImportError("mt5_data_manager.py not found")
+        except Exception:
+            # Último fallback - definir funciones dummy
+            def get_mt5_manager():
+                return None
+            def _lazy_import_mt5():
+                return False
+            MT5_MANAGER_AVAILABLE = False
 
 # Verificar disponibilidad de MT5 a través del manager dedicado
 MT5_AVAILABLE = _lazy_import_mt5()
@@ -157,13 +210,24 @@ class MT5ConnectionManager:
         self.account_info = None
         self._lock = threading.Lock()
         
-        # Usar el manager dedicado para conexiones básicas
-        self.mt5_data_manager = get_mt5_manager()
+        # Usar el manager dedicado para conexiones básicas (con validación de None)
+        if MT5_MANAGER_AVAILABLE:
+            self.mt5_data_manager = get_mt5_manager()
+        else:
+            self.mt5_data_manager = None
+            self.logger.warning("⚠️ MT5DataManager no disponible - funcionalidad limitada")
         
     def _ensure_mt5_available(self) -> bool:
         """Verificar que MT5 esté disponible para trading"""
         if not MT5_AVAILABLE or not mt5:
             self.logger.error("❌ MT5 no está disponible para operaciones de trading")
+            return False
+        return True
+        
+    def _ensure_mt5_manager_available(self) -> bool:
+        """Verificar que MT5DataManager esté disponible"""
+        if not self.mt5_data_manager:
+            self.logger.error("❌ MT5DataManager no está disponible")
             return False
         return True
         
@@ -183,6 +247,14 @@ class MT5ConnectionManager:
         """
         with self._lock:
             try:
+                # Verificar que el manager esté disponible
+                if not self._ensure_mt5_manager_available():
+                    self.logger.error("❌ MT5DataManager no disponible para conexión")
+                    return False
+                
+                # Type assertion para TypeChecker - ya validamos que no es None
+                assert self.mt5_data_manager is not None
+                
                 # Usar el manager dedicado para la conexión
                 if self.mt5_data_manager.connect():
                     self.is_connected = True
@@ -241,7 +313,10 @@ class MT5ConnectionManager:
         """Cerrar conexión MT5 usando el manager dedicado"""
         with self._lock:
             try:
-                self.mt5_data_manager.disconnect()
+                if self._ensure_mt5_manager_available():
+                    assert self.mt5_data_manager is not None
+                    self.mt5_data_manager.disconnect()
+                    
                 self.is_connected = False
                 self.account_info = None
                 self.logger.info("🔌 Desconectado de MT5")
@@ -272,8 +347,13 @@ class MT5ConnectionManager:
             
         # Verificar si la conexión sigue activa usando el manager
         try:
-            if self.mt5_data_manager.is_connected():
-                return True
+            if self._ensure_mt5_manager_available():
+                assert self.mt5_data_manager is not None
+                if self.mt5_data_manager.is_connected():
+                    return True
+                else:
+                    self.is_connected = False
+                    return self.reconnect()
             else:
                 self.is_connected = False
                 return self.reconnect()
@@ -293,6 +373,10 @@ class MT5ConnectionManager:
             return None
             
         try:
+            if not self._ensure_mt5_manager_available():
+                return None
+                
+            assert self.mt5_data_manager is not None
             connection_info = self.mt5_data_manager.connection_info
             if connection_info and connection_info.connected:
                 return {

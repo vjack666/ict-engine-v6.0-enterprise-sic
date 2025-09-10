@@ -138,6 +138,21 @@ class ICTDashboardApp:
             await self.data_collector.initialize()
             print("✅ Data Collector inicializado")
             
+            # Inicializar MT5 Health Integration
+            print("🔍 Inicializando MT5 Health Monitoring...")
+            try:
+                from bridge.mt5_health_integration import initialize_mt5_health_integration
+                mt5_health_success = initialize_mt5_health_integration()
+                if mt5_health_success:
+                    print("✅ MT5 Health Monitoring inicializado")
+                    self.logger.info("✅ MT5 Health Monitoring activo")
+                else:
+                    print("⚠️ MT5 Health Monitoring no disponible")
+                    self.logger.warning("⚠️ MT5 Health Monitoring no disponible")
+            except Exception as e:
+                print(f"⚠️ Error inicializando MT5 Health: {e}")
+                self.logger.warning(f"⚠️ Error inicializando MT5 Health: {e}")
+            
             # Inicializar interfaz
             print("🎨 Inicializando Interfaz de Usuario...")
             self.dashboard_interface = MainDashboardInterface(self.config)
@@ -312,6 +327,16 @@ class ICTDashboardApp:
         self.is_running = False
         
         try:
+            # Cerrar MT5 Health Integration
+            try:
+                from bridge.mt5_health_integration import shutdown_mt5_health_integration
+                shutdown_mt5_health_integration()
+                print("✅ MT5 Health Integration cerrado")
+                self.logger.info("✅ MT5 Health Integration cerrado")
+            except Exception as e:
+                print(f"⚠️ Error cerrando MT5 Health: {e}")
+                self.logger.warning(f"⚠️ Error cerrando MT5 Health: {e}")
+            
             if self.data_collector:
                 await self.data_collector.shutdown()
                 print("✅ Data Collector cerrado")

@@ -211,6 +211,10 @@ class TextualDashboardApp(App[None]):
 • [bold]Símbolos Conectados:[/bold] {connected_symbols}/{total_symbols}
 • [bold]Bridge Status:[/bold] {'[green]Conectado[/green]' if self.real_bridge else '[red]Desconectado[/red]'}
 
+[bold cyan]🔍 MT5 HEALTH MONITORING[/bold cyan]
+[cyan]{'─'*50}[/cyan]
+{self._get_mt5_health_status()}
+
 [bold blue]💹 DATOS DE MERCADO REALES[/bold blue]
 [cyan]{'─'*50}[/cyan]"""
             
@@ -284,6 +288,52 @@ class TextualDashboardApp(App[None]):
             
         except Exception as e:
             return f"[red]❌ Error en sistema real: {e}[/red]"
+    
+    def _get_mt5_health_status(self) -> str:
+        """Obtener estado de MT5 Health Monitoring"""
+        try:
+            # Importar la integración
+            sys.path.insert(0, str(Path(__file__).parent.parent / "bridge"))
+            from mt5_health_integration import get_mt5_status_indicator, get_mt5_health_for_dashboard
+            
+            # Obtener indicador de status
+            status_indicator = get_mt5_status_indicator()
+            
+            # Obtener datos detallados
+            health_data = get_mt5_health_for_dashboard()
+            mt5_info = health_data.get('mt5_health', {})
+            status_info = mt5_info.get('status', {})
+            metrics = mt5_info.get('key_metrics', {})
+            
+            # Formatear para dashboard
+            connection_status = status_info.get('connection', 'unknown')
+            uptime = status_info.get('uptime_percentage', 0)
+            response_time = status_info.get('response_time_ms', 0)
+            balance = metrics.get('balance', 0)
+            server = metrics.get('server', 'N/A')
+            alerts = metrics.get('alerts', 0)
+            
+            # Determinar color basado en status
+            if connection_status == 'HEALTHY':
+                status_color = '[green]'
+            elif connection_status == 'DEGRADED':
+                status_color = '[yellow]'
+            elif connection_status == 'CRITICAL':
+                status_color = '[red]'
+            else:
+                status_color = '[dim]'
+                
+            health_status = f"""• [bold]Conexión MT5:[/bold] {status_color}{connection_status}[/{status_color[1:]}
+• [bold]Uptime:[/bold] [bold cyan]{uptime:.1f}%[/bold cyan]
+• [bold]Latencia:[/bold] [bold yellow]{response_time:.1f}ms[/bold yellow]
+• [bold]Balance:[/bold] [bold green]${balance:.2f}[/bold green]
+• [bold]Servidor:[/bold] [bold cyan]{server}[/bold cyan]
+• [bold]Alertas:[/bold] {'[red]' if alerts > 0 else '[green]'}{alerts}[/{'red]' if alerts > 0 else 'green]'}"""
+            
+            return health_status
+            
+        except Exception as e:
+            return f"• [bold]MT5 Status:[/bold] [red]Error: {str(e)[:30]}...[/red]"
     
     def render_analysis_data(self) -> str:
         """📊 Análisis de datos del sistema"""

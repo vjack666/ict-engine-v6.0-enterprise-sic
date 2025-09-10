@@ -1,0 +1,103 @@
+{
+  "session_info": {
+    "symbol": "EURUSD",
+    "timeframe": "H1",
+    "timestamp": "2025-09-10T13:35:22.282599",
+    "detection_time_ms": 26.274919509887695,
+    "health_score": 1.0,
+    "signals_detected": 3
+  },
+  "market_structure": {
+    "current_structure": "bullish",
+    "structure_highs_count": 2,
+    "structure_lows_count": 3
+  },
+  "detection_stats": {
+    "total_signals": 1,
+    "bos_detected": 0,
+    "choch_detected": 3,
+    "liquidity_sweeps": 25,
+    "manipulations_detected": 0,
+    "health_filtered": 0,
+    "order_block_confluences": 28,
+    "avg_detection_time_ms": 26.274919509887695,
+    "accuracy_score": 94.39999999999999
+  },
+  "signals": [
+    {
+      "signal_type": "liquidity_sweep",
+      "direction": "bearish",
+      "confidence": 92.0,
+      "strength": 90.0,
+      "price_level": 1.09936575721752,
+      "entry_price": 1.09886575721752,
+      "stop_loss": 1.10086575721752,
+      "take_profit": 1.09486575721752,
+      "risk_reward": 2.0,
+      "quality_score": 85.80000000000001,
+      "health_score": 1.0,
+      "liquidity_context": {
+        "type": "buy_side_liquidity",
+        "level": 1.09936575721752,
+        "sweep_confirmed": true
+      },
+      "market_structure": "bullish",
+      "institutional_bias": "bearish",
+      "confluences": {
+        "order_block": true,
+        "volume": false,
+        "time": true
+      }
+    },
+    {
+      "signal_type": "liquidity_sweep",
+      "direction": "bearish",
+      "confidence": 92.0,
+      "strength": 90.0,
+      "price_level": 1.0991750093163637,
+      "entry_price": 1.0986750093163637,
+      "stop_loss": 1.1006750093163638,
+      "take_profit": 1.0946750093163637,
+      "risk_reward": 2.0,
+      "quality_score": 85.80000000000001,
+      "health_score": 1.0,
+      "liquidity_context": {
+        "type": "buy_side_liquidity",
+        "level": 1.0991750093163637,
+        "sweep_confirmed": true
+      },
+      "market_structure": "bullish",
+      "institutional_bias": "bearish",
+      "confluences": {
+        "order_block": true,
+        "volume": false,
+        "time": true
+      }
+    },
+    {
+      "signal_type": "liquidity_sweep",
+      "direction": "bearish",
+      "confidence": 92.0,
+      "strength": 90.0,
+      "price_level": 1.098782614902475,
+      "entry_price": 1.0982826149024751,
+      "stop_loss": 1.1002826149024751,
+      "take_profit": 1.0942826149024751,
+      "risk_reward": 2.0,
+      "quality_score": 85.80000000000001,
+      "health_score": 1.0,
+      "liquidity_context": {
+        "type": "buy_side_liquidity",
+        "level": 1.098782614902475,
+        "sweep_confirmed": true
+      },
+      "market_structure": "bullish",
+      "institutional_bias": "bearish",
+      "confluences": {
+        "order_block": true,
+        "volume": false,
+        "time": true
+      }
+    }
+  ]
+}
