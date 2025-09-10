@@ -1,0 +1,152 @@
+{
+  "metadata": {
+    "name": "ICT Limit Orders Configuration",
+    "version": "v6.1.0-enterprise",
+    "created_at": "2025-09-09T23:30:00.000Z",
+    "description": "Configuración para órdenes limit basadas en patrones ICT"
+  },
+  "trading_settings": {
+    "account_risk_percent": 2.0,
+    "max_orders_per_session": 10,
+    "min_confidence_threshold": 0.65,
+    "default_symbol": "EURUSD",
+    "magic_number": 123456,
+    "slippage_points": 10
+  },
+  "pattern_configurations": {
+    "BOS": {
+      "description": "Break of Structure",
+      "risk_reward_ratio": 2.0,
+      "stop_loss_pips": 20,
+      "confidence_threshold": 0.65,
+      "max_volume": 0.1,
+      "entry_offset_pips": 5,
+      "enabled": true,
+      "priority": "high"
+    },
+    "CHOCH": {
+      "description": "Change of Character",
+      "risk_reward_ratio": 2.5,
+      "stop_loss_pips": 25,
+      "confidence_threshold": 0.70,
+      "max_volume": 0.15,
+      "entry_offset_pips": 3,
+      "enabled": true,
+      "priority": "high"
+    },
+    "ORDER_BLOCK": {
+      "description": "Order Block",
+      "risk_reward_ratio": 3.0,
+      "stop_loss_pips": 30,
+      "confidence_threshold": 0.60,
+      "max_volume": 0.2,
+      "entry_offset_pips": 10,
+      "enabled": true,
+      "priority": "medium"
+    },
+    "FAIR_VALUE_GAP": {
+      "description": "Fair Value Gap",
+      "risk_reward_ratio": 2.2,
+      "stop_loss_pips": 18,
+      "confidence_threshold": 0.68,
+      "max_volume": 0.12,
+      "entry_offset_pips": 2,
+      "enabled": true,
+      "priority": "high"
+    },
+    "LIQUIDITY_POOL": {
+      "description": "Liquidity Pool",
+      "risk_reward_ratio": 2.8,
+      "stop_loss_pips": 35,
+      "confidence_threshold": 0.65,
+      "max_volume": 0.18,
+      "entry_offset_pips": 8,
+      "enabled": true,
+      "priority": "medium"
+    },
+    "POI": {
+      "description": "Point of Interest",
+      "risk_reward_ratio": 2.0,
+      "stop_loss_pips": 22,
+      "confidence_threshold": 0.55,
+      "max_volume": 0.08,
+      "entry_offset_pips": 12,
+      "enabled": true,
+      "priority": "low"
+    },
+    "DISPLACEMENT": {
+      "description": "Market Displacement",
+      "risk_reward_ratio": 3.5,
+      "stop_loss_pips": 40,
+      "confidence_threshold": 0.75,
+      "max_volume": 0.25,
+      "entry_offset_pips": 6,
+      "enabled": true,
+      "priority": "very_high"
+    }
+  },
+  "timeframe_weights": {
+    "W1": 1.5,
+    "D1": 1.3,
+    "H4": 1.2,
+    "H1": 1.0,
+    "M15": 0.8,
+    "M5": 0.6,
+    "M1": 0.4
+  },
+  "risk_management": {
+    "max_daily_loss_percent": 5.0,
+    "max_drawdown_percent": 10.0,
+    "position_sizing_method": "fixed_percentage",
+    "correlation_check": true,
+    "max_correlated_positions": 3
+  },
+  "order_management": {
+    "order_expiration_hours": 24,
+    "partial_fill_allowed": true,
+    "modify_orders_allowed": true,
+    "cancel_on_opposite_signal": true,
+    "trail_stop_loss": false
+  },
+  "market_conditions": {
+    "avoid_news_minutes_before": 15,
+    "avoid_news_minutes_after": 15,
+    "min_spread_pips": 0.5,
+    "max_spread_pips": 3.0,
+    "trading_sessions": {
+      "london": {
+        "start": "08:00",
+        "end": "17:00",
+        "enabled": true,
+        "weight_multiplier": 1.2
+      },
+      "new_york": {
+        "start": "13:00",
+        "end": "22:00",
+        "enabled": true,
+        "weight_multiplier": 1.3
+      },
+      "asian": {
+        "start": "00:00",
+        "end": "09:00",
+        "enabled": false,
+        "weight_multiplier": 0.8
+      }
+    }
+  },
+  "alerts": {
+    "send_email": false,
+    "send_push": true,
+    "log_level": "INFO",
+    "include_charts": false,
+    "alert_on_order_fill": true,
+    "alert_on_sl_tp_hit": true
+  },
+  "backtesting": {
+    "enabled": true,
+    "start_date": "2024-01-01",
+    "end_date": "2024-12-31",
+    "initial_balance": 10000,
+    "commission_per_lot": 7.0
+  }
+}
