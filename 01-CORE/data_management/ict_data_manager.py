@@ -150,6 +150,31 @@ class ICTDataManager:
         print(f"   Timeframes críticos: {self.config['timeframes_critical']}")
         print(f"   Modo: Híbrido (warm-up + enhancement)")
     
+    def initialize(self) -> bool:
+        """
+        Inicializa el ICT Data Manager y ejecuta warm-up básico
+        
+        Returns:
+            bool: True si la inicialización fue exitosa
+        """
+        try:
+            # Ejecutar warm-up con datos críticos
+            result = self.warm_up_cache()
+            
+            # Verificar que al menos algunos datos se descargaron
+            success = result.get('status') == 'completed' and result.get('total_downloaded', 0) > 0
+            
+            if success:
+                print("✅ ICT Data Manager inicializado correctamente")
+            else:
+                print("⚠️ ICT Data Manager inicializado con advertencias")
+                
+            return success
+            
+        except Exception as e:
+            print(f"❌ Error inicializando ICT Data Manager: {e}")
+            return False
+    
     def __del__(self):
         """🧹 Cleanup automático al destruir el objeto"""
         try:
@@ -1555,12 +1580,17 @@ if __name__ == "__main__":
     
     # Crear downloader profesional para test
     try:
-        from advanced_candle_downloader import AdvancedCandleDownloader
-        downloader = AdvancedCandleDownloader()
-        print("📡 AdvancedCandleDownloader inicializado (MT5 + Yahoo Finance)")
+        from advanced_candle_downloader_singleton import get_advanced_candle_downloader
+        downloader = get_advanced_candle_downloader()
+        print("📡 AdvancedCandleDownloader singleton inicializado (MT5 + Yahoo Finance)")
     except ImportError:
-        print("⚠️ AdvancedCandleDownloader no disponible - test sin descarga real")
-        downloader = None
+        try:
+            from advanced_candle_downloader import AdvancedCandleDownloader
+            downloader = AdvancedCandleDownloader()
+            print("📡 AdvancedCandleDownloader inicializado (MT5 + Yahoo Finance)")
+        except ImportError:
+            print("⚠️ AdvancedCandleDownloader no disponible - test sin descarga real")
+            downloader = None
     
     # Crear manager con downloader
     data_manager = create_ict_data_manager(downloader=downloader)

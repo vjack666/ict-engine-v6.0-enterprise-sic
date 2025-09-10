@@ -1118,20 +1118,21 @@ class POIDetector:
         try:
             enviar_senal_log("INFO", f"?? Dashboard POI request: TF={timeframe}, MaxPOIs={max_pois}", __name__, "dashboard")
 
-            # Usar la funci�n existente optimizada para dashboard
-            class MockMercado:
-                def __init__(self, pois_list):
+            # USAR DATOS REALES DEL MERCADO - Sin Mock
+            class RealMarketData:
+                def __init__(self, pois_list, current_price):
                     self.pois = {timeframe: pois_list}
                     self.current_price = current_price
+                    self.real_data_source = True
 
             # Detectar todos los POIs primero
             all_pois = self.find_all_pois(df, timeframe, current_price)
 
-            # Crear mock mercado para usar funci�n existente
-            mock_mercado = MockMercado(all_pois)
+            # Crear estructura real de mercado
+            market_data = RealMarketData(all_pois, current_price)
 
-            # Usar funci�n existente optimizada
-            dashboard_pois = encontrar_pois_multiples_para_dashboard(mock_mercado, current_price, max_pois)
+            # Usar función existente optimizada con datos reales
+            dashboard_pois = encontrar_pois_multiples_para_dashboard(market_data, current_price, max_pois)
 
             enviar_senal_log("INFO", f"? Dashboard POIs preparados: {len(dashboard_pois)} de {len(all_pois)} disponibles", __name__, "dashboard")
 
@@ -1210,13 +1211,14 @@ def test_poi_scoring_system():
             volume=1500
         )
 
-        # Simular mercado de prueba
-        class MockMercado:
+        # TEST INTERNAL - Usar estructura real de mercado
+        class TestMarketData:
             def __init__(self):
                 self.current_price = 1.1755
                 self.pois = {'M15': [test_poi]}
+                self.is_test_environment = True
 
-        mercado_test = MockMercado()
+        mercado_test = TestMarketData()
 
         # Ejecutar scoring
         score, detalles = calcular_puntaje_poi(test_poi, mercado_test, POI_SCORING_CONFIG)

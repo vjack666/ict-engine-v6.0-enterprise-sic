@@ -58,6 +58,23 @@ def _lazy_import_pandas() -> bool:
     return pd is not None
 
 # ===============================
+# CONFIGURACIÓN DE CUENTA FTMO
+# ===============================
+
+# 🏦 CONFIGURACIÓN CUENTA FTMO DEMO
+FTMO_ACCOUNT_CONFIG = {
+    'login': 1511525932,
+    'password': '6U*ss5@D2RLa',
+    'server': 'FTMO-Demo',
+    'path': r"C:\Program Files\FTMO Global Markets MT5 Terminal\terminal64.exe",
+    'timeout': 60000,  # 60 segundos
+    'portable': False
+}
+
+# Configuración por defecto
+DEFAULT_MT5_CONFIG = FTMO_ACCOUNT_CONFIG.copy()
+
+# ===============================
 # TIPOS DE DATOS ESENCIALES
 # ===============================
 
@@ -115,9 +132,23 @@ class MT5DataManager:
         timestamp = datetime.now().strftime("%H:%M:%S")
         print(f"[{timestamp}] ⚠️ MT5 WARNING: {message}")
 
-    def connect(self) -> bool:
+    def initialize(self) -> bool:
         """
-        Conecta a MetaTrader 5 de forma robusta
+        Inicializa y conecta a MetaTrader 5
+        
+        Returns:
+            bool: True si la conexión fue exitosa
+        """
+        return self.connect()
+    
+    def connect(self, login: Optional[int] = None, password: Optional[str] = None, server: Optional[str] = None) -> bool:
+        """
+        Conecta a MetaTrader 5 de forma robusta usando configuración FTMO
+        
+        Args:
+            login: Login de cuenta (por defecto usa FTMO_ACCOUNT_CONFIG)
+            password: Contraseña (por defecto usa FTMO_ACCOUNT_CONFIG)
+            server: Servidor (por defecto usa FTMO_ACCOUNT_CONFIG)
         """
         if not _lazy_import_mt5() or mt5 is None:
             self._log_error("MT5 no está disponible")
@@ -125,17 +156,48 @@ class MT5DataManager:
             
         self._connection_attempts += 1
         
+        # Usar configuración FTMO por defecto
+        account_login = login or FTMO_ACCOUNT_CONFIG['login']
+        account_password = password or FTMO_ACCOUNT_CONFIG['password']
+        account_server = server or FTMO_ACCOUNT_CONFIG['server']
+        
         try:
-            # Intentar conexión
-            if not mt5.initialize():  # type: ignore
+            # Intentar conexión con credenciales específicas y ruta del terminal
+            terminal_path = FTMO_ACCOUNT_CONFIG.get('path')
+            
+            if terminal_path:
+                authorized = mt5.initialize(  # type: ignore
+                    path=terminal_path,
+                    login=account_login,
+                    password=account_password,
+                    server=account_server,
+                    timeout=FTMO_ACCOUNT_CONFIG.get('timeout', 60000),
+                    portable=FTMO_ACCOUNT_CONFIG.get('portable', False)
+                )
+            else:
+                authorized = mt5.initialize(  # type: ignore
+                    login=account_login,
+                    password=account_password,
+                    server=account_server,
+                    timeout=FTMO_ACCOUNT_CONFIG.get('timeout', 60000),
+                    portable=FTMO_ACCOUNT_CONFIG.get('portable', False)
+                )
+            
+            if not authorized:
                 error_code = mt5.last_error()  # type: ignore
-                self._log_error(f"Fallo al inicializar MT5. Error: {error_code}")
+                self._log_error(f"Fallo al inicializar MT5 con cuenta FTMO {account_login}. Error: {error_code}")
                 return False
                 
             # Verificar conexión
             account_info = mt5.account_info()  # type: ignore
             if account_info is None:
-                self._log_error("No se pudo obtener información de la cuenta")
+                self._log_error("No se pudo obtener información de la cuenta FTMO")
+                mt5.shutdown()  # type: ignore
+                return False
+                
+            # Verificar que es la cuenta correcta
+            if account_info.login != account_login:
+                self._log_error(f"Cuenta incorrecta: esperada {account_login}, obtenida {account_info.login}")
                 mt5.shutdown()  # type: ignore
                 return False
                 
@@ -159,16 +221,117 @@ class MT5DataManager:
             else:
                 self.connection_info.account_type = AccountType.REAL
                 
-            self._log_info(f"✅ Conectado exitosamente - Cuenta: {account_info.login} | Servidor: {account_info.server}")
+            self._log_info(f"✅ Conectado exitosamente a FTMO - Cuenta: {account_info.login} | Servidor: {account_info.server} | Balance: ${account_info.balance:.2f}")
             return True
             
         except Exception as e:
-            self._log_error("Error durante la conexión", e)
+            self._log_error("Error durante la conexión a FTMO", e)
             return False
 
     def connect_mt5(self) -> bool:
         """Alias público para connect()"""
         return self.connect()
+        
+    def connect_ftmo_only(self) -> bool:
+        """
+        Conecta ÚNICAMENTE a la cuenta FTMO configurada
+        Valida que sea exactamente la cuenta correcta
+        """
+        expected_login = FTMO_ACCOUNT_CONFIG['login']
+        expected_server = FTMO_ACCOUNT_CONFIG['server']
+        
+        self._log_info(f"🏦 Intentando conexión exclusiva a FTMO - Cuenta: {expected_login} | Servidor: {expected_server}")
+        
+        success = self.connect()
+        
+        if success:
+            # Validar que es exactamente la cuenta FTMO esperada
+            if (self.connection_info.account == expected_login and 
+                self.connection_info.server == expected_server):
+                self._log_info("✅ Conexión FTMO validada correctamente")
+                return True
+            else:
+                self._log_error(f"❌ Cuenta incorrecta: esperada {expected_login}@{expected_server}, " +
+                              f"obtenida {self.connection_info.account}@{self.connection_info.server}")
+                self.disconnect()
+                return False
+        else:
+            self._log_error("❌ Fallo en conexión FTMO")
+            return False
+            
+    def validate_ftmo_account(self) -> bool:
+        """
+        Valida que la cuenta actual sea la FTMO configurada
+        """
+        if not self.is_connected():
+            return False
+            
+        expected_login = FTMO_ACCOUNT_CONFIG['login']
+        expected_server = FTMO_ACCOUNT_CONFIG['server']
+        
+        is_valid = (self.connection_info.account == expected_login and 
+                   self.connection_info.server == expected_server)
+                   
+        if is_valid:
+            self._log_info(f"✅ Cuenta FTMO validada: {expected_login}@{expected_server}")
+        else:
+            self._log_warning(f"⚠️ Cuenta no es FTMO esperada: actual {self.connection_info.account}@{self.connection_info.server}")
+            
+        return is_valid
+        
+    def check_ftmo_terminal_installation(self) -> bool:
+        """
+        Verifica que el terminal FTMO esté instalado en la ruta configurada
+        """
+        terminal_path = FTMO_ACCOUNT_CONFIG.get('path')
+        if not terminal_path:
+            self._log_warning("⚠️ Ruta del terminal FTMO no configurada")
+            return False
+            
+        import os
+        if os.path.exists(terminal_path):
+            self._log_info(f"✅ Terminal FTMO encontrado: {terminal_path}")
+            return True
+        else:
+            self._log_error(f"❌ Terminal FTMO no encontrado: {terminal_path}")
+            return False
+            
+    def get_ftmo_config(self) -> Dict[str, Any]:
+        """
+        Retorna la configuración completa de FTMO (sin contraseña por seguridad)
+        """
+        config = FTMO_ACCOUNT_CONFIG.copy()
+        config['password'] = '***OCULTA***'  # No mostrar contraseña en logs
+        return config
+        
+    def start_ftmo_terminal(self) -> bool:
+        """
+        Inicia el terminal FTMO si no está ejecutándose
+        """
+        terminal_path = FTMO_ACCOUNT_CONFIG.get('path')
+        if not terminal_path:
+            self._log_error("❌ Ruta del terminal FTMO no configurada")
+            return False
+            
+        if not self.check_ftmo_terminal_installation():
+            return False
+            
+        try:
+            import subprocess
+            import time
+            
+            self._log_info("🚀 Iniciando terminal FTMO...")
+            subprocess.Popen([terminal_path], shell=True)
+            
+            # Esperar un poco para que inicie
+            time.sleep(3)
+            
+            self._log_info("✅ Terminal FTMO iniciado")
+            return True
+            
+        except Exception as e:
+            self._log_error(f"❌ Error iniciando terminal FTMO: {e}")
+            return False
 
     def disconnect(self):
         """Desconecta de MT5 de forma segura"""

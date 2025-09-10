@@ -383,12 +383,17 @@ class MarketStructureAnalyzer:
         self._log_debug(f"TODO #3: SIC Bridge Info: {bridge_info}")
 
     def _initialize_components(self):
-        """🔧 Inicializa componentes v6.0"""
+        """🔧 Inicializa componentes v6.0 con singletons optimizados"""
         try:
-            # Configurar downloader
+            # Configurar downloader usando singleton
             if COMPONENTS_AVAILABLE:
-                self._downloader = AdvancedCandleDownloader()
-                self._log_info("AdvancedCandleDownloader conectado")
+                try:
+                    from data_management.advanced_candle_downloader_singleton import get_advanced_candle_downloader
+                    self._downloader = get_advanced_candle_downloader()
+                    self._log_info("AdvancedCandleDownloader singleton conectado")
+                except ImportError:
+                    self._downloader = AdvancedCandleDownloader()
+                    self._log_info("AdvancedCandleDownloader conectado")
             else:
                 self._log_warning("AdvancedCandleDownloader no disponible")
             
@@ -855,18 +860,34 @@ class MarketStructureAnalyzer:
             return base_tfs
     
     def _get_or_create_data_manager(self):
-        """🏭 Obtener o crear instancia de ICTDataManager"""
+        """🏭 Obtener o crear instancia de ICTDataManager usando singletons optimizados"""
         try:
-            # Intentar importar ICTDataManager
-            from data_management.ict_data_manager import ICTDataManager
-            from data_management.advanced_candle_downloader import AdvancedCandleDownloader
-            
-            # Crear downloader si no existe
-            if not hasattr(self, '_data_manager'):
-                downloader = AdvancedCandleDownloader()
-                self._data_manager = ICTDataManager(downloader=downloader)
-            
-            return self._data_manager
+            # Intentar usar singleton optimizado primero
+            try:
+                from data_management.ict_data_manager_singleton import get_ict_data_manager
+                # Crear downloader singleton si no existe
+                if not hasattr(self, '_data_manager'):
+                    try:
+                        from data_management.advanced_candle_downloader_singleton import get_advanced_candle_downloader
+                        downloader = get_advanced_candle_downloader()
+                    except ImportError:
+                        from data_management.advanced_candle_downloader import AdvancedCandleDownloader
+                        downloader = AdvancedCandleDownloader()
+                    
+                    self._data_manager = get_ict_data_manager(downloader=downloader)
+                
+                return self._data_manager
+            except ImportError:
+                # Fallback a imports normales
+                from data_management.ict_data_manager import ICTDataManager
+                from data_management.advanced_candle_downloader import AdvancedCandleDownloader
+                
+                # Crear downloader si no existe
+                if not hasattr(self, '_data_manager'):
+                    downloader = AdvancedCandleDownloader()
+                    self._data_manager = ICTDataManager(downloader=downloader)
+                
+                return self._data_manager
             
         except ImportError as e:
             self._log_warning(f"ICTDataManager no disponible: {e}")

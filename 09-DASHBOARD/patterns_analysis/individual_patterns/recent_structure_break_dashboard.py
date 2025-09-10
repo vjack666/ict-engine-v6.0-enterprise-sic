@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 🎯 PATTERN TEMPLATE - CONEXIÓN DIRECTA CON SISTEMA REAL
 ======================================================
@@ -65,21 +65,21 @@ class RecentStructureBreakDashboard(BasePatternDashboard):
                 self.advanced_pattern_module = SilverBulletDetectorEnterprise()
                 print(f"✅ {self.pattern_name}: Módulo enterprise conectado")
             elif self.pattern_name == 'judas_swing':
-                from ict_engine.advanced_patterns.judas_swing_enterprise import JudasSwingEnterprise
-                self.advanced_pattern_module = JudasSwingEnterprise()
+                from ict_engine.advanced_patterns.judas_swing_enterprise import JudasSwingDetectorEnterprise
+                self.advanced_pattern_module = JudasSwingDetectorEnterprise()
                 print(f"✅ {self.pattern_name}: Módulo enterprise conectado")
             elif self.pattern_name == 'liquidity_grab':
-                from ict_engine.advanced_patterns.liquidity_grab_enterprise import LiquidityGrabEnterprise
-                self.advanced_pattern_module = LiquidityGrabEnterprise()
+                from ict_engine.advanced_patterns.liquidity_grab_enterprise import LiquidityGrabDetectorEnterprise
+                self.advanced_pattern_module = LiquidityGrabDetectorEnterprise()
                 print(f"✅ {self.pattern_name}: Módulo enterprise conectado")
         except ImportError as e:
             print(f"ℹ️ {self.pattern_name}: Módulo enterprise no disponible: {e}")
         
-        # 3. Conectar con Data Manager real
+        # 3. Conectar con Data Manager real (Singleton optimizado)
         try:
-            from data_management.ict_data_manager import ICTDataManager
-            self.real_data_manager = ICTDataManager()
-            print(f"✅ {self.pattern_name}: ICTDataManager real conectado")
+            from data_management.ict_data_manager_singleton import get_ict_data_manager
+            self.real_data_manager = get_ict_data_manager()
+            print(f"✅ {self.pattern_name}: ICTDataManager singleton conectado")
         except ImportError:
             try:
                 from data_management.mt5_data_manager import MT5DataManager
@@ -455,3 +455,4 @@ ID: {result.analysis_id}
 def create_dashboard(config: Optional[Dict[str, Any]] = None) -> RecentStructureBreakDashboard:
     """Crear instancia del dashboard de recent_structure_break"""
     return RecentStructureBreakDashboard(config)
+

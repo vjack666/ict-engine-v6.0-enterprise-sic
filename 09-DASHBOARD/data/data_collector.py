@@ -104,15 +104,20 @@ class RealICTDataCollector:
             print(f"🚀 [RealDataCollector] Esperando conexión con componentes reales...")
         
     def _initialize_ict_components(self):
-        """Inicializar componentes reales del sistema ICT (igual que run_complete_system.py)"""
+        """Inicializar componentes reales del sistema ICT con singletons optimizados"""
         print("🔧 [RealDataCollector] Inicializando componentes del sistema ICT...")
         
         try:
-            # 1. Advanced Candle Downloader
+            # 1. Advanced Candle Downloader usando singleton
             print("📊 Inicializando AdvancedCandleDownloader...")
-            from data_management.advanced_candle_downloader import AdvancedCandleDownloader
-            self.components['downloader'] = AdvancedCandleDownloader()
-            print("✅ AdvancedCandleDownloader inicializado")
+            try:
+                from data_management.advanced_candle_downloader_singleton import get_advanced_candle_downloader
+                self.components['downloader'] = get_advanced_candle_downloader()
+                print("✅ AdvancedCandleDownloader singleton inicializado")
+            except ImportError:
+                from data_management.advanced_candle_downloader import AdvancedCandleDownloader
+                self.components['downloader'] = AdvancedCandleDownloader()
+                print("✅ AdvancedCandleDownloader inicializado")
             
             # 2. Pattern Detector
             print("🎯 Inicializando ICTPatternDetector...")

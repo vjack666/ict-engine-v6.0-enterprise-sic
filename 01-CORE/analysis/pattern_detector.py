@@ -428,14 +428,19 @@ class PatternDetector:
         }
     
     def _initialize_components(self):
-        """Inicializar componentes del detector"""
+        """Inicializar componentes del detector usando singletons optimizados"""
         try:
-            # Inicializar downloader si está disponible
-            if get_advanced_candle_downloader:
+            # Inicializar downloader usando singleton optimizado
+            try:
+                from data_management.advanced_candle_downloader_singleton import get_advanced_candle_downloader
                 self._downloader = get_advanced_candle_downloader()
                 print("[INFO] Downloader conectado - datos reales disponibles")
-            else:
-                print("[WARNING] Downloader no disponible - modo simulación")
+            except ImportError:
+                if get_advanced_candle_downloader:
+                    self._downloader = get_advanced_candle_downloader()
+                    print("[INFO] Downloader conectado - datos reales disponibles")
+                else:
+                    print("[WARNING] Downloader no disponible - modo simulación")
             
             # Inicializar Smart Money Analyzer si está disponible
             if SmartMoneyAnalyzer:
@@ -455,16 +460,22 @@ class PatternDetector:
                 print("[INFO] Funcionando en modo single-timeframe")
                 self.config['multi_timeframe_enabled'] = False
 
-            # 🎯 NUEVO: Inicializar ICT Data Manager
+            # 🎯 NUEVO: Inicializar ICT Data Manager usando singleton optimizado
             try:
-                from data_management.ict_data_manager import ICTDataManager
-                self._data_manager = ICTDataManager(downloader=self._downloader)
+                from data_management.ict_data_manager_singleton import get_ict_data_manager
+                self._data_manager = get_ict_data_manager(downloader=self._downloader)
                 print("[INFO] 🎯 ICT Data Manager conectado - gestión inteligente de datos habilitada")
                 self.config['data_manager_enabled'] = True
-            except ImportError as e:
-                print(f"[WARNING] ICT Data Manager no disponible: {e}")
-                print("[INFO] Usando gestión de datos básica")
-                self.config['data_manager_enabled'] = False
+            except ImportError:
+                try:
+                    from data_management.ict_data_manager import ICTDataManager
+                    self._data_manager = ICTDataManager(downloader=self._downloader)
+                    print("[INFO] 🎯 ICT Data Manager conectado - gestión inteligente de datos habilitada")
+                    self.config['data_manager_enabled'] = True
+                except ImportError as e:
+                    print(f"[WARNING] ICT Data Manager no disponible: {e}")
+                    print("[INFO] Usando gestión de datos básica")
+                    self.config['data_manager_enabled'] = False
             
             self.is_initialized = True
             

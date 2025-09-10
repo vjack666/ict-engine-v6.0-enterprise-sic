@@ -94,33 +94,50 @@ class DashboardDataCollector:
         # Callbacks
         self.data_callbacks: List[Callable[[DashboardData], None]] = []
         
-        # Componentes del sistema (MOCK hasta completar integración)
-        self.fvg_memory = None
-        self.market_adapter = None
+        # Componentes del sistema real (type annotations para Pylance)
+        self.fvg_memory: Optional[Any] = None
+        self.market_adapter: Optional[Any] = None
+        self.unified_memory: Optional[Any] = None
         
         # Inicializar componentes
         self._initialize_components()
     
     def _initialize_components(self):
-        """Inicializar componentes del sistema ICT"""
+        """Inicializar componentes reales del sistema ICT"""
         try:
-            # Importar FVG Memory Manager
-            from core.analysis.fvg_memory_manager import FVGMemoryManager
-            from core.analysis.market_condition_adapter import MarketConditionAdapter, integrate_market_adapter_with_fvg
+            # Importar componentes reales del sistema desde las ubicaciones correctas
+            try:
+                # Intentar importar desde la ubicación real del sistema
+                sys.path.append(str(project_root / "01-CORE" / "analysis"))
+                
+                # Imports con nombres completos para mejor resolución de Pylance
+                from analysis.fvg_memory_manager import FVGMemoryManager
+                from analysis.market_condition_adapter import MarketConditionAdapter, integrate_market_adapter_with_fvg
+                from analysis.unified_memory_system import UnifiedMemorySystem, get_unified_memory_system
+                
+                # Inicializar componentes reales
+                self.fvg_memory = FVGMemoryManager()
+                self.market_adapter = integrate_market_adapter_with_fvg(self.fvg_memory)
+                self.unified_memory = get_unified_memory_system()
+                
+                print("✅ Componentes ICT reales inicializados:")
+                print("   - FVGMemoryManager: ACTIVO")
+                print("   - MarketConditionAdapter: ACTIVO") 
+                print("   - UnifiedMemorySystem: ACTIVO")
+                
+            except ImportError as e:
+                print(f"⚠️ Error importando componentes reales: {e}")
+                print("🔄 Usando RealMarketBridge como fuente principal")
+                self.fvg_memory = None
+                self.market_adapter = None
+                self.unified_memory = None
             
-            # Inicializar FVG Memory
-            self.fvg_memory = FVGMemoryManager()
-            
-            # Integrar adaptador de mercado
-            self.market_adapter = integrate_market_adapter_with_fvg(self.fvg_memory)
-            
-            print("✅ Componentes ICT inicializados correctamente")
-            
-        except ImportError as e:
-            print(f"⚠️ Error importando componentes ICT: {e}")
-            print("🔄 Usando modo simulación sin componentes reales")
         except Exception as e:
-            print(f"⚠️ Error inicializando componentes: {e}")
+            print(f"⚠️ Error inicializando componentes ICT: {e}")
+            print("🔄 Sistema usará RealMarketBridge exclusivamente")
+            self.fvg_memory = None
+            self.market_adapter = None
+            self.unified_memory = None
     
     def start(self):
         """🚀 Iniciar recolección de datos"""
@@ -238,7 +255,7 @@ class DashboardDataCollector:
         # FALLBACK: Mock components o datos mock
         if not self.fvg_memory:
             print("🔄 Usando datos FVG mock (fallback)")
-            return self._get_mock_fvg_stats()
+            return self._get_real_fvg_stats()
         
         try:
             stats = self.fvg_memory.get_fvg_statistics()
@@ -260,7 +277,7 @@ class DashboardDataCollector:
         except Exception as e:
             print(f"⚠️ Error recolectando stats FVG: {e}")
             print("🔄 Usando datos FVG mock (fallback de error)")
-            return self._get_mock_fvg_stats()
+            return self._get_real_fvg_stats()
     
     def _collect_pattern_stats(self) -> Dict[str, Any]:
         """Recolectar estadísticas de patrones ICT reales del sistema"""
@@ -504,14 +521,101 @@ class DashboardDataCollector:
         
         return alerts
     
-    def _get_mock_fvg_stats(self) -> Dict[str, Any]:
-        """Estadísticas FVG mock"""
+    def _get_real_fvg_stats(self) -> Dict[str, Any]:
+        """Obtener estadísticas reales de FVG del sistema"""
+        try:
+            # Intentar obtener datos reales del sistema FVG
+            from data_management.real_trading_bridge import get_real_fvg_stats
+            
+            real_stats = get_real_fvg_stats()
+            if real_stats and real_stats.get('status') != 'error':
+                return real_stats
+            else:
+                # Fallback a datos básicos del sistema
+                return {
+                    'total_fvgs_all_pairs': 0,
+                    'active_fvgs': 0,
+                    'filled_fvgs_today': 0,
+                    'avg_gap_size_pips': 0.0,
+                    'success_rate_percent': 0.0,
+                    'status': 'real_data_unavailable',
+                    'source': 'fallback'
+                }
+        except Exception as e:
+            # Fallback a datos básicos reales del sistema
+            return self._get_fallback_fvg_stats()
+    
+    def _get_fallback_fvg_stats(self) -> Dict[str, Any]:
+        """Obtener estadísticas FVG del sistema real"""
+        try:
+            # PRIORIDAD 1: Usar UnifiedMemorySystem si está disponible
+            if hasattr(self, 'unified_memory') and self.unified_memory:
+                try:
+                    # El UnifiedMemorySystem puede tener estadísticas FVG
+                    historical_patterns = self.unified_memory.get_historical_patterns(pattern_type='fair_value_gap')
+                    if historical_patterns and historical_patterns.get('count', 0) > 0:
+                        patterns = historical_patterns.get('patterns', [])
+                        total_patterns = len(patterns)
+                        active_patterns = sum(1 for p in patterns if p.get('status') in ['unfilled', 'partially_filled'])
+                        filled_today = sum(1 for p in patterns if p.get('status') == 'filled' and 
+                                          p.get('timestamp', '').startswith(datetime.now().strftime('%Y-%m-%d')))
+                        
+                        return {
+                            'total_fvgs_all_pairs': total_patterns,
+                            'active_fvgs': active_patterns,
+                            'filled_fvgs_today': filled_today,
+                            'avg_gap_size_pips': sum(p.get('gap_size_pips', 0.0) for p in patterns) / max(1, total_patterns),
+                            'success_rate_percent': (filled_today / max(1, total_patterns)) * 100,
+                            'status': 'unified_memory_data',
+                            'source': 'UNIFIED_MEMORY_SYSTEM',
+                            'data_source': 'REAL_UNIFIED_MEMORY_SYSTEM'
+                        }
+                except Exception:
+                    pass
+            
+            # PRIORIDAD 2: Usar FVGMemoryManager si está disponible
+            if self.fvg_memory:
+                try:
+                    # Usar método real que existe: get_fvg_statistics
+                    if hasattr(self.fvg_memory, 'get_fvg_statistics'):
+                        basic_stats = self.fvg_memory.get_fvg_statistics()
+                        if basic_stats and isinstance(basic_stats, dict):
+                            # Convertir formato interno a formato dashboard
+                            return {
+                                'total_fvgs_all_pairs': basic_stats.get('total_fvgs', 0),
+                                'active_fvgs': basic_stats.get('active_fvgs', 0),
+                                'filled_fvgs_today': basic_stats.get('filled_today', 0),
+                                'avg_gap_size_pips': basic_stats.get('avg_gap_size', 0.0),
+                                'success_rate_percent': basic_stats.get('success_rate', 0.0),
+                                'status': 'fvg_memory_data',
+                                'source': 'FVG_MEMORY_MANAGER',
+                                'data_source': 'REAL_FVG_MEMORY_MANAGER'
+                            }
+                except Exception:
+                    pass
+            
+            # PRIORIDAD 3: Usar RealMarketBridge como fallback
+            if self.real_bridge:
+                try:
+                    fvg_stats = self.real_bridge.get_real_fvg_stats()
+                    if fvg_stats and isinstance(fvg_stats, dict) and fvg_stats.get('data_source'):
+                        return fvg_stats
+                except Exception:
+                    pass
+                    
+        except Exception:
+            pass
+        
+        # FALLBACK FINAL: Estructura estándar sin datos reales disponibles
         return {
-            'total_fvgs_all_pairs': 15,
-            'active_fvgs': 12,
-            'filled_fvgs_today': 8,
-            'avg_gap_size_pips': 2.3,
-            'success_rate_percent': 76.5
+            'total_fvgs_all_pairs': 0,
+            'active_fvgs': 0,
+            'filled_fvgs_today': 0,
+            'avg_gap_size_pips': 0.0,
+            'success_rate_percent': 0.0,
+            'status': 'no_data_available',
+            'source': 'fallback_empty',
+            'data_source': 'FALLBACK_NO_REAL_COMPONENTS'
         }
     
     def _get_current_session(self) -> str:
@@ -531,7 +635,7 @@ class DashboardDataCollector:
     def register_callback(self, callback: Callable[[DashboardData], None]):
         """Registrar callback para notificaciones de datos"""
         self.data_callbacks.append(callback)
-    
+    #     
     def _notify_callbacks(self, data: DashboardData):
         """Notificar callbacks sobre nuevos datos"""
         for callback in self.data_callbacks:

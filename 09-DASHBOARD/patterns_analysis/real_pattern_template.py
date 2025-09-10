@@ -75,11 +75,11 @@ class RealPatternDashboard(BasePatternDashboard):
         except ImportError as e:
             print(f"ℹ️ {self.pattern_name}: Módulo enterprise no disponible: {e}")
         
-        # 3. Conectar con Data Manager real
+        # 3. Conectar con Data Manager real (Singleton optimizado)
         try:
-            from data_management.ict_data_manager import ICTDataManager
-            self.real_data_manager = ICTDataManager()
-            print(f"✅ {self.pattern_name}: ICTDataManager real conectado")
+            from data_management.ict_data_manager_singleton import get_ict_data_manager
+            self.real_data_manager = get_ict_data_manager()
+            print(f"✅ {self.pattern_name}: ICTDataManager singleton conectado")
         except ImportError:
             try:
                 from data_management.mt5_data_manager import MT5DataManager

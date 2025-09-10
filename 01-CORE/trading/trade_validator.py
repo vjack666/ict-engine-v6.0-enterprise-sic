@@ -11,27 +11,48 @@ from datetime import datetime, time
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 
-# Import existing ICT Engine modules
-try:
-    from ..data_management.mt5_connection_manager import MT5ConnectionManager, get_mt5_connection  # type: ignore
-    from ..risk_management.risk_manager import RiskManager, RiskMetrics, ICTRiskConfig  # type: ignore
-except ImportError:
-    # Fallbacks for module imports
-    class MT5ConnectionManager:
-        def is_connected(self): return True
-        def get_account_info(self): return {'balance': 1000.0, 'equity': 1000.0}
-    
-    def get_mt5_connection():
-        return MT5ConnectionManager()
-    
-    class RiskManager:
-        def calculate_position_size(self, *args, **kwargs): return 0.01
-    
-    class RiskMetrics:
-        def __init__(self, **kwargs): pass
-    
-    class ICTRiskConfig:
-        def __init__(self, **kwargs): pass
+# Import existing ICT Engine modules with proper type handling
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # Import real types for type checking
+    from data_management.mt5_connection_manager import MT5ConnectionManager as _MT5ConnectionManager
+    from data_management.mt5_connection_manager import get_mt5_connection as _get_mt5_connection
+    from risk_management.risk_manager import RiskManager as _RiskManager
+    from risk_management.risk_manager import RiskMetrics as _RiskMetrics
+    from risk_management.risk_manager import ICTRiskConfig as _ICTRiskConfig
+else:
+    # Runtime imports with fallbacks
+    try:
+        from data_management.mt5_connection_manager import MT5ConnectionManager as _MT5ConnectionManager
+        from data_management.mt5_connection_manager import get_mt5_connection as _get_mt5_connection
+        from risk_management.risk_manager import RiskManager as _RiskManager
+        from risk_management.risk_manager import RiskMetrics as _RiskMetrics
+        from risk_management.risk_manager import ICTRiskConfig as _ICTRiskConfig
+    except ImportError:
+        # Fallback implementations
+        class _MT5ConnectionManager:
+            def is_connected(self): return True
+            def get_account_info(self): return {'balance': 1000.0, 'equity': 1000.0}
+        
+        def _get_mt5_connection():
+            return _MT5ConnectionManager()
+        
+        class _RiskManager:
+            def calculate_position_size(self, *args, **kwargs): return 0.01
+        
+        class _RiskMetrics:
+            def __init__(self, **kwargs): pass
+        
+        class _ICTRiskConfig:
+            def __init__(self, **kwargs): pass
+
+# Create module-level aliases
+MT5ConnectionManager = _MT5ConnectionManager
+get_mt5_connection = _get_mt5_connection
+RiskManager = _RiskManager
+RiskMetrics = _RiskMetrics
+ICTRiskConfig = _ICTRiskConfig
 
 try:
     from ..smart_trading_logger import SmartTradingLogger  # type: ignore

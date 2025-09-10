@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 # Import existing ICT Engine modules
-from ..data_management.mt5_connection_manager import MT5ConnectionManager, get_mt5_connection
+from data_management.mt5_connection_manager import MT5ConnectionManager, get_mt5_connection
 from risk_management.risk_manager import RiskManager
 
 try:

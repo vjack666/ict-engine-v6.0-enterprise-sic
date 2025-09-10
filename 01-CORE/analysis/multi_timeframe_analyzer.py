@@ -953,10 +953,13 @@ class OptimizedICTAnalysisEnterprise:
     def _get_real_data(self, symbol: str, timeframe: str, periods: int = 480) -> DataFrameType:
         """📊 Obtener datos reales MT5 con solicitud automática si no existen"""
         try:
-            from data_management.advanced_candle_downloader import AdvancedCandleDownloader
-            
-            # Inicializar downloader para datos reales
-            downloader = AdvancedCandleDownloader()
+            # Usar singleton para evitar múltiples inicializaciones
+            try:
+                from data_management.advanced_candle_downloader_singleton import get_advanced_candle_downloader
+                downloader = get_advanced_candle_downloader()
+            except ImportError:
+                from data_management.advanced_candle_downloader import AdvancedCandleDownloader
+                downloader = AdvancedCandleDownloader()
             
             log_info(f"Solicitando datos reales MT5: {symbol} {timeframe} - {periods} velas")
             

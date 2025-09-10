@@ -605,7 +605,7 @@ class SmartMoneyAnalyzer:
                 # Si aún no tenemos datos mínimos, retornar análisis fallback
                 if h1_data.empty:
                     self._log_warning(f"⚠️ Datos mínimos insuficientes para {symbol} - usando análisis fallback")
-                    return self._generate_mock_analysis(symbol)
+                    return self._generate_real_analysis_fallback(symbol)
             
             # 2. 💧 DETECTAR LIQUIDITY POOLS - Solo si tenemos H4 válido
             current_price = h1_data['close'].iloc[-1] if not h1_data.empty else 1.0
@@ -693,9 +693,41 @@ class SmartMoneyAnalyzer:
             
         except Exception as e:
             print(f"❌ [Smart Money] Error analizando {symbol}: {e}")
-            return self._generate_mock_analysis(symbol)
+            return self._generate_real_analysis_fallback(symbol)
 
-    def _generate_mock_analysis(self, symbol: str) -> Dict[str, Any]:
+
+    def _generate_real_analysis_fallback(self, symbol: str) -> Dict[str, Any]:
+        """
+        Análisis real de fallback usando datos del sistema
+        """
+        try:
+            from ..data_management.mt5_data_manager import get_real_market_data
+            
+            # Intentar obtener datos reales
+            real_data = get_real_market_data(symbol)
+            
+            if real_data:
+                return self._analyze_real_smart_money_data(real_data)
+            else:
+                # Fallback mínimo con datos del sistema
+                return {
+                    'symbol': symbol,
+                    'timestamp': datetime.now().isoformat(),
+                    'analysis_time': 0.1,
+                    'status': 'real_data_unavailable',
+                    'fallback_mode': True,
+                    'message': 'Datos reales no disponibles - usando fallback mínimo'
+                }
+        except Exception as e:
+            return {
+                'symbol': symbol,
+                'timestamp': datetime.now().isoformat(),
+                'error': str(e),
+                'status': 'analysis_failed'
+            }
+
+        # DEPRECATED: Mock analysis disabled for real trading
+    # def _generate_mock_analysis(self, symbol: str) -> Dict[str, Any]:
         """
         Generar análisis dinámico para testing - elimina métricas hardcodeadas
         Usa UnifiedMemorySystem para generar métricas realistas

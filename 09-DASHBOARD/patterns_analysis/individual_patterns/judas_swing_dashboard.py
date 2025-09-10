@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 🎯 PATTERN TEMPLATE - CONEXIÓN DIRECTA CON SISTEMA REAL
 ======================================================
@@ -72,17 +72,17 @@ class JudasSwingDashboard(BasePatternDashboard):
                 self.advanced_pattern_module = JudasSwingDetectorEnterprise()
                 print(f"✅ {self.pattern_name}: Módulo enterprise conectado")
             elif self.pattern_name == 'liquidity_grab':
-                from ict_engine.advanced_patterns import LiquidityGrabEnterprise
-                self.advanced_pattern_module = LiquidityGrabEnterprise()
+                from ict_engine.advanced_patterns import LiquidityGrabDetectorEnterprise
+                self.advanced_pattern_module = LiquidityGrabDetectorEnterprise()
                 print(f"✅ {self.pattern_name}: Módulo enterprise conectado")
         except ImportError as e:
             print(f"ℹ️ {self.pattern_name}: Módulo enterprise no disponible: {e}")
         
         # 3. Conectar con Data Manager real
         try:
-            from data_management.ict_data_manager import ICTDataManager
-            self.real_data_manager = ICTDataManager()
-            print(f"✅ {self.pattern_name}: ICTDataManager real conectado")
+            from data_management.ict_data_manager_singleton import get_ict_data_manager
+            self.real_data_manager = get_ict_data_manager()
+            print(f"✅ {self.pattern_name}: ICTDataManager singleton conectado")
         except ImportError:
             try:
                 from data_management.mt5_data_manager import MT5DataManager
@@ -458,3 +458,4 @@ ID: {result.analysis_id}
 def create_dashboard(config: Optional[Dict[str, Any]] = None) -> JudasSwingDashboard:
     """Crear instancia del dashboard de judas_swing"""
     return JudasSwingDashboard(config)
+

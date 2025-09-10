@@ -157,20 +157,40 @@ except ImportError:
     psutil = None
 
 # Imports Enterprise system (usando try/except para compatibilidad)
+# Fallback classes - funcionalidad implementada directamente
+class SICv31EnterpriseFallback:
+    def __init__(self): 
+        self.available = False
+    
+    def get_config(self): 
+        return {}
+    
+    def log_event(self, *args, **kwargs): 
+        pass
+    
+    def smart_import(self, module_name): 
+        return None
+    
+    def get_lazy_loading_manager(self): 
+        return None
+    
+    def get_predictive_cache_manager(self): 
+        return None
+    
+    def get_system_stats(self):
+        return {'status': 'fallback_mode', 'available': False}
+
 # Sistema centralizado activo
 SIC_V3_1_AVAILABLE = False
+sic = SICv31EnterpriseFallback()  # Usar fallback que ya está funcionando
 
-# Fallback classes - funcionalidad implementada directamente
-class SICv31Enterprise:
-    def __init__(self): pass
-    def get_config(self): return {}
-    def log_event(self, *args, **kwargs): pass
-    def smart_import(self, module_name): return None
-    def get_lazy_loading_manager(self): return None
-    def get_predictive_cache_manager(self): return None
-    def get_system_stats(self): return {'sic_version': 'fallback', 'status': 'inactive'}
-    def get_monitor(self): return None
-    def get_debugger(self): return None
+# Configurar logging del fallback
+if hasattr(sic, 'log_event'):
+    print("✅ [AdvancedCandleDownloader] SIC Enterprise Fallback System cargado")
+else:
+    print("⚠️ [AdvancedCandleDownloader] Usando SIC fallback básico")
+
+# Fallback classes para componentes adicionales
 
 class AdvancedDebugger:
     def __init__(self, config=None): pass
@@ -188,8 +208,7 @@ class MT5DataManager:
         self._connection_status: bool = False
     def connect(self) -> bool: return True
 
-# Fallback instances
-sic = SICv31Enterprise()
+# Fallback instances - sic ya está definido arriba
 
 # Configurar debugging avanzado
 debugger = AdvancedDebugger({
@@ -888,19 +907,20 @@ class AdvancedCandleDownloader:
         """📡 Obtiene MT5DataManager usando lazy loading"""
         if self._mt5_manager is None:
             try:
-                # Importar MT5DataManager usando sistema centralizado
-                if SIC_V3_1_AVAILABLE:
-                    from data_management.mt5_data_manager import MT5DataManager
-                    self._mt5_manager = MT5DataManager()
-                    self._log_info("✅ MT5DataManager cargado correctamente desde core.data_management")
-                else:
-                    # Solo log debug, no warning
-                    if self._enable_debug:
-                        self._log_info("⚠️ MT5DataManager no disponible - usando conexión directa")
-
-            except Exception as e:
+                # Intentar importar MT5DataManager directamente
+                from .mt5_data_manager import MT5DataManager
+                self._mt5_manager = MT5DataManager()
+                self._log_info("✅ MT5DataManager cargado correctamente")
+                
+            except ImportError as e:
+                self._log_info("⚠️ MT5DataManager no disponible - usando conexión directa")
                 if self._enable_debug:
-                    self._log_error(f"Error cargando MT5DataManager: {e}")
+                    self._log_error(f"Error importando MT5DataManager: {e}")
+                    
+            except Exception as e:
+                self._log_warning(f"Error inicializando MT5DataManager: {e}")
+                if self._enable_debug:
+                    self._log_error(f"Error completo: {e}")
 
         return self._mt5_manager
 
@@ -1580,14 +1600,18 @@ class AdvancedCandleDownloader:
     def _get_mt5_manager_lazy(self):
         """🔄 Obtiene MT5Manager con lazy loading"""
         try:
-            # Intentar importar MT5DataManager directamente para sistema funcional - RUTA CORREGIDA
+            # Intentar importar MT5DataManager directamente
             try:
-                from data_management.mt5_data_manager import MT5DataManager
+                from .mt5_data_manager import MT5DataManager
                 manager = MT5DataManager()
-                self._log_info("✅ MT5DataManager cargado directamente desde core.data_management")
+                self._log_info("✅ MT5DataManager cargado directamente")
                 return manager
+                
             except ImportError:
-                self._log_warning("⚠️ MT5DataManager no disponible en core.data_management")
+                self._log_info("⚠️ MT5DataManager no disponible - usando conexión directa")
+                
+            except Exception as e:
+                self._log_warning(f"Error inicializando MT5DataManager: {e}")
 
             # Fallback: usar smart_import de SIC si está disponible
             if hasattr(sic, 'smart_import') and sic.smart_import:
@@ -1596,7 +1620,6 @@ class AdvancedCandleDownloader:
                     return utils_mt5.MT5DataManager()
 
             # Sin MT5DataManager - usar conexión directa MT5
-            self._log_warning("⚠️ MT5DataManager no disponible - usando conexión directa FTMO Global Markets")
             return None
 
         except Exception as e:

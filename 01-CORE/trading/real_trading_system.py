@@ -28,7 +28,7 @@ except ImportError:
         def get_logger(name: str):
             return logging.getLogger(name)
 
-from ..data_management.mt5_connection_manager import get_mt5_connection
+from data_management.mt5_connection_manager import get_mt5_connection
 from risk_management.risk_manager import RiskManager
 
 class RealTradingSystem:
@@ -82,14 +82,15 @@ class RealTradingSystem:
     def __init__(self, config_path: Optional[str] = None):
         """Initialize complete real trading system"""
         
-        # Load configuration
-        self.config = self._load_config(config_path)
-        
         # Initialize logging first
         if hasattr(SmartTradingLogger, 'get_logger'):
             self.base_logger = SmartTradingLogger.get_logger(__name__)
         else:
+            import logging
             self.base_logger = logging.getLogger(__name__)
+        
+        # Load configuration
+        self.config = self._load_config(config_path)
         
         self.trading_logger = RealTradingLogger(self.base_logger)
         
