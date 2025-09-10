@@ -75,7 +75,7 @@ class SmartTradingLogger:
         else:
             self.silent_mode = silent_mode
             
-        # Inicializar deduplicador si está disponible
+        # Inicializar deduplicador inteligente si está disponible
         self.deduplicator = None
         try:
             from .utils.realtime_log_deduplicator import DEDUPLICATOR
@@ -86,6 +86,10 @@ class SmartTradingLogger:
                 self.deduplicator = DEDUPLICATOR
             except ImportError:
                 pass  # Continuar sin deduplicación
+        
+        # El optimizador inteligente ahora está integrado en el deduplicador
+        # Por compatibilidad, mantenemos la referencia
+        self.log_optimizer = self.deduplicator
             
         self.logger = logging.getLogger(name)
         
@@ -103,10 +107,13 @@ class SmartTradingLogger:
         if not self.logger.handlers:
             self._setup_handlers()
     
-    def _should_log_message(self, message: str) -> bool:
-        """🔧 Verificar si un mensaje debe loggearse (deduplicación)"""
+    def _should_log_message(self, message: str, component: str = "CORE") -> bool:
+        """🧠 Verificar si un mensaje debe loggearse (deduplicación inteligente integrada)"""
+        
+        # Usar el deduplicador inteligente mejorado
         if self.deduplicator:
-            return self.deduplicator.should_log(message)
+            return self.deduplicator.should_log(message, component)
+        
         return True  # Si no hay deduplicador, permitir todos los mensajes
     
     def _get_component_from_name(self) -> str:
@@ -187,31 +194,31 @@ class SmartTradingLogger:
     def debug(self, message: str, component: str = "CORE", **kwargs):
         """🔍 Log debug message"""
         full_message = f"[{component}] {message}"
-        if self._should_log_message(full_message):
+        if self._should_log_message(full_message, component):
             self.logger.debug(full_message)
     
     def info(self, message: str, component: str = "CORE", **kwargs):
         """ℹ️ Log info message"""
         full_message = f"[{component}] {message}"
-        if self._should_log_message(full_message):
+        if self._should_log_message(full_message, component):
             self.logger.info(full_message)
     
     def warning(self, message: str, component: str = "CORE", **kwargs):
         """⚠️ Log warning message"""
         full_message = f"[{component}] {message}"
-        if self._should_log_message(full_message):
+        if self._should_log_message(full_message, component):
             self.logger.warning(full_message)
     
     def error(self, message: str, component: str = "CORE", **kwargs):
         """❌ Log error message"""
         full_message = f"[{component}] {message}"
-        if self._should_log_message(full_message):
+        if self._should_log_message(full_message, component):
             self.logger.error(full_message)
     
     def critical(self, message: str, component: str = "CORE", **kwargs):
         """🚨 Log critical message"""
         full_message = f"[{component}] {message}"
-        # Los mensajes críticos siempre se loggean
+        # Los mensajes críticos siempre se loggean (sin optimización)
         self.logger.critical(full_message)
     
     # ===== MÉTODOS DE SESIÓN DIARIA =====
@@ -404,6 +411,24 @@ class SmartTradingLogger:
         except Exception as e:
             self.error(f"Error appending to JSON file: {str(e)}", "JSON_HELPER")
 
+    def get_optimization_stats(self) -> Dict[str, Any]:
+        """📊 Obtener estadísticas de optimización de logging"""
+        try:
+            if self.deduplicator:
+                return self.deduplicator.get_stats()
+            else:
+                return {"status": "deduplicator_not_available"}
+        except Exception as e:
+            return {"status": "error", "error": str(e)}
+
+    def reset_optimization_stats(self):
+        """🔄 Resetear estadísticas de optimización"""
+        try:
+            if self.deduplicator:
+                self.deduplicator.reset()
+        except Exception:
+            pass
+
 # Instancia global del logger
 _smart_logger: Optional[SmartTradingLogger] = None
 
@@ -432,6 +457,46 @@ def log_error(message: str, component: str = "CORE"):
 def log_debug(message: str, component: str = "CORE"):
     """🔍 Log debug rápido"""
     get_smart_logger().debug(message, component)
+
+def show_log_optimization_summary():
+    """📊 Mostrar resumen de optimización de logging"""
+    try:
+        logger = get_smart_logger()
+        stats = logger.get_optimization_stats()
+        
+        if stats.get("status") == "deduplicator_not_available":
+            print("⚠️ Deduplicador inteligente no disponible")
+            return
+        
+        if stats.get("status") == "error":
+            print(f"❌ Error obteniendo estadísticas: {stats.get('error')}")
+            return
+        
+        print("\n🧠 RESUMEN OPTIMIZACIÓN INTELIGENTE DE LOGGING")
+        print("=" * 60)
+        print(f"📈 Total procesados: {stats.get('total_processed', 0)}")
+        print(f"🔇 Total suprimidos: {stats.get('total_suppressed', 0)}")
+        print(f"   • Verbosos suprimidos: {stats.get('verbose_suppressed', 0)}")
+        print(f"   • Duplicados suprimidos: {stats.get('duplicate_suppressed', 0)}")
+        print(f"🚨 Críticos preservados: {stats.get('critical_preserved', 0)}")
+        print(f"✅ Normales loggeados: {stats.get('normal_logged', 0)}")
+        print(f"� Tasa de supresión: {stats.get('suppression_rate', '0%')}")
+        print(f"🎯 Tasa de críticos: {stats.get('critical_rate', '0%')}")
+        print(f"💾 Cache similitud: {stats.get('similarity_cache_size', 0)} patrones")
+        print(f"🕐 Ventana: {stats.get('window_seconds', 0)}s")
+        print("=" * 60)
+        
+    except Exception as e:
+        print(f"❌ Error mostrando estadísticas: {e}")
+
+def reset_log_optimization_stats():
+    """🔄 Resetear estadísticas de optimización de logging"""
+    try:
+        logger = get_smart_logger()
+        logger.reset_optimization_stats()
+        print("✅ Estadísticas de optimización reseteadas")
+    except Exception as e:
+        print(f"❌ Error reseteando estadísticas: {e}")
 
 # ===== FUNCIONES ESPECIALIZADAS ICT =====
 

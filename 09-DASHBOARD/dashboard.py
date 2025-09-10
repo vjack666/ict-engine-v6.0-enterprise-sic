@@ -43,7 +43,28 @@ sys.path.extend([
 # Imports del sistema ICT
 from data.data_collector import RealDataCollector
 from widgets.main_interface import MainDashboardInterface  
-from utils.dashboard_logger import DashboardLogger
+
+# Dynamic import para dashboard_logger
+try:
+    import importlib.util
+    dashboard_logger_path = dashboard_dir / "utils" / "dashboard_logger.py"
+    spec = importlib.util.spec_from_file_location("dashboard_logger", dashboard_logger_path)
+    if spec and spec.loader:
+        dashboard_logger_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(dashboard_logger_module)
+        DashboardLogger = getattr(dashboard_logger_module, 'DashboardLogger')
+    else:
+        raise ImportError("Could not load dashboard_logger module")
+except Exception as e:
+    print(f"⚠️ Dashboard logger import fallback: {e}")
+    # Fallback logger simple
+    class DashboardLogger:
+        def __init__(self, config=None):
+            self.config = config or {}
+        def info(self, msg): print(f"📊 {msg}")
+        def error(self, msg): print(f"❌ {msg}")
+        def warning(self, msg): print(f"⚠️ {msg}")
+        def debug(self, msg): pass  # Silenciar debug
 
 class ICTDashboardApp:
     """🎯 Aplicación principal del dashboard ICT Engine"""
