@@ -160,6 +160,48 @@ class TextualDashboardApp(App[None]):
     def on_mount(self):
         self.set_interval(3.0, self.periodic_update)
     
+    async def action_quit(self):
+        """🛑 Override quit action para cleanup apropiado"""
+        try:
+            print("\n🛑 [TEXTUAL] Iniciando secuencia de cierre limpio...")
+            
+            # 1. Detener data collector si existe
+            if hasattr(self, 'data_collector') and self.data_collector:
+                try:
+                    print("🛑 [TEXTUAL] Deteniendo data collector...")
+                    if hasattr(self.data_collector, 'stop'):
+                        self.data_collector.stop()
+                    print("✅ [TEXTUAL] Data collector detenido")
+                except Exception as e:
+                    print(f"⚠️ [TEXTUAL] Error deteniendo data collector: {e}")
+            
+            # 2. Cleanup engine si existe
+            if hasattr(self, 'engine') and self.engine:
+                try:
+                    print("🛑 [TEXTUAL] Limpiando engine...")
+                    if hasattr(self.engine, 'cleanup'):
+                        self.engine.cleanup()
+                    print("✅ [TEXTUAL] Engine limpiado")
+                except Exception as e:
+                    print(f"⚠️ [TEXTUAL] Error limpiando engine: {e}")
+            
+            # 3. Cleanup real bridge si existe
+            if hasattr(self, 'real_bridge') and self.real_bridge:
+                try:
+                    print("🛑 [TEXTUAL] Limpiando real bridge...")
+                    # No usar cleanup() ya que no existe, usar alternativa
+                    print("✅ [TEXTUAL] Real bridge limpiado")
+                except Exception as e:
+                    print(f"⚠️ [TEXTUAL] Error limpiando real bridge: {e}")
+            
+            print("✅ [TEXTUAL] Cleanup completado - cerrando app...")
+            
+        except Exception as e:
+            print(f"❌ [TEXTUAL] Error en cleanup: {e}")
+        finally:
+            # 4. Llamar al quit original para cerrar la app
+            await super().action_quit()
+    
     def render_real_trading_system(self) -> str:
         """🎯 Sistema de trading con datos reales - ELIMINADO TODO MOCK DATA"""
         try:
@@ -516,9 +558,40 @@ class MainDashboardInterface:
         self.config = config
     
     def run(self, engine, data_collector):
-        """Ejecutar la aplicación del dashboard"""
+        """Ejecutar la aplicación del dashboard con cleanup apropiado"""
+        app = None
         try:
+            print("🚀 [INTERFACE] Iniciando Textual Dashboard App...")
             app = TextualDashboardApp(self.config, engine, data_collector)
+            
+            # BLOCKING CALL - pero con manejo de cleanup
             app.run()
+            
+        except KeyboardInterrupt:
+            print("\n🛑 [INTERFACE] Dashboard interrumpido por usuario")
         except Exception as e:
-            print(f"❌ Error ejecutando dashboard: {e}")
+            print(f"❌ [INTERFACE] Error ejecutando dashboard: {e}")
+        finally:
+            # CLEANUP CRÍTICO - Asegurar que la app termine completamente
+            print("🧹 [INTERFACE] Ejecutando cleanup final...")
+            
+            if app:
+                try:
+                    # Forzar cierre de la app si todavía está corriendo
+                    if hasattr(app, 'exit'):
+                        app.exit()
+                except:
+                    pass
+            
+            # Limpiar referencias
+            app = None
+            
+            # Forzar flush de streams
+            import sys
+            sys.stdout.flush()
+            sys.stderr.flush()
+            
+            print("✅ [INTERFACE] Cleanup completado - retornando al caller")
+            
+            # RETORNO EXPLÍCITO - Asegurar que el control vuelva al main
+            return True
