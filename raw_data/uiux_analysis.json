@@ -1,0 +1,181 @@
+{
+  "timestamp": "2025-09-10T12:06:10.003828",
+  "version_analisis": "v1.0-uiux-analysis",
+  "interfaces_existentes": {
+    "Dashboard Principal": {
+      "archivo": "dashboard.py",
+      "tipo": "Aplicación Principal",
+      "prioridad": "CRÍTICA",
+      "existe": true,
+      "tamaño": 14413,
+      "clases_ui": [
+        "ICTDashboardApp"
+      ],
+      "metodos_interaccion": [],
+      "elementos_ui": {
+        "paneles": 1,
+        "alertas": 26,
+        "inputs": 2
+      },
+      "accesibilidad": [
+        "keyboard",
+        "error_handling"
+      ],
+      "score_usabilidad": 75
+    },
+    "ICT Dashboard": {
+      "archivo": "ict_dashboard.py",
+      "tipo": "Dashboard Especializado",
+      "prioridad": "ALTA",
+      "existe": true,
+      "tamaño": 3697,
+      "clases_ui": [
+        "ICTDashboard"
+      ],
+      "metodos_interaccion": [],
+      "elementos_ui": {
+        "tablas": 1,
+        "paneles": 2,
+        "alertas": 4
+      },
+      "accesibilidad": [
+        "keyboard",
+        "error_handling"
+      ],
+      "score_usabilidad": 65
+    },
+    "Lanzador Dashboard": {
+      "archivo": "launch_dashboard.py",
+      "tipo": "Controlador de Inicio",
+      "prioridad": "MEDIA",
+      "existe": true,
+      "tamaño": 10426,
+      "clases_ui": [
+        "MainDashboardInterface",
+        "DashboardEngine",
+        "DataCollector"
+      ],
+      "metodos_interaccion": [],
+      "elementos_ui": {
+        "paneles": 1,
+        "alertas": 23
+      },
+      "accesibilidad": [
+        "keyboard",
+        "error_handling"
+      ],
+      "score_usabilidad": 65
+    },
+    "Interfaz Principal": {
+      "archivo": "widgets/main_interface.py",
+      "tipo": "Widget Principal",
+      "prioridad": "ALTA",
+      "existe": true,
+      "tamaño": 19431,
+      "clases_ui": [
+        "TextualDashboardApp",
+        "MainDashboardInterface"
+      ],
+      "metodos_interaccion": [
+        "on_"
+      ],
+      "elementos_ui": {
+        "botones": 2,
+        "tablas": 1,
+        "paneles": 56,
+        "alertas": 9,
+        "inputs": 7
+      },
+      "accesibilidad": [
+        "keyboard",
+        "error_handling"
+      ],
+      "score_usabilidad": 100
+    },
+    "Tab de Patrones": {
+      "archivo": "widgets/patterns_tab.py",
+      "tipo": "Widget Especializado",
+      "prioridad": "ALTA",
+      "existe": true,
+      "tamaño": 12096,
+      "clases_ui": [
+        "PatternsTab"
+      ],
+      "metodos_interaccion": [
+        "update_"
+      ],
+      "elementos_ui": {
+        "paneles": 6,
+        "alertas": 6,
+        "inputs": 5
+      },
+      "accesibilidad": [
+        "keyboard",
+        "error_handling"
+      ],
+      "score_usabilidad": 100
+    }
+  },
+  "flujos_usuario": {
+    "inicio_aplicacion": {
+      "descripcion": "Proceso de inicio de la aplicación",
+      "archivos_encontrados": [
+        "dashboard.py",
+        "launch_dashboard.py",
+        "start_dashboard.py"
+      ],
+      "referencias_encontradas": 67,
+      "completitud": 100.0
+    },
+    "navegacion_datos": {
+      "descripcion": "Navegación entre datos y vistas",
+      "archivos_encontrados": [
+        "widgets/main_interface.py",
+        "core/dashboard_engine.py"
+      ],
+      "referencias_encontradas": 11,
+      "completitud": 100.0
+    },
+    "actualizacion_tiempo_real": {
+      "descripcion": "Actualización de datos en tiempo real",
+      "archivos_encontrados": [
+        "data/data_collector.py",
+        "main_interface.py",
+        "patterns_tab.py",
+        "__init__.py"
+      ],
+      "referencias_encontradas": 17,
+      "completitud": 250.0
+    },
+    "interaccion_patrones": {
+      "descripcion": "Interacción con patrones ICT",
+      "archivos_encontrados": [
+        "widgets/patterns_tab.py",
+        "base_pattern_module.py",
+        "patterns_orchestrator.py",
+        "pattern_factory.py"
+      ],
+      "referencias_encontradas": 86,
+      "completitud": 250.0
+    }
+  },
+  "usabilidad_actual": {},
+  "gaps_uiux": {},
+  "experiencia_usuario": {
+    "total_interfaces": 5,
+    "interfaces_existentes": 5,
+    "tasa_existencia": 100.0,
+    "score_usabilidad_promedio": 81.0,
+    "completitud_flujos_promedio": 175.0,
+    "gaps_identificados": 0,
+    "score_uiux_general": 100
+  },
+  "patrones_ui": {},
+  "problemas": [],
+  "recomendaciones": [
+    "Excelente estado UI/UX - listo para producción",
+    "Usabilidad de interfaces es buena",
+    "Flujos de usuario bien definidos",
+    "Gaps UI/UX mínimos"
+  ]
+}

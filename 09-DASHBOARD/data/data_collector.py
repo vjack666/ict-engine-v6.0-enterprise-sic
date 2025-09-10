@@ -317,11 +317,41 @@ class RealICTDataCollector:
             if 'detector' in self.components:
                 detector = self.components['detector']
                 
-                # Obtener patrones usando métodos reales disponibles
+                # 🎯 EJECUTAR DETECCIÓN DE PATRONES EN TIEMPO REAL
+                # Esta es la línea crítica que faltaba para generar señales ICT
+                patterns_detected_now = 0
+                
+                # Procesar cada símbolo para detectar patrones nuevos
+                for symbol in self.symbols:
+                    try:
+                        # Obtener datos de mercado para este símbolo
+                        market_data = self._get_internal_market_data(symbol, 'M15', 100)
+                        
+                        if market_data is not None and hasattr(detector, 'detect_patterns'):
+                            # ⚡ LLAMADA CRÍTICA: Detectar patrones ICT reales
+                            new_patterns = detector.detect_patterns(market_data, 'M15')
+                            
+                            if new_patterns and len(new_patterns) > 0:
+                                patterns_detected_now += len(new_patterns)
+                                print(f"🎯 [ICT_SIGNALS] {len(new_patterns)} patrones detectados en {symbol}")
+                                
+                                # Los patrones se loggean automáticamente en ICT_SIGNALS por el detector
+                                
+                    except Exception as e:
+                        print(f"⚠️ Error detectando patrones en {symbol}: {e}")
+                        continue
+                
+                # Obtener estadísticas después de la detección
                 if hasattr(detector, 'get_pattern_statistics'):
-                    return detector.get_pattern_statistics()
+                    stats = detector.get_pattern_statistics()
+                    if patterns_detected_now > 0:
+                        stats['patterns_detected_now'] = patterns_detected_now
+                    return stats
                 elif hasattr(detector, 'get_statistics'):
-                    return detector.get_statistics()
+                    stats = detector.get_statistics()
+                    if patterns_detected_now > 0:
+                        stats['patterns_detected_now'] = patterns_detected_now
+                    return stats
                 else:
                     # Usar propiedades básicas disponibles
                     total_patterns = len(detector.patterns_detected) if hasattr(detector, 'patterns_detected') else 0
@@ -343,6 +373,7 @@ class RealICTDataCollector:
                     return {
                         'total_patterns': total_patterns,
                         'patterns_today': max(0, total_patterns - 5),  # Estimación
+                        'patterns_detected_now': patterns_detected_now,
                         'pattern_types': pattern_types,
                         'success_rate': 75.0  # Valor por defecto
                     }

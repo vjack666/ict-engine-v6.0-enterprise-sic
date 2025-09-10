@@ -1,0 +1,92 @@
+{
+  "timestamp": "2025-09-10T11:13:47.011893",
+  "analysis_version": "v1.0-dashboard-mapping",
+  "dashboard_files": {
+    "Main_Dashboard": {
+      "file": "dashboard.py",
+      "expected_class": "Dashboard",
+      "priority": "HIGH",
+      "description": "Primary dashboard interface",
+      "status": "file_not_found",
+      "available": false,
+      "file_exists": false,
+      "import_time": null,
+      "classes_found": [],
+      "methods": [],
+      "ui_methods": [],
+      "issues": [
+        "File dashboard.py not found"
+      ]
+    },
+    "ICT_Dashboard": {
+      "file": "ict_dashboard.py",
+      "expected_class": "ICTDashboard",
+      "priority": "CRITICAL",
+      "description": "ICT-specific dashboard",
+      "status": "file_not_found",
+      "available": false,
+      "file_exists": false,
+      "import_time": null,
+      "classes_found": [],
+      "methods": [],
+      "ui_methods": [],
+      "issues": [
+        "File ict_dashboard.py not found"
+      ]
+    },
+    "Launch_Dashboard": {
+      "file": "launch_dashboard.py",
+      "expected_class": "LaunchDashboard",
+      "priority": "HIGH",
+      "description": "Dashboard launcher/controller",
+      "status": "file_not_found",
+      "available": false,
+      "file_exists": false,
+      "import_time": null,
+      "classes_found": [],
+      "methods": [],
+      "ui_methods": [],
+      "issues": [
+        "File launch_dashboard.py not found"
+      ]
+    },
+    "Start_Dashboard": {
+      "file": "start_dashboard.py",
+      "expected_class": "StartDashboard",
+      "priority": "MEDIUM",
+      "description": "Dashboard startup manager",
+      "status": "file_not_found",
+      "available": false,
+      "file_exists": false,
+      "import_time": null,
+      "classes_found": [],
+      "methods": [],
+      "ui_methods": [],
+      "issues": [
+        "File start_dashboard.py not found"
+      ]
+    }
+  },
+  "components": {},
+  "widgets": {},
+  "bridge_system": {},
+  "ui_capabilities": {
+    "total_dashboards": 4,
+    "functional_dashboards": 0,
+    "missing_dashboards": 4,
+    "total_components": 0,
+    "total_widgets": 0,
+    "total_bridge_files": 0,
+    "ui_capability_score": 0,
+    "dashboard_functionality_rate": 0.0
+  },
+  "issues": [
+    "Components directory not found",
+    "Widgets directory not found",
+    "Bridge directory not found"
+  ],
+  "recommendations": [
+    "CRITICAL: Dashboard architecture needs significant attention",
+    "URGENT: Need more functional dashboard components"
+  ]
+}

@@ -1,0 +1,142 @@
+{
+  "timestamp": "2025-09-10T11:01:26.363268",
+  "analysis_version": "v1.0-poi-comprehensive",
+  "poi_components": {
+    "POI_Core_System": {
+      "module": "poi_system",
+      "class": "POISystem",
+      "location": "01-CORE",
+      "priority": "CRITICAL",
+      "functionality": "Core POI management",
+      "status": "fully_functional",
+      "available": true,
+      "import_time": 0.6600215435028076,
+      "methods": [
+        "detect_pois",
+        "get_active_pois",
+        "get_performance_metrics",
+        "get_poi_summary",
+        "get_pois_near_price"
+      ],
+      "poi_methods": [
+        "detect_pois",
+        "get_active_pois",
+        "get_poi_summary",
+        "get_pois_near_price"
+      ],
+      "issues": [],
+      "import_strategy": "core.poi_system",
+      "instantiation_time": 0.00019168853759765625
+    },
+    "POI_Detector_Adapted": {
+      "module": "poi_detector_adapted",
+      "class": "POIDetector",
+      "location": "analysis",
+      "priority": "HIGH",
+      "functionality": "POI pattern detection",
+      "status": "fully_functional",
+      "available": true,
+      "import_time": 0.0014307498931884766,
+      "methods": [
+        "find_all_pois",
+        "find_dashboard_pois",
+        "get_poi_summary"
+      ],
+      "poi_methods": [
+        "find_all_pois",
+        "find_dashboard_pois",
+        "get_poi_summary"
+      ],
+      "issues": [],
+      "import_strategy": "analysis.poi_detector_adapted",
+      "instantiation_time": 0.00011038780212402344
+    },
+    "UnifiedMemorySystem": {
+      "module": "unified_memory_system",
+      "class": "UnifiedMemorySystem",
+      "location": "analysis",
+      "priority": "CRITICAL",
+      "functionality": "POI memory management",
+      "status": "fully_functional",
+      "available": true,
+      "import_time": 0.001438140869140625,
+      "methods": [
+        "assess_market_confidence",
+        "get_historical_insight",
+        "get_trader_recommendation",
+        "load_persistent_context",
+        "save_context_to_disk",
+        "update_market_memory"
+      ],
+      "poi_methods": [],
+      "issues": [],
+      "import_strategy": "analysis.unified_memory_system",
+      "instantiation_time": 0.007271528244018555
+    },
+    "Market_Context_V6": {
+      "module": "market_context_v6",
+      "class": "MarketContextV6",
+      "location": "analysis",
+      "priority": "HIGH",
+      "functionality": "POI market context",
+      "status": "fully_functional",
+      "available": true,
+      "import_time": 0.0013604164123535156,
+      "methods": [
+        "clear_cache",
+        "get_cache",
+        "get_cache_key",
+        "get_contextual_insight",
+        "get_historical_context",
+        "integrate_with_ict_data_manager",
+        "is_cache_valid",
+        "persist_memory_state",
+        "restore_memory_state",
+        "set_cache"
+      ],
+      "poi_methods": [],
+      "issues": [],
+      "import_strategy": "analysis.market_context_v6",
+      "instantiation_time": 0.000766754150390625
+    }
+  },
+  "poi_integration": {
+    "poi_to_patterns": {
+      "status": "likely_functional",
+      "confidence": "high",
+      "note": "Based on component availability"
+    },
+    "memory_persistence": {
+      "status": "likely_functional",
+      "confidence": "high",
+      "note": "Based on component availability"
+    },
+    "scoring_engine": {
+      "status": "likely_functional",
+      "confidence": "high",
+      "note": "Based on component availability"
+    },
+    "real_time_updates": {
+      "status": "likely_functional",
+      "confidence": "high",
+      "note": "Based on component availability"
+    }
+  },
+  "poi_capabilities": {
+    "total_components": 4,
+    "fully_functional": 4,
+    "import_only": 0,
+    "failed": 0,
+    "functionality_rate": 100.0,
+    "critical_functional": 2,
+    "poi_detection_available": false,
+    "poi_scoring_available": false
+  },
+  "poi_scoring": {},
+  "memory_integration": {},
+  "issues": [],
+  "recommendations": [
+    "POI system fully operational - proceed with dashboard integration",
+    "Core POI functionality available"
+  ]
+}

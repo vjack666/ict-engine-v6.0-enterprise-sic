@@ -35,18 +35,21 @@ sys.path.extend([
     str(dashboard_path / "bridge")     # Para DashboardBridge
 ])
 
-print(f"[TOOL] Core path configurado: {core_path}")
-print(f"[TOOL] Data path configurado: {data_path}")
-print(f"[TOOL] Logs path configurado: {logs_path}")
+print(f"🚀 [MAIN] Core path configurado: {core_path}")
+print(f"🚀 [MAIN] Data path configurado: {data_path}")
+print(f"🚀 [MAIN] Logs path configurado: {logs_path}")
+print(f"🚀 [MAIN] Dashboard path configurado: {dashboard_path}")
 
 # ===== CONFIGURACIÓN MODO SILENCIOSO =====
-print("[SYSTEM] Configurando modo silencioso para dashboard...")
+print("🚀 [MAIN] Configurando modo silencioso para dashboard...")
 try:
     from config.logging_mode_config import LoggingModeConfig
     LoggingModeConfig.enable_quiet_mode()
-    print("✅ Modo silencioso activado - logs solo en archivos")
+    print("🚀 [MAIN] ✅ Modo silencioso activado - logs solo en archivos")
+    print("🚀 [MAIN] 📁 Los logs se guardarán en: 05-LOGS/system/")
 except Exception as e:
-    print(f"⚠️ Error configurando modo silencioso: {e}")
+    print(f"🚀 [MAIN] ⚠️ Error configurando modo silencioso: {e}")
+    print("🚀 [MAIN] 📁 Los logs se guardarán de forma estándar en 05-LOGS/")
 
 # ===== SISTEMA DE LOGGING CENTRALIZADO =====
 try:
@@ -117,23 +120,38 @@ try:
             mt5_manager = None
             
     except Exception as e:
-        print(f"[WARN] Error en inicialización avanzada: {e}")
+        print(f"🚀 [MAIN] ⚠️ Error en inicialización avanzada: {e}")
         # Usar versiones básicas
         import logging
         logger = logging.getLogger(__name__)
         mt5_manager = None
     
-    print("[OK] Componentes reales importados exitosamente")
-    print("    - SmartTradingLogger: Activo")
-    print("    - MT5DataManager: Activo") 
-    print("    - RealICTDataCollector: Disponible")
+    print("🚀 [MAIN] ✅ Componentes reales importados exitosamente")
+    print("🚀 [MAIN]     - SmartTradingLogger: ✅ Activo")
+    print("🚀 [MAIN]     - MT5DataManager: ✅ Activo") 
+    print("🚀 [MAIN]     - RealICTDataCollector: ✅ Disponible")
+    
+    # Log estructurado en la caja negra
+    if main_logger:
+        main_logger.info("Componentes reales importados exitosamente", "SYSTEM")
+        main_logger.info("SmartTradingLogger: Activo", "SYSTEM")
+        main_logger.info("MT5DataManager: Activo", "SYSTEM")
+        main_logger.info("RealICTDataCollector: Disponible", "SYSTEM")
     
 except Exception as e:
-    print(f"[X] Error importando componentes reales: {e}")
-    print(f"[DEBUG] Paths utilizados:")
-    print(f"    - Utils: {core_path / 'utils'}")
-    print(f"    - Dashboard Data: {dashboard_path / 'data'}")
-    print("[CRITICAL] Sistema no puede continuar sin componentes reales")
+    print(f"🚀 [MAIN] ❌ Error importando componentes reales: {e}")
+    print(f"🚀 [MAIN] 🔍 Paths utilizados:")
+    print(f"🚀 [MAIN]     - Utils: {core_path / 'utils'}")
+    print(f"🚀 [MAIN]     - Dashboard Data: {dashboard_path / 'data'}")
+    print("🚀 [MAIN] 🔴 CRÍTICO: Sistema no puede continuar sin componentes reales")
+    
+    # Log del error en la caja negra
+    if main_logger:
+        main_logger.error(f"Error importando componentes reales: {e}", "SYSTEM")
+        main_logger.error(f"Paths utilizados - Utils: {core_path / 'utils'}", "SYSTEM")
+        main_logger.error(f"Dashboard Data: {dashboard_path / 'data'}", "SYSTEM")
+        main_logger.critical("CRÍTICO: Sistema no puede continuar sin componentes reales", "SYSTEM")
+    
     sys.exit(1)
 
 class ICTEnterpriseSystem:
@@ -158,7 +176,7 @@ class ICTEnterpriseSystem:
     
     def _signal_handler(self, signum, frame):
         """Manejar señales del sistema"""
-        print(f"\n[EMOJI] Señal recibida: {signum}. Iniciando cierre...")
+        print(f"\n🚀 [MAIN] 🛑 Señal recibida: {signum}. Iniciando cierre limpio...")
         self.shutdown()
     
     def initialize_real_components(self):
@@ -166,7 +184,8 @@ class ICTEnterpriseSystem:
         try:
             if main_logger:
                 main_logger.log_system_status("Inicializando RealICTDataCollector...", "CORE")
-            print("[TOOL] Inicializando RealICTDataCollector...")
+                main_logger.info("🔧 Iniciando proceso de inicialización de componentes reales", "CORE")
+            print("🚀 [MAIN] 🔧 Inicializando RealICTDataCollector...")
             
             # Crear configuración para el RealICTDataCollector
             config = {
@@ -179,24 +198,40 @@ class ICTEnterpriseSystem:
                 'max_history': 1000
             }
             
+            print(f"🚀 [MAIN] 📊 Configuración aplicada: {len(config['data']['symbols'])} símbolos, {len(config['data']['timeframes'])} timeframes")
             if main_logger:
-                main_logger.info(f"Configuración aplicada: {len(config['data']['symbols'])} símbolos, {len(config['data']['timeframes'])} timeframes")
+                main_logger.info(f"Configuración aplicada: {len(config['data']['symbols'])} símbolos, {len(config['data']['timeframes'])} timeframes", "CORE")
+                main_logger.debug(f"Símbolos configurados: {config['data']['symbols']}", "CORE")
+                main_logger.debug(f"Timeframes configurados: {config['data']['timeframes']}", "CORE")
             
             # Crear instancia del colector de datos reales
+            print("🚀 [MAIN] 🏗️ Creando instancia RealICTDataCollector...")
+            if main_logger:
+                main_logger.info("🏗️ Creando instancia RealICTDataCollector", "CORE")
+            
             self.data_collector = RealICTDataCollector(config)
             
             # Ejecutar inicialización async
+            print("🚀 [MAIN] 🔄 Configurando event loop async...")
+            if main_logger:
+                main_logger.info("🔄 Configurando event loop async", "CORE")
+            
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             
             # Inicializar componentes async
+            print("🚀 [MAIN] ⚡ Ejecutando inicialización async...")
+            if main_logger:
+                main_logger.info("⚡ Ejecutando inicialización async", "CORE")
+            
             loop.run_until_complete(self.data_collector.initialize())
             
             # Verificar estado básico - solo verificar que el objeto fue creado
             if self.data_collector:
                 if main_logger:
                     main_logger.log_system_status("RealICTDataCollector inicializado correctamente", "SUCCESS")
-                print("[OK] RealICTDataCollector: Inicializado correctamente")
+                    main_logger.info("✅ RealICTDataCollector: Estado verificado y funcional", "CORE")
+                print("🚀 [MAIN] ✅ RealICTDataCollector: Inicializado correctamente")
                 print("    - Configuración aplicada")
                 print("    - Componentes async inicializados")
                 print("    - Sistema listo para operación")
@@ -425,30 +460,64 @@ class ICTEnterpriseSystem:
 def main():
     """Función principal simplificada"""
     try:
+        print("🚀 [MAIN] 🎯 INICIANDO ICT ENGINE v6.0 ENTERPRISE")
+        print("🚀 [MAIN] " + "="*50)
+        
+        # Log estructurado del inicio del sistema
+        if main_logger:
+            main_logger.info("🎯 INICIANDO ICT ENGINE v6.0 ENTERPRISE", "SYSTEM")
+            main_logger.log_system_status("Sistema iniciando...", "STARTUP")
+        
         # Verificar que las rutas existen
         if not core_path.exists():
-            print(f"[X] Error: No se encuentra 01-CORE en {core_path}")
-            print("[EMOJI] NOTA: Verificar estructura del proyecto")
+            print(f"🚀 [MAIN] ❌ Error: No se encuentra 01-CORE en {core_path}")
+            print("🚀 [MAIN] 📝 NOTA: Verificar estructura del proyecto")
+            if main_logger:
+                main_logger.error(f"No se encuentra 01-CORE en {core_path}", "SYSTEM")
+                main_logger.critical("Estructura del proyecto inválida", "SYSTEM")
             sys.exit(1)
         
+        print("🚀 [MAIN] ✅ Estructura del proyecto verificada")
+        if main_logger:
+            main_logger.info("✅ Estructura del proyecto verificada", "SYSTEM")
+        
         # Crear y ejecutar sistema enterprise
+        print("🚀 [MAIN] 🏗️ Creando sistema enterprise...")
+        if main_logger:
+            main_logger.info("🏗️ Creando sistema enterprise", "SYSTEM")
+        
         enterprise_system = ICTEnterpriseSystem()
+        
+        print("🚀 [MAIN] 📊 Mostrando información del sistema...")
+        if main_logger:
+            main_logger.info("📊 Mostrando información del sistema", "SYSTEM")
+        
         enterprise_system.show_system_info()
+        
+        print("🚀 [MAIN] 🚀 Iniciando menú principal...")
+        if main_logger:
+            main_logger.info("🚀 Iniciando menú principal del sistema", "SYSTEM")
+            main_logger.log_system_status("Sistema completamente inicializado - Menú activo", "SUCCESS")
+        
         enterprise_system.main_menu()
         
     except KeyboardInterrupt:
         if main_logger:
-            main_logger.warning("Sistema terminado por el usuario (KeyboardInterrupt)")
-        print("\n[EMOJI] Sistema enterprise terminado por el usuario")
+            main_logger.warning("Sistema terminado por el usuario (KeyboardInterrupt)", "SYSTEM")
+            main_logger.log_system_status("Cierre limpio por usuario", "SHUTDOWN")
+        print("\n🚀 [MAIN] 🛑 Sistema enterprise terminado por el usuario")
     except Exception as e:
         if main_logger:
-            main_logger.error(f"Error fatal en main: {e}")
-        print(f"[X] Error fatal: {e}")
+            main_logger.error(f"Error fatal en main: {e}", "SYSTEM")
+            main_logger.critical(f"Terminación inesperada del sistema: {e}", "SYSTEM")
+        print(f"🚀 [MAIN] ❌ Error fatal: {e}")
         sys.exit(1)
     finally:
         # Cerrar sesión de logging
         if main_logger:
             main_logger.log_session_end()
+            main_logger.info("📝 Sesión de logging cerrada correctamente", "SYSTEM")
+        print("🚀 [MAIN] 📝 Sesión de logging cerrada")
 
 if __name__ == "__main__":
     main()

@@ -66,13 +66,35 @@ class ICTDashboardApp:
         try:
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
-            print(f"✅ Configuración cargada desde: {self.config_path}")
+            print(f"🎯 [DASHBOARD] ✅ Configuración cargada desde: {self.config_path}")
+            print(f"🎯 [DASHBOARD] 📊 Símbolos configurados: {config.get('data', {}).get('symbols', [])}")
+            
+            # Log estructurado en la caja negra (solo si el logger ya existe)
+            if hasattr(self, 'logger') and self.logger:
+                self.logger.info(f"✅ Configuración cargada desde: {self.config_path}", "DASHBOARD")
+                self.logger.info(f"📊 Símbolos configurados: {config.get('data', {}).get('symbols', [])}", "DASHBOARD")
+                self.logger.debug(f"Configuración completa: {config}", "DASHBOARD")
+            
             return config
         except FileNotFoundError:
-            print(f"⚠️ Archivo de configuración no encontrado: {self.config_path}")
+            print(f"🎯 [DASHBOARD] ⚠️ Archivo de configuración no encontrado: {self.config_path}")
+            print(f"🎯 [DASHBOARD] 🔄 Usando configuración por defecto")
+            
+            # Log del fallback en la caja negra
+            if self.logger:
+                self.logger.warning(f"⚠️ Archivo de configuración no encontrado: {self.config_path}", "DASHBOARD")
+                self.logger.info("🔄 Usando configuración por defecto", "DASHBOARD")
+            
             return self._get_default_config()
         except json.JSONDecodeError as e:
-            print(f"❌ Error parseando configuración: {e}")
+            print(f"🎯 [DASHBOARD] ❌ Error parseando configuración: {e}")
+            print(f"🎯 [DASHBOARD] 🔄 Fallback a configuración por defecto")
+            
+            # Log del error en la caja negra
+            if self.logger:
+                self.logger.error(f"❌ Error parseando configuración: {e}", "DASHBOARD")
+                self.logger.info("🔄 Fallback a configuración por defecto", "DASHBOARD")
+            
             return self._get_default_config()
     
     def _get_default_config(self) -> Dict[str, Any]:
@@ -165,7 +187,7 @@ class ICTDashboardApp:
             await self.shutdown()
     
     def run_sync(self):
-        """Ejecutar dashboard de forma síncrona"""
+        """Ejecutar dashboard de forma síncrona con bucle de datos activo"""
         try:
             # Inicializar componentes de forma síncrona
             self.initialize_sync()
@@ -174,8 +196,8 @@ class ICTDashboardApp:
             print("🎯 ICT ENGINE DASHBOARD v6.1 ENTERPRISE")
             print("============================================================")
             print("📊 Sistema operativo y listo para trading")
+            print("� Data Collector activo - procesando patrones ICT...")
             print("💡 Controles:")
-            print("   • Teclas 1-4: Cambiar pestañas")
             print("   • Tecla 'q': Salir")
             print("   • Ctrl+C: Salir forzado")
             print("="*60)
@@ -183,15 +205,44 @@ class ICTDashboardApp:
             
             self.is_running = True
             
-            # Crear mock engine para compatibilidad
-            mock_engine = type('MockEngine', (), {
-                'status': 'running',
-                'version': 'v6.1.0-enterprise',
-                'start_time': datetime.now()
-            })()
+            # 🎯 BUCLE PRINCIPAL PARA MANTENER EL SISTEMA ACTIVO
+            # Este bucle es crítico para que el data_collector procese datos continuamente
+            import time
             
-            # Ejecutar interfaz principal de forma síncrona
-            self.dashboard_interface.run(mock_engine, self.data_collector)
+            print("🚀 Iniciando bucle de procesamiento de datos ICT...")
+            print("📊 El sistema está procesando patrones en tiempo real...")
+            print("📁 Los logs se guardan en: 05-LOGS/ict_signals/")
+            print()
+            
+            try:
+                while self.is_running:
+                    # Procesar datos del data collector cada 5 segundos
+                    if self.data_collector:
+                        try:
+                            # Esta llamada activa nuestro detector de patrones modificado
+                            latest_data = self.data_collector.get_latest_data()
+                            if latest_data:
+                                patterns_detected = latest_data.pattern_stats.get('patterns_detected_now', 0)
+                                if patterns_detected > 0:
+                                    print(f"🎯 {patterns_detected} nuevos patrones ICT detectados!")
+                                
+                        except Exception as e:
+                            print(f"⚠️ Error procesando datos: {e}")
+                    
+                    # Mostrar estado del sistema cada 30 segundos
+                    if hasattr(self, '_last_status_time'):
+                        if time.time() - self._last_status_time > 30:
+                            print(f"📊 {datetime.now().strftime('%H:%M:%S')} - Sistema activo, procesando datos...")
+                            self._last_status_time = time.time()
+                    else:
+                        self._last_status_time = time.time()
+                    
+                    # Dormir 5 segundos antes del siguiente ciclo
+                    time.sleep(5)
+                    
+            except KeyboardInterrupt:
+                print("\n👋 Saliendo del bucle de procesamiento...")
+                self.is_running = False
             
         except KeyboardInterrupt:
             print("\n👋 Dashboard interrumpido por el usuario")
