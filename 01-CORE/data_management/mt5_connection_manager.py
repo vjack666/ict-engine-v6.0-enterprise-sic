@@ -13,7 +13,10 @@ import logging
 import sys
 import os
 from datetime import datetime
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mt5_data_manager import MT5DataManager
 from pathlib import Path
 
 # Fix imports with absolute path resolution
@@ -34,12 +37,12 @@ _resolve_imports()
 
 # Ahora usar imports absolutos
 try:
-    from mt5_data_manager import get_mt5_manager, _lazy_import_mt5
+    from mt5_data_manager import get_mt5_manager, _lazy_import_mt5  # type: ignore
     MT5_MANAGER_AVAILABLE = True
 except ImportError:
     # Fallback para imports relativos
     try:
-        from .mt5_data_manager import get_mt5_manager, _lazy_import_mt5
+        from .mt5_data_manager import get_mt5_manager, _lazy_import_mt5  # type: ignore
         MT5_MANAGER_AVAILABLE = True
     except ImportError:
         # Fallback absoluto con path manual
@@ -54,18 +57,18 @@ except ImportError:
                 if spec and spec.loader:
                     mt5_data_manager_module = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(mt5_data_manager_module)
-                    get_mt5_manager = mt5_data_manager_module.get_mt5_manager
-                    _lazy_import_mt5 = mt5_data_manager_module._lazy_import_mt5
+                    get_mt5_manager = mt5_data_manager_module.get_mt5_manager  # type: ignore
+                    _lazy_import_mt5 = mt5_data_manager_module._lazy_import_mt5  # type: ignore
                     MT5_MANAGER_AVAILABLE = True
                 else:
                     raise ImportError("Could not create module spec")
             else:
                 raise ImportError("mt5_data_manager.py not found")
         except Exception:
-            # Último fallback - definir funciones dummy
-            def get_mt5_manager():
+            # Último fallback - definir funciones dummy con tipos correctos
+            def get_mt5_manager() -> Optional['MT5DataManager']:  # type: ignore
                 return None
-            def _lazy_import_mt5():
+            def _lazy_import_mt5() -> bool:  # type: ignore
                 return False
             MT5_MANAGER_AVAILABLE = False
 

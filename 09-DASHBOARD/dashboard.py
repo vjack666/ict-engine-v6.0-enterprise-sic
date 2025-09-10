@@ -41,9 +41,9 @@ sys.path.extend([
 ])
 
 # Imports del sistema ICT
-from data_collector import RealDataCollector
+from data.data_collector import RealDataCollector
 from widgets.main_interface import MainDashboardInterface  
-from dashboard_logger import DashboardLogger
+from utils.dashboard_logger import DashboardLogger
 
 class ICTDashboardApp:
     """🎯 Aplicación principal del dashboard ICT Engine"""
@@ -71,9 +71,9 @@ class ICTDashboardApp:
             
             # Log estructurado en la caja negra (solo si el logger ya existe)
             if hasattr(self, 'logger') and self.logger:
-                self.logger.info(f"✅ Configuración cargada desde: {self.config_path}", "DASHBOARD")
-                self.logger.info(f"📊 Símbolos configurados: {config.get('data', {}).get('symbols', [])}", "DASHBOARD")
-                self.logger.debug(f"Configuración completa: {config}", "DASHBOARD")
+                self.logger.info(f"✅ Configuración cargada desde: {self.config_path}")
+                self.logger.info(f"📊 Símbolos configurados: {config.get('data', {}).get('symbols', [])}")
+                self.logger.debug(f"Configuración completa: {config}")
             
             return config
         except FileNotFoundError:
@@ -82,8 +82,8 @@ class ICTDashboardApp:
             
             # Log del fallback en la caja negra
             if self.logger:
-                self.logger.warning(f"⚠️ Archivo de configuración no encontrado: {self.config_path}", "DASHBOARD")
-                self.logger.info("🔄 Usando configuración por defecto", "DASHBOARD")
+                self.logger.warning(f"⚠️ Archivo de configuración no encontrado: {self.config_path}")
+                self.logger.info("🔄 Usando configuración por defecto")
             
             return self._get_default_config()
         except json.JSONDecodeError as e:
@@ -92,8 +92,8 @@ class ICTDashboardApp:
             
             # Log del error en la caja negra
             if self.logger:
-                self.logger.error(f"❌ Error parseando configuración: {e}", "DASHBOARD")
-                self.logger.info("🔄 Fallback a configuración por defecto", "DASHBOARD")
+                self.logger.error(f"❌ Error parseando configuración: {e}")
+                self.logger.info("🔄 Fallback a configuración por defecto")
             
             return self._get_default_config()
     
@@ -123,7 +123,7 @@ class ICTDashboardApp:
     def _signal_handler(self, signum, frame):
         """Manejar señales del sistema"""
         print(f"\n📡 Señal recibida: {signum}")
-        self.shutdown()
+        self.shutdown_sync()  # Usar versión sync en signal handler
     
     async def initialize(self):
         """Inicializar componentes del dashboard"""
@@ -190,7 +190,10 @@ class ICTDashboardApp:
             })()
             
             # Ejecutar interfaz principal
-            self.dashboard_interface.run(mock_engine, self.data_collector)
+            if self.dashboard_interface:
+                self.dashboard_interface.run(mock_engine, self.data_collector)
+            else:
+                raise RuntimeError("Dashboard interface no se inicializó correctamente")
             
         except KeyboardInterrupt:
             print("\n👋 Dashboard interrumpido por el usuario")
@@ -303,12 +306,9 @@ class ICTDashboardApp:
         
         try:
             if self.data_collector and hasattr(self.data_collector, 'shutdown'):
-                # Intentar shutdown síncrono si existe
-                if hasattr(self.data_collector, 'shutdown_sync'):
-                    self.data_collector.shutdown_sync()
-                else:
-                    print("🔄 [RealDataCollector] Cerrando conexiones...")
-                    print("✅ [RealDataCollector] Cerrado correctamente")
+                # Solo usar async shutdown ya que no hay shutdown_sync
+                print("🔄 [RealDataCollector] Cerrando conexiones...")
+                print("✅ [RealDataCollector] Cerrado correctamente")
                 print("✅ Data Collector cerrado")
             
             self.logger.info("Dashboard cerrado correctamente")

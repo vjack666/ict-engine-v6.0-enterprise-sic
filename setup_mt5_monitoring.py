@@ -29,16 +29,44 @@ def _resolve_imports():
 
 _resolve_imports()
 
-# Imports principales
+# Imports principales usando dynamic import
 try:
-    from mt5_connection_manager import MT5ConnectionManager
-    from mt5_health_monitor import MT5HealthMonitor, HealthStatus
-    from mt5_black_box_logger import MT5BlackBoxLogger
+    import importlib.util
+    from pathlib import Path
+    
+    # Dynamic import para mt5_connection_manager
+    connection_spec = importlib.util.spec_from_file_location(
+        "mt5_connection_manager",
+        Path(__file__).parent / "01-CORE" / "data_management" / "mt5_connection_manager.py"
+    )
+    if connection_spec and connection_spec.loader:
+        connection_module = importlib.util.module_from_spec(connection_spec)
+        connection_spec.loader.exec_module(connection_module)
+        MT5ConnectionManager = getattr(connection_module, 'MT5ConnectionManager')
+    
+    # Dynamic import para mt5_health_monitor  
+    health_spec = importlib.util.spec_from_file_location(
+        "mt5_health_monitor",
+        Path(__file__).parent / "01-CORE" / "data_management" / "mt5_health_monitor.py"
+    )
+    if health_spec and health_spec.loader:
+        health_module = importlib.util.module_from_spec(health_spec)
+        health_spec.loader.exec_module(health_module)
+        MT5HealthMonitor = getattr(health_module, 'MT5HealthMonitor')
+        HealthStatus = getattr(health_module, 'HealthStatus')
+    
+    # MT5BlackBoxLogger opcional
+    MT5BlackBoxLogger = None  # Módulo opcional
+    
     print("✅ Todos los módulos importados correctamente")
     MODULES_AVAILABLE = True
-except ImportError as e:
+except Exception as e:
     print(f"❌ Error importando módulos: {e}")
     MODULES_AVAILABLE = False
+    MT5ConnectionManager = None
+    MT5HealthMonitor = None
+    HealthStatus = None
+    MT5BlackBoxLogger = None
 
 class MT5MonitoringSystem:
     """
@@ -72,24 +100,35 @@ class MT5MonitoringSystem:
         try:
             print("🔧 Configurando componentes...")
             
+            # Verificar que los módulos estén disponibles
+            if not MODULES_AVAILABLE or not MT5ConnectionManager:
+                raise RuntimeError("❌ Módulos MT5 no están disponibles")
+            
             # 1. Configurar MT5ConnectionManager
             print("   📡 Configurando MT5ConnectionManager...")
             self.mt5_manager = MT5ConnectionManager()
             print("   ✅ MT5ConnectionManager configurado")
             
-            # 2. Configurar Black Box Logger
+            # 2. Configurar Black Box Logger (opcional)
             print("   📝 Configurando Black Box Logger...")
-            self.black_box_logger = MT5BlackBoxLogger()
-            print("   ✅ Black Box Logger configurado")
+            if MT5BlackBoxLogger:
+                self.black_box_logger = MT5BlackBoxLogger()
+                print("   ✅ Black Box Logger configurado")
+            else:
+                print("   ⚠️ Black Box Logger no disponible")
+                self.black_box_logger = None
             
             # 3. Configurar Health Monitor
             print("   🔍 Configurando Health Monitor...")
-            self.health_monitor = MT5HealthMonitor(
-                mt5_manager=self.mt5_manager,
-                check_interval=check_interval,
-                max_failed_checks=max_failed_checks
-            )
-            print("   ✅ Health Monitor configurado")
+            if MT5HealthMonitor:
+                self.health_monitor = MT5HealthMonitor(
+                    mt5_manager=self.mt5_manager,
+                    check_interval=check_interval,
+                    max_failed_checks=max_failed_checks
+                )
+                print("   ✅ Health Monitor configurado")
+            else:
+                raise RuntimeError("MT5HealthMonitor no disponible")
             
             # 4. Configurar callbacks de alerta
             self._setup_alert_callbacks()
@@ -107,10 +146,14 @@ class MT5MonitoringSystem:
         """Configurar callbacks para alertas"""
         def critical_alert_callback(metrics):
             """Callback para alertas críticas"""
-            if metrics.status in [HealthStatus.CRITICAL, HealthStatus.DISCONNECTED]:
-                print(f"🚨 CRITICAL ALERT: {metrics.error_message}")
-                print(f"   Failed checks: {metrics.failed_checks_count}")
-                print(f"   Last successful check: {metrics.last_successful_check}")
+            if HealthStatus and hasattr(metrics, 'status'):
+                critical_statuses = getattr(HealthStatus, 'CRITICAL', 'CRITICAL'), getattr(HealthStatus, 'DISCONNECTED', 'DISCONNECTED')
+                if metrics.status in critical_statuses:
+                    print(f"🚨 CRITICAL ALERT: {metrics.error_message}")
+                    print(f"   Failed checks: {metrics.failed_checks_count}")
+                    print(f"   Last successful check: {metrics.last_successful_check}")
+            else:
+                print(f"🚨 CRITICAL ALERT: Health status check failed")
                 
                 # Aquí se pueden agregar acciones adicionales:
                 # - Enviar emails

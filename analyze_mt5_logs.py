@@ -57,7 +57,7 @@ class MT5LogAnalyzer:
         print(f"🔍 MT5 Log Analyzer inicializado")
         print(f"   📁 Base path: {self.logs_path}")
         
-    def analyze_day(self, target_date: str = None) -> AnalysisResult:
+    def analyze_day(self, target_date: Optional[str] = None) -> AnalysisResult:
         """
         Analizar logs de un día específico
         

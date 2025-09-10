@@ -32,16 +32,45 @@ for path in paths_to_add:
     if path not in sys.path:
         sys.path.insert(0, path)
 
-# Imports del sistema de health monitoring
+# Imports del sistema de health monitoring con dynamic import
+MT5_AVAILABLE = False
 try:
-    from mt5_health_monitor import MT5HealthMonitor, HealthStatus
-    from mt5_connection_manager import MT5ConnectionManager
-    from mt5_black_box_logger import MT5BlackBoxLogger
-    from analyze_mt5_logs import MT5LogAnalyzer
+    import importlib.util
+    
+    # Dynamic import para mt5_health_monitor
+    health_monitor_spec = importlib.util.spec_from_file_location(
+        "mt5_health_monitor", 
+        data_mgmt_dir / "mt5_health_monitor.py"
+    )
+    if health_monitor_spec and health_monitor_spec.loader:
+        health_monitor_module = importlib.util.module_from_spec(health_monitor_spec)
+        health_monitor_spec.loader.exec_module(health_monitor_module)
+        MT5HealthMonitor = getattr(health_monitor_module, 'MT5HealthMonitor')
+        HealthStatus = getattr(health_monitor_module, 'HealthStatus')
+    
+    # Dynamic import para mt5_connection_manager  
+    connection_spec = importlib.util.spec_from_file_location(
+        "mt5_connection_manager",
+        data_mgmt_dir / "mt5_connection_manager.py"
+    )
+    if connection_spec and connection_spec.loader:
+        connection_module = importlib.util.module_from_spec(connection_spec)
+        connection_spec.loader.exec_module(connection_module)
+        MT5ConnectionManager = getattr(connection_module, 'MT5ConnectionManager')
+    
+    # Fallback para módulos opcionales (comentar imports no disponibles)
+    MT5BlackBoxLogger = None  # Módulo opcional
+    MT5LogAnalyzer = None     # Módulo opcional
+        
     MT5_AVAILABLE = True
-except ImportError as e:
+except Exception as e:
     print(f"⚠️ MT5 Health monitoring not available: {e}")
     MT5_AVAILABLE = False
+    MT5HealthMonitor = None
+    HealthStatus = None
+    MT5ConnectionManager = None
+    MT5BlackBoxLogger = None
+    MT5LogAnalyzer = None
 
 @dataclass
 class HealthMetrics:
@@ -72,7 +101,7 @@ class MT5HealthWidget:
         self.historical_data = []
         
         # Configurar analyzer de logs
-        if self.logs_path.exists():
+        if self.logs_path.exists() and MT5LogAnalyzer is not None:
             self.log_analyzer = MT5LogAnalyzer(str(self.logs_path))
         else:
             self.log_analyzer = None
@@ -153,15 +182,16 @@ class MT5HealthWidget:
                 multi_day_results = self.log_analyzer.analyze_multiple_days(7)
                 
                 self.historical_data = []
-                for date, result in multi_day_results.items():
-                    if result.total_checks > 0:
-                        self.historical_data.append({
-                            'date': date,
-                            'uptime': result.uptime_percentage,
-                            'avg_response': result.avg_response_time_ms,
-                            'alerts': len(result.critical_alerts),
-                            'checks': result.total_checks
-                        })
+                if multi_day_results:  # Verificar que no sea None o vacío
+                    for date, result in multi_day_results.items():  # type: ignore
+                        if result.total_checks > 0:
+                            self.historical_data.append({
+                                'date': date,
+                                'uptime': result.uptime_percentage,
+                                'avg_response': result.avg_response_time_ms,
+                                'alerts': len(result.critical_alerts),
+                                'checks': result.total_checks
+                            })
                         
                 # Ordenar por fecha
                 self.historical_data.sort(key=lambda x: x['date'], reverse=True)

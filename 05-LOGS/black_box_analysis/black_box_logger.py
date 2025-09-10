@@ -21,7 +21,7 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Any, List, Optional
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 import logging
 
 # Thread-safe logging imports
@@ -47,10 +47,10 @@ class BlackBoxEvent:
     data: Dict[str, Any]
     performance_ms: float
     health_status: str = "OK"
-    metadata: Dict[str, Any] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
     
     def __post_init__(self):
-        if self.metadata is None:
+        if not self.metadata:
             self.metadata = {}
 
 

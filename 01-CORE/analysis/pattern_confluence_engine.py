@@ -18,7 +18,9 @@ Dependencies:
 """
 
 import time
+import sys
 import threading
+import importlib.util
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple, Union
@@ -40,10 +42,24 @@ except ImportError:
 
 # Black box logging
 try:
-    sys.path.insert(0, str(Path(__file__).parent.parent.parent / "05-LOGS" / "black_box_analysis"))
-    from black_box_logger import get_black_box_logger
-    BLACK_BOX_AVAILABLE = True
-except ImportError:
+    # Add black box logger path
+    black_box_logger_path = Path(__file__).parent.parent.parent / "05-LOGS" / "black_box_analysis"
+    if str(black_box_logger_path) not in sys.path:
+        sys.path.insert(0, str(black_box_logger_path))
+    
+    # Dynamic import to avoid Pylance issues
+    spec = importlib.util.spec_from_file_location(
+        "black_box_logger", 
+        black_box_logger_path / "black_box_logger.py"
+    )
+    if spec and spec.loader:
+        black_box_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(black_box_module)
+        get_black_box_logger = getattr(black_box_module, 'get_black_box_logger')
+        BLACK_BOX_AVAILABLE = True
+    else:
+        BLACK_BOX_AVAILABLE = False
+except Exception:
     BLACK_BOX_AVAILABLE = False
 
 # Pattern detectors integration
@@ -173,7 +189,11 @@ class PatternConfluenceEngine:
         
         self.logger.info("🧠 Pattern Confluence Engine v6.1 initialized")
         if self.black_box:
-            self.black_box.log_system_event("PatternConfluenceEngine_v6.1_Initialized")
+            self.black_box.log_health_status("PatternConfluenceEngine", {
+                "status": "initialized",
+                "version": "v6.1",
+                "timestamp": datetime.now().isoformat()
+            })
     
     def analyze_confluence(self, candles, symbol: str, timeframe: str) -> ConfluenceAnalysis:
         """

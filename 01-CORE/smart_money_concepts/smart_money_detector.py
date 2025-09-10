@@ -38,15 +38,39 @@ import json
 import time
 from pathlib import Path
 
-# Importar el sistema de logging central
+# Importar el sistema de logging central con dynamic import
+LOGGER_AVAILABLE = False
 try:
-    from ..utils.smart_trading_logger import get_smart_logger, log_info, log_warning, log_error, log_success
-except ImportError:
+    # Add logging system path
+    logging_path = Path(__file__).parent.parent
+    if str(logging_path) not in sys.path:
+        sys.path.insert(0, str(logging_path))
+    
+    # Dynamic import to avoid Pylance issues
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "smart_trading_logger", 
+        logging_path / "smart_trading_logger.py"
+    )
+    if spec and spec.loader:
+        logging_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(logging_module)
+        get_smart_logger = getattr(logging_module, 'get_smart_logger')
+        log_info = getattr(logging_module, 'log_info')
+        log_warning = getattr(logging_module, 'log_warning')
+        log_error = getattr(logging_module, 'log_error')
+        log_success = getattr(logging_module, 'log_success')
+        LOGGER_AVAILABLE = True
+    else:
+        raise ImportError("Could not create module spec")
+except Exception:
+    # Fallback functions
     def get_smart_logger(): return None
     def log_info(msg, category="SMART_MONEY"): print(f"[INFO] {msg}")
     def log_warning(msg, category="SMART_MONEY"): print(f"[WARNING] {msg}")
     def log_error(msg, category="SMART_MONEY"): print(f"[ERROR] {msg}")
     def log_success(msg, category="SMART_MONEY"): print(f"[SUCCESS] {msg}")
+    LOGGER_AVAILABLE = False
 
 # Importar MT5 Health Monitor para integración
 try:
@@ -294,7 +318,7 @@ class SmartMoneyDetector:
             return 1.0  # Asumir perfecto si no hay monitor
         
         try:
-            health_data = self.health_monitor.get_current_health()
+            health_data = self.health_monitor.get_health_summary()
             
             # Calcular score específico para Smart Money (más estricto)
             connection_score = 1.0 if health_data.get('connected', True) else 0.0

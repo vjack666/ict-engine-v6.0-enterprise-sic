@@ -292,9 +292,20 @@ class TextualDashboardApp(App[None]):
     def _get_mt5_health_status(self) -> str:
         """Obtener estado de MT5 Health Monitoring"""
         try:
-            # Importar la integración
-            sys.path.insert(0, str(Path(__file__).parent.parent / "bridge"))
-            from mt5_health_integration import get_mt5_status_indicator, get_mt5_health_for_dashboard
+            # Dynamic import para mt5_health_integration
+            import importlib.util
+            bridge_path = Path(__file__).parent.parent / "bridge"
+            spec = importlib.util.spec_from_file_location(
+                "mt5_health_integration",
+                bridge_path / "mt5_health_integration.py"
+            )
+            if spec and spec.loader:
+                health_integration_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(health_integration_module)
+                get_mt5_status_indicator = getattr(health_integration_module, 'get_mt5_status_indicator')
+                get_mt5_health_for_dashboard = getattr(health_integration_module, 'get_mt5_health_for_dashboard')
+            else:
+                return "[yellow]⚠️ MT5 Health Integration no disponible[/yellow]"
             
             # Obtener indicador de status
             status_indicator = get_mt5_status_indicator()

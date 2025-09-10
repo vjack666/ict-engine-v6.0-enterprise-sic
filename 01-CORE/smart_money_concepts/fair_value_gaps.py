@@ -18,7 +18,9 @@ Dependencies:
 """
 
 import time
+import sys
 import threading
+import importlib.util
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
@@ -40,26 +42,69 @@ except ImportError:
 
 # Black box logging
 try:
-    sys.path.insert(0, str(Path(__file__).parent.parent.parent / "05-LOGS" / "black_box_analysis"))
-    from black_box_logger import log_fvg_detection, get_black_box_logger
-    BLACK_BOX_AVAILABLE = True
-except ImportError:
+    # Add black box logger path
+    black_box_logger_path = Path(__file__).parent.parent.parent / "05-LOGS" / "black_box_analysis"
+    if str(black_box_logger_path) not in sys.path:
+        sys.path.insert(0, str(black_box_logger_path))
+    
+    # Dynamic import to avoid Pylance issues
+    spec = importlib.util.spec_from_file_location(
+        "black_box_logger", 
+        black_box_logger_path / "black_box_logger.py"
+    )
+    if spec and spec.loader:
+        black_box_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(black_box_module)
+        log_fvg_detection = getattr(black_box_module, 'log_fvg_detection')
+        get_black_box_logger = getattr(black_box_module, 'get_black_box_logger')
+        BLACK_BOX_AVAILABLE = True
+    else:
+        BLACK_BOX_AVAILABLE = False
+except Exception:
     BLACK_BOX_AVAILABLE = False
 
 # Health monitoring integration
 try:
-    sys.path.insert(0, str(Path(__file__).parent.parent / "data_management"))
-    from mt5_health_monitor import get_health_monitor
-    HEALTH_MONITOR_AVAILABLE = True
-except ImportError:
+    # Add health monitor path
+    health_monitor_path = Path(__file__).parent.parent / "data_management"
+    if str(health_monitor_path) not in sys.path:
+        sys.path.insert(0, str(health_monitor_path))
+    
+    # Dynamic import to avoid Pylance issues
+    spec = importlib.util.spec_from_file_location(
+        "mt5_health_monitor", 
+        health_monitor_path / "mt5_health_monitor.py"
+    )
+    if spec and spec.loader:
+        health_monitor_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(health_monitor_module)
+        get_health_monitor = getattr(health_monitor_module, 'create_health_monitor')
+        HEALTH_MONITOR_AVAILABLE = True
+    else:
+        HEALTH_MONITOR_AVAILABLE = False
+except Exception:
     HEALTH_MONITOR_AVAILABLE = False
 
 # Memory system integration  
 try:
-    sys.path.insert(0, str(Path(__file__).parent.parent / "analysis"))
-    from unified_memory_system import get_unified_memory_system
-    MEMORY_SYSTEM_AVAILABLE = True
-except ImportError:
+    # Add memory system path
+    memory_system_path = Path(__file__).parent.parent / "analysis"
+    if str(memory_system_path) not in sys.path:
+        sys.path.insert(0, str(memory_system_path))
+    
+    # Dynamic import to avoid Pylance issues
+    spec = importlib.util.spec_from_file_location(
+        "unified_memory_system", 
+        memory_system_path / "unified_memory_system.py"
+    )
+    if spec and spec.loader:
+        memory_system_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(memory_system_module)
+        get_unified_memory_system = getattr(memory_system_module, 'get_unified_memory_system')
+        MEMORY_SYSTEM_AVAILABLE = True
+    else:
+        MEMORY_SYSTEM_AVAILABLE = False
+except Exception:
     MEMORY_SYSTEM_AVAILABLE = False
 
 
