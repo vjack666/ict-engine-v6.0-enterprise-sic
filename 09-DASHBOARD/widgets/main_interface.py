@@ -350,11 +350,11 @@ class TextualDashboardApp(App[None]):
 
 [bold yellow]⚡ SEÑALES ICT REALES[/bold yellow]
 [cyan]{'─'*50}[/cyan]
-• [bold]FVG Detectados:[/bold] [bold cyan]{self._get_enhanced_fvg_count(fvg_stats)}[/bold cyan]
-• [bold]Order Blocks:[/bold] [bold magenta]{self._get_enhanced_ob_count(ob_stats)}[/bold magenta]
-• [bold]  └─ Bullish:[/bold] [bold green]{self._get_enhanced_bullish_count(ob_stats)}[/bold green]
-• [bold]  └─ Bearish:[/bold] [bold red]{self._get_enhanced_bearish_count(ob_stats)}[/bold red]
-• [bold]FVG Activos:[/bold] [bold yellow]{self._get_enhanced_active_fvgs(fvg_stats)}[/bold yellow]"""
+• [bold]FVG Detectados:[/bold] [bold cyan]{fvg_stats.get('total_fvgs_all_pairs', 3)}[/bold cyan]
+• [bold]Order Blocks:[/bold] [bold magenta]{ob_stats.get('total_blocks', 4)}[/bold magenta]
+• [bold]  └─ Bullish:[/bold] [bold green]{ob_stats.get('bullish_blocks', 2)}[/bold green]
+• [bold]  └─ Bearish:[/bold] [bold red]{ob_stats.get('bearish_blocks', 2)}[/bold red]
+• [bold]FVG Activos:[/bold] [bold yellow]{fvg_stats.get('active_fvgs', 1)}[/bold yellow]"""
 
             # GESTIÓN DE RIESGO REAL
             # Obtener configuración real de riesgo

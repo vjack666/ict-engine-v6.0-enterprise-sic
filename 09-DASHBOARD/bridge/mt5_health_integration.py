@@ -93,7 +93,8 @@ class MT5HealthDashboardIntegration:
             # Verificar conexión usando MT5DataManager del sistema
             try:
                 # Usar el MT5DataManager existente del sistema
-                sys.path.append('C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\01-CORE')
+                import sys
+                sys.path.append('../01-CORE')
                 from utils.mt5_data_manager import get_mt5_manager
                 
                 mt5_manager = get_mt5_manager()
@@ -251,7 +252,8 @@ class MT5HealthDashboardIntegration:
         
         # Verificar si hay datos reales de trading usando MT5DataManager
         try:
-            sys.path.append('C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\01-CORE')
+            import sys
+            sys.path.append('../01-CORE')
             from utils.mt5_data_manager import get_mt5_manager
             
             mt5_manager = get_mt5_manager()
