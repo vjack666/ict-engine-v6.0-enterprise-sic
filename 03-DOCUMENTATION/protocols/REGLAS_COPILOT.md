@@ -2,8 +2,34 @@
 
 **Archivo:** `REGLAS_COPILOT.md`  
 **Ubicación:** Raíz del proyecto  
-**Fecha:** Agosto 8, 2025  
+**Fecha:** 11 Septiembre 2025 - ⚡ ACTUALIZADO CON NAVEGACIÓN OPTIMIZADA  
 **Propósito:** Guías y reglas para GitHub Copilot en el desarrollo del ICT Engine
+
+---
+
+## ⚡ **NAVEGACIÓN ULTRA-RÁPIDA - NUEVAS HERRAMIENTAS**
+
+### 🧭 **ACCESO INSTANTÁNEO A DOCUMENTACIÓN:**
+```
+🚨 PARA ACCESO INMEDIATO (< 30 segundos):
+✅ 03-DOCUMENTATION/QUICK-NAVIGATION.md        # Navegación inteligente por casos de uso
+✅ 03-DOCUMENTATION/COPILOT-CONTEXT-CARDS.md  # Context cards instantáneos 
+✅ 03-DOCUMENTATION/MASTER-INDEX.md           # Índice maestro completo
+
+🔧 COMANDOS RÁPIDOS:
+cat 03-DOCUMENTATION/QUICK-NAVIGATION.md | head -50     # Emergency access
+grep "COMPONENTE" 03-DOCUMENTATION/COPILOT-CONTEXT-CARDS.md # Context específico
+```
+
+### 📋 **WORKFLOW OPTIMIZADO:**
+```
+⚡ ANTES DE CUALQUIER DESARROLLO (60 segundos):
+1️⃣ grep "ÁREA_ESPECÍFICA" 03-DOCUMENTATION/COPILOT-CONTEXT-CARDS.md    (15 seg)
+2️⃣ cat protocols/03-templates-implementacion.md | head -30              (15 seg)
+3️⃣ find technical/docs/04-development-logs/ -name "*ÁREA*" | head -2    (15 seg)
+4️⃣ cat ESTADO_REAL_SISTEMA_REFERENCIA.md | head -25                     (15 seg)
+🎯 RESULTADO: Context completo para implementar sin pérdida de tiempo
+```
 
 ---
 
