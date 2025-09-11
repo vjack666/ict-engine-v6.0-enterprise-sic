@@ -1,0 +1,64 @@
+{
+  "risk_management": {
+    "default_risk_level": "moderate",
+    "risk_levels": {
+      "conservative": {
+        "risk_percent": 0.5,
+        "max_position_size": 5.0,
+        "description": "Conservative risk - 0.5% per trade"
+      },
+      "moderate": {
+        "risk_percent": 1.0,
+        "max_position_size": 10.0,
+        "description": "Moderate risk - 1.0% per trade"
+      },
+      "aggressive": {
+        "risk_percent": 2.0,
+        "max_position_size": 20.0,
+        "description": "Aggressive risk - 2.0% per trade"
+      }
+    },
+    "correlation_threshold": 0.7,
+    "enable_correlation_adjustment": true
+  },
+  "emergency_stop": {
+    "max_drawdown_percent": 5.0,
+    "max_consecutive_losses": 5,
+    "daily_loss_limit": 500.0,
+    "monitoring_interval_seconds": 30,
+    "recovery_cooldown_seconds": 3600,
+    "enable_weekend_stop": true,
+    "enable_news_stop": true,
+    "auto_close_positions": true,
+    "auto_cancel_orders": true
+  },
+  "signal_validation": {
+    "min_confluence_score": 7.0,
+    "min_risk_reward_ratio": 1.5,
+    "require_structure_break": true,
+    "require_order_block": true,
+    "max_signals_per_day": 10,
+    "enable_time_filtering": true,
+    "trading_hours": {
+      "london_open": "08:00",
+      "new_york_open": "13:00",
+      "asian_close": "10:00"
+    }
+  },
+  "execution": {
+    "max_slippage_pips": 2.0,
+    "execution_timeout_seconds": 5.0,
+    "enable_partial_fills": true,
+    "enable_break_even": true,
+    "break_even_trigger_pips": 20.0,
+    "enable_trailing_stop": true,
+    "trailing_stop_distance": 15.0
+  },
+  "monitoring": {
+    "update_interval_seconds": 10,
+    "enable_real_time_alerts": true,
+    "alert_channels": ["dashboard", "log", "email"],
+    "performance_tracking": true,
+    "save_trade_history": true
+  }
+}
