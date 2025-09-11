@@ -1,0 +1,34 @@
+{
+  "account_info": {
+    "account_number": 0,
+    "balance": 0.0,
+    "equity": 0.0,
+    "margin": 0.0,
+    "free_margin": 0.0,
+    "margin_level": 0.0,
+    "profit": 0.0,
+    "currency": "USD",
+    "leverage": 1,
+    "server": "",
+    "company": "",
+    "is_connected": false,
+    "last_update": null
+  },
+  "system_status": {
+    "mt5_connected": false,
+    "dashboard_running": false,
+    "trading_active": false,
+    "risk_monitoring": false,
+    "data_feed_active": false,
+    "system_health": "UNKNOWN",
+    "last_check": null
+  },
+  "modules_status": {
+    "mt5_manager": false,
+    "risk_manager": false,
+    "trading_system": false,
+    "data_manager": false,
+    "dashboard_integrator": false
+  },
+  "export_timestamp": "2025-09-10T19:06:09.738885"
+}

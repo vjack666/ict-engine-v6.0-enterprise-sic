@@ -1,4 +1,4 @@
-# 🤖 **REGLAS PARA COPILOT - ICT ENGINE v6.0 ENTERPRISE**
+﻿# 🤖 **REGLAS PARA COPILOT - ICT ENGINE v6.0 ENTERPRISE**
 
 **Archivo:** `REGLAS_COPILOT.md`  
 **Ubicación:** Raíz del proyecto  
@@ -360,7 +360,7 @@
 - Integration score: [X]/10
 
 ### 📋 **CHECKLIST - COMPLETADO:**
-- [x] ✅ [Lista de tareas completadas]
+- [ ] ✅ [Lista de tareas completadas]
 
 **🎉 [FASE/COMPONENTE] COMPLETADA EXITOSAMENTE**
 ```
@@ -2097,3 +2097,4 @@ data = pd.DataFrame(live_data)  # Sin locks en tiempo real
 
 *Última actualización: Agosto 11, 2025*
 *ICT Engine v6.0 Enterprise Team*
+

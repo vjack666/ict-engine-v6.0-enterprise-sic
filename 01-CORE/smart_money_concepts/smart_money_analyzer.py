@@ -2644,6 +2644,493 @@ class SmartMoneyAnalyzer:
                 'emergency': True
             }]
 
+    def detect_stop_hunts(self, 
+                         data: 'DataFrameType', 
+                         lookback_periods: int = 50,
+                         spike_threshold: float = 0.0015,  # 15 pips for major pairs
+                         reversal_periods: int = 5,
+                         volume_threshold: float = 1.5) -> List[Dict[str, Any]]:
+        """
+        🎯 DETECTA STOP HUNTS (CACERÍA DE STOPS) - MÉTODO ICT CRÍTICO
+        
+        Un Stop Hunt es cuando market makers mueven el precio rápidamente hacia niveles
+        donde están ubicados los stop losses retail, los activan, y luego revierten
+        el precio en la dirección opuesta para beneficiarse de la liquidez generada.
+        
+        Args:
+            data: DataFrame con OHLC data
+            lookback_periods: Períodos para calcular niveles de referencia
+            spike_threshold: Threshold mínimo para considerar un spike (como % del ATR)
+            reversal_periods: Máximos períodos para considerar reversión válida
+            volume_threshold: Multiplicador de volumen promedio para validación
+            
+        Returns:
+            Lista de stop hunts detectados con metadata completa
+        """
+        try:
+            # Validar dataframe
+            if data is None or data.empty or len(data) < 50:
+                return []
+                
+            stop_hunts = []
+            
+            # 1. Calcular ATR para threshold dinámico
+            if 'atr' not in data.columns:
+                data = self._calculate_atr(data, period=14)
+            
+            # 2. Identificar niveles de stops obvios
+            stop_levels = self._identify_stop_levels(data, lookback_periods)
+            
+            # 3. Calcular volumen promedio
+            avg_volume = data['volume'].rolling(window=20).mean() if 'volume' in data.columns else None
+            
+            # 4. Escanear por spike patterns
+            for i in range(lookback_periods, len(data) - reversal_periods):
+                current_bar = data.iloc[i]
+                
+                # Verificar spikes hacia niveles de stops
+                for level_info in stop_levels:
+                    level = level_info['level']
+                    level_type = level_info['type']  # 'resistance' o 'support'
+                    
+                    # Detectar spike hacia arriba (hacia resistencia)
+                    if level_type == 'resistance':
+                        spike_detected = self._detect_bullish_spike(
+                            data, i, level, spike_threshold, current_bar.get('atr', 0)
+                        )
+                        if spike_detected:
+                            reversal = self._validate_bearish_reversal(
+                                data, i, reversal_periods, level
+                            )
+                            if reversal:
+                                stop_hunt = self._create_stop_hunt_entry(
+                                    data, i, level, 'BEARISH_STOP_HUNT', 
+                                    spike_detected, reversal, avg_volume, volume_threshold
+                                )
+                                if stop_hunt:
+                                    stop_hunts.append(stop_hunt)
+                    
+                    # Detectar spike hacia abajo (hacia soporte)
+                    elif level_type == 'support':
+                        spike_detected = self._detect_bearish_spike(
+                            data, i, level, spike_threshold, current_bar.get('atr', 0)
+                        )
+                        if spike_detected:
+                            reversal = self._validate_bullish_reversal(
+                                data, i, reversal_periods, level
+                            )
+                            if reversal:
+                                stop_hunt = self._create_stop_hunt_entry(
+                                    data, i, level, 'BULLISH_STOP_HUNT',
+                                    spike_detected, reversal, avg_volume, volume_threshold
+                                )
+                                if stop_hunt:
+                                    stop_hunts.append(stop_hunt)
+            
+            # 5. Log resultado
+            self.logger.info(f"✅ Stop Hunts detectados: {len(stop_hunts)}")
+            
+            # 6. Actualizar unified memory si está disponible
+            if self.unified_memory:
+                try:
+                    self.unified_memory.store_analysis_result(
+                        'stop_hunts_detection',
+                        {
+                            'timestamp': datetime.now().isoformat(),
+                            'stop_hunts_count': len(stop_hunts),
+                            'stop_hunts': stop_hunts[-10:] if len(stop_hunts) > 10 else stop_hunts  # Últimos 10
+                        }
+                    )
+                except Exception as e:
+                    self.logger.warning(f"Error guardando en unified memory: {e}")
+            
+            return stop_hunts
+            
+        except Exception as e:
+            self.logger.error(f"Error en detect_stop_hunts: {e}")
+            return []
+
+    def _identify_stop_levels(self, data: 'DataFrameType', lookback: int) -> List[Dict[str, Any]]:
+        """Identifica niveles donde probablemente están ubicados los stops retail"""
+        try:
+            levels = []
+            
+            # 1. Swing highs y lows como stop levels
+            swing_highs = self._find_swing_highs(data, window=5)
+            swing_lows = self._find_swing_lows(data, window=5)
+            
+            for high_idx, high_price in swing_highs:
+                if high_idx >= len(data) - lookback:  # Solo niveles recientes
+                    levels.append({
+                        'level': high_price,
+                        'type': 'resistance',
+                        'strength': self._calculate_level_strength(data, high_price, 'resistance'),
+                        'age': len(data) - high_idx
+                    })
+            
+            for low_idx, low_price in swing_lows:
+                if low_idx >= len(data) - lookback:  # Solo niveles recientes
+                    levels.append({
+                        'level': low_price,
+                        'type': 'support',
+                        'strength': self._calculate_level_strength(data, low_price, 'support'),
+                        'age': len(data) - low_idx
+                    })
+            
+            # 2. Round numbers (para pares mayores)
+            current_price = data['close'].iloc[-1]
+            round_levels = self._get_round_number_levels(current_price)
+            
+            for round_level in round_levels:
+                level_type = 'resistance' if round_level > current_price else 'support'
+                levels.append({
+                    'level': round_level,
+                    'type': level_type,
+                    'strength': 0.7,  # Round numbers tienen fuerza moderada
+                    'age': 0  # Siempre "fresh"
+                })
+            
+            return levels
+            
+        except Exception as e:
+            self.logger.error(f"Error identificando stop levels: {e}")
+            return []
+
+    def _detect_bullish_spike(self, data: 'DataFrameType', index: int, 
+                            target_level: float, threshold: float, atr: float) -> Optional[Dict]:
+        """Detecta spike alcista hacia nivel de resistencia"""
+        try:
+            current_bar = data.iloc[index]
+            high_price = current_bar['high']
+            
+            # Verificar si el high penetró el nivel
+            if high_price <= target_level:
+                return None
+            
+            # Calcular magnitud del spike
+            spike_distance = high_price - target_level
+            min_spike = max(threshold, atr * 0.5) if atr > 0 else threshold
+            
+            if spike_distance < min_spike:
+                return None
+            
+            return {
+                'spike_high': high_price,
+                'target_level': target_level,
+                'spike_distance': spike_distance,
+                'spike_ratio': spike_distance / atr if atr > 0 else 1.0,
+                'timestamp': current_bar.name if hasattr(current_bar, 'name') else index
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error detectando bullish spike: {e}")
+            return None
+
+    def _detect_bearish_spike(self, data: 'DataFrameType', index: int,
+                            target_level: float, threshold: float, atr: float) -> Optional[Dict]:
+        """Detecta spike bajista hacia nivel de soporte"""
+        try:
+            current_bar = data.iloc[index]
+            low_price = current_bar['low']
+            
+            # Verificar si el low penetró el nivel
+            if low_price >= target_level:
+                return None
+            
+            # Calcular magnitud del spike
+            spike_distance = target_level - low_price
+            min_spike = max(threshold, atr * 0.5) if atr > 0 else threshold
+            
+            if spike_distance < min_spike:
+                return None
+            
+            return {
+                'spike_low': low_price,
+                'target_level': target_level,
+                'spike_distance': spike_distance,
+                'spike_ratio': spike_distance / atr if atr > 0 else 1.0,
+                'timestamp': current_bar.name if hasattr(current_bar, 'name') else index
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error detectando bearish spike: {e}")
+            return None
+
+    def _validate_bearish_reversal(self, data: 'DataFrameType', spike_index: int,
+                                 max_periods: int, target_level: float) -> Optional[Dict]:
+        """Valida reversión bajista después de spike alcista"""
+        try:
+            end_index = min(spike_index + max_periods + 1, len(data))
+            
+            for i in range(spike_index + 1, end_index):
+                current_bar = data.iloc[i]
+                
+                # Verificar si hay reversión significativa
+                if current_bar['close'] < target_level:
+                    return {
+                        'reversal_bar': i,
+                        'reversal_low': current_bar['low'],
+                        'periods_to_reversal': i - spike_index,
+                        'reversal_strength': (target_level - current_bar['low']) / target_level
+                    }
+            
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Error validando bearish reversal: {e}")
+            return None
+
+    def _validate_bullish_reversal(self, data: 'DataFrameType', spike_index: int,
+                                 max_periods: int, target_level: float) -> Optional[Dict]:
+        """Valida reversión alcista después de spike bajista"""
+        try:
+            end_index = min(spike_index + max_periods + 1, len(data))
+            
+            for i in range(spike_index + 1, end_index):
+                current_bar = data.iloc[i]
+                
+                # Verificar si hay reversión significativa
+                if current_bar['close'] > target_level:
+                    return {
+                        'reversal_bar': i,
+                        'reversal_high': current_bar['high'],
+                        'periods_to_reversal': i - spike_index,
+                        'reversal_strength': (current_bar['high'] - target_level) / target_level
+                    }
+            
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Error validando bullish reversal: {e}")
+            return None
+
+    def _create_stop_hunt_entry(self, data: 'DataFrameType', index: int, level: float,
+                              hunt_type: str, spike_data: Dict, reversal_data: Dict,
+                              avg_volume: Optional['pd.Series'], volume_threshold: float) -> Optional[Dict]:
+        """Crea entrada completa de stop hunt detectado"""
+        try:
+            current_bar = data.iloc[index]
+            
+            # Calcular volume ratio si hay datos de volumen
+            volume_ratio = 1.0
+            if avg_volume is not None and 'volume' in current_bar:
+                current_volume = current_bar['volume']
+                avg_vol_value = avg_volume.iloc[index] if index < len(avg_volume) else avg_volume.iloc[-1]
+                if avg_vol_value > 0:
+                    volume_ratio = current_volume / avg_vol_value
+            
+            # Calcular strength del stop hunt
+            strength = self._calculate_stop_hunt_strength(
+                spike_data, reversal_data, volume_ratio, volume_threshold
+            )
+            
+            # Determinar confidence level
+            confidence = self._determine_confidence_level(strength, volume_ratio, reversal_data)
+            
+            return {
+                'timestamp': current_bar.name if hasattr(current_bar, 'name') else index,
+                'type': hunt_type,
+                'target_level': level,
+                'spike_high': spike_data.get('spike_high'),
+                'spike_low': spike_data.get('spike_low'),
+                'reversal_level': reversal_data.get('reversal_high') or reversal_data.get('reversal_low'),
+                'periods_to_reversal': reversal_data['periods_to_reversal'],
+                'strength': strength,
+                'volume_ratio': volume_ratio,
+                'confidence': confidence,
+                'spike_distance': spike_data['spike_distance'],
+                'reversal_strength': reversal_data['reversal_strength']
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error creando stop hunt entry: {e}")
+            return None
+
+    def _calculate_stop_hunt_strength(self, spike_data: Dict, reversal_data: Dict,
+                                    volume_ratio: float, volume_threshold: float) -> float:
+        """Calcula strength score del stop hunt (0-1)"""
+        try:
+            strength = 0.0
+            
+            # Factor 1: Magnitud del spike (30%)
+            spike_ratio = spike_data.get('spike_ratio', 0)
+            spike_score = min(spike_ratio / 2.0, 1.0) * 0.3
+            strength += spike_score
+            
+            # Factor 2: Velocidad de reversión (25%)
+            periods = reversal_data['periods_to_reversal']
+            reversal_speed_score = max(0, (6 - periods) / 5) * 0.25
+            strength += reversal_speed_score
+            
+            # Factor 3: Strength de reversión (25%)
+            reversal_strength = reversal_data['reversal_strength']
+            reversal_score = min(reversal_strength * 2, 1.0) * 0.25
+            strength += reversal_score
+            
+            # Factor 4: Volume confirmation (20%)
+            volume_score = min(volume_ratio / volume_threshold, 1.0) * 0.2
+            strength += volume_score
+            
+            return min(strength, 1.0)
+            
+        except Exception as e:
+            self.logger.error(f"Error calculando stop hunt strength: {e}")
+            return 0.0
+
+    def _determine_confidence_level(self, strength: float, volume_ratio: float, 
+                                  reversal_data: Dict) -> str:
+        """Determina nivel de confidence del stop hunt"""
+        try:
+            if strength >= 0.8 and volume_ratio >= 1.5 and reversal_data['periods_to_reversal'] <= 3:
+                return 'HIGH'
+            elif strength >= 0.6 and volume_ratio >= 1.2:
+                return 'MEDIUM'
+            else:
+                return 'LOW'
+                
+        except Exception as e:
+            self.logger.error(f"Error determinando confidence level: {e}")
+            return 'LOW'
+
+    def _find_swing_highs(self, data: 'DataFrameType', window: int = 5) -> List[Tuple[int, float]]:
+        """Encuentra swing highs en los datos"""
+        try:
+            swing_highs = []
+            highs = data['high'].values
+            
+            for i in range(window, len(highs) - window):
+                is_swing_high = True
+                current_high = highs[i]
+                
+                # Verificar que sea mayor que las velas anteriores y posteriores
+                for j in range(i - window, i + window + 1):
+                    if j != i and highs[j] >= current_high:
+                        is_swing_high = False
+                        break
+                
+                if is_swing_high:
+                    swing_highs.append((i, current_high))
+            
+            return swing_highs
+            
+        except Exception as e:
+            self.logger.error(f"Error encontrando swing highs: {e}")
+            return []
+
+    def _find_swing_lows(self, data: 'DataFrameType', window: int = 5) -> List[Tuple[int, float]]:
+        """Encuentra swing lows en los datos"""
+        try:
+            swing_lows = []
+            lows = data['low'].values
+            
+            for i in range(window, len(lows) - window):
+                is_swing_low = True
+                current_low = lows[i]
+                
+                # Verificar que sea menor que las velas anteriores y posteriores
+                for j in range(i - window, i + window + 1):
+                    if j != i and lows[j] <= current_low:
+                        is_swing_low = False
+                        break
+                
+                if is_swing_low:
+                    swing_lows.append((i, current_low))
+            
+            return swing_lows
+            
+        except Exception as e:
+            self.logger.error(f"Error encontrando swing lows: {e}")
+            return []
+
+    def _calculate_level_strength(self, data: 'DataFrameType', level: float, level_type: str) -> float:
+        """Calcula la fuerza de un nivel de soporte/resistencia"""
+        try:
+            touches = 0
+            total_bars = len(data)
+            
+            for _, row in data.iterrows():
+                if level_type == 'resistance':
+                    # Contar cuántas veces el precio se acercó al nivel desde abajo
+                    if abs(row['high'] - level) / level < 0.001:  # 0.1% tolerance
+                        touches += 1
+                elif level_type == 'support':
+                    # Contar cuántas veces el precio se acercó al nivel desde arriba
+                    if abs(row['low'] - level) / level < 0.001:  # 0.1% tolerance
+                        touches += 1
+            
+            # Strength based on number of touches (more touches = stronger level)
+            return min(touches / 10.0, 1.0)  # Máximo 1.0 strength
+            
+        except Exception as e:
+            self.logger.error(f"Error calculando level strength: {e}")
+            return 0.5  # Default medium strength
+
+    def _get_round_number_levels(self, current_price: float) -> List[float]:
+        """Obtiene niveles de números redondos cercanos al precio actual"""
+        try:
+            levels = []
+            
+            # Determinar el step size basado en el precio
+            if current_price >= 100:
+                step = 1.0  # Para USDJPY: 147.00, 148.00, etc.
+            elif current_price >= 10:
+                step = 0.1  # Para pares menores: 1.3000, 1.3100, etc.
+            else:
+                step = 0.01  # Para pares con precios pequeños
+            
+            # Encontrar el round number más cercano
+            base_level = round(current_price / step) * step
+            
+            # Agregar niveles arriba y abajo
+            for i in range(-3, 4):  # 3 niveles arriba y abajo
+                level = base_level + (i * step)
+                if level > 0:  # Solo niveles positivos
+                    levels.append(round(level, 5))
+            
+            # Filtrar niveles muy cercanos al precio actual (dentro de 5 pips)
+            pip_value = 0.0001 if current_price < 10 else 0.01
+            min_distance = pip_value * 5
+            
+            filtered_levels = []
+            for level in levels:
+                if abs(level - current_price) >= min_distance:
+                    filtered_levels.append(level)
+            
+            return filtered_levels
+            
+        except Exception as e:
+            self.logger.error(f"Error obteniendo round number levels: {e}")
+            return []
+
+    def _calculate_atr(self, data: 'DataFrameType', period: int = 14) -> 'DataFrameType':
+        """Calcula Average True Range (ATR)"""
+        try:
+            if not PANDAS_AVAILABLE:
+                return data
+            
+            import pandas as pd
+            import numpy as np
+            
+            # Calcular True Range
+            data['prev_close'] = data['close'].shift(1)
+            data['tr1'] = data['high'] - data['low']
+            data['tr2'] = abs(data['high'] - data['prev_close'])
+            data['tr3'] = abs(data['low'] - data['prev_close'])
+            
+            data['true_range'] = data[['tr1', 'tr2', 'tr3']].max(axis=1)
+            
+            # Calcular ATR como media móvil del True Range
+            data['atr'] = data['true_range'].rolling(window=period).mean()
+            
+            # Limpiar columnas temporales
+            data.drop(['prev_close', 'tr1', 'tr2', 'tr3', 'true_range'], axis=1, inplace=True)
+            
+            return data
+            
+        except Exception as e:
+            self.logger.error(f"Error calculando ATR: {e}")
+            return data
+
 
 # ============================================================================
 # 🚀 FACTORY FUNCTIONS PARA SMART MONEY ANALYZER v6.0 ENTERPRISE

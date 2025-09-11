@@ -26,11 +26,7 @@ import signal
 import time
 import threading
 from pathlib import Path
-from typing import Dict, Any, Optional, Union, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ict_dashboard import ICTDashboard as ICTDashboardType
-    from core.dashboard_engine import DashboardEngine as DashboardEngineType
+from typing import Dict, Any, Optional, Union
 
 # Configurar rutas siguiendo la estructura del main.py
 dashboard_dir = Path(__file__).parent.absolute()
@@ -50,73 +46,86 @@ sys.path.extend([
     str(dashboard_dir / "bridge")
 ])
 
-# Imports de componentes existentes ya validados
-try:
-    # Imports del dashboard
-    from ict_dashboard import ICTDashboard as RealICTDashboard
-    from core.dashboard_engine import DashboardEngine as RealDashboardEngine
-    from core.enterprise_singleton_manager import (
-        EnterpriseSingletonManager,
-        EnterprisePatternFactory,
-        initialize_enterprise_components,
-        cleanup_enterprise_components
-    )
+# Variables globales para manejo dinámico de clases (sin conflictos de tipo)
+dashboard_imports_ok = False
+
+# Funciones para cargar componentes dinámicamente (sin conflictos de tipo)
+def load_dashboard_components():
+    """Cargar componentes del dashboard dinámicamente"""
+    components = {}
     
-    # Intentar importar data collector del dashboard
     try:
-        from data.data_collector import RealICTDataCollector
-    except ImportError:
-        print("[INFO] Usando RealICTDataCollector externo")
-        RealICTDataCollector = None
-    
-    dashboard_imports_ok = True
-    print("✅ [DASHBOARD] Imports principales cargados correctamente")
-    
-    # Usar las clases reales - Variables dinámicas para evitar conflictos de tipo
-    ICTDashboard = RealICTDashboard  # type: ignore
-    DashboardEngine = RealDashboardEngine  # type: ignore
-    
-except ImportError as e:
-    print(f"[WARNING] Algunos imports del dashboard no disponibles: {e}")
-    dashboard_imports_ok = False
-    
-    # Definir clases fallback optimizadas para trading
-    class ICTDashboard:
-        def __init__(self, config):
-            self.config = config
-            self.trading_active = True
-            print("📊 [DASHBOARD] Modo fallback trading activado")
-            print("💰 [TRADING] Sistema optimizado para manejo de cuenta")
+        # Imports del dashboard (sin conflictos de tipo)
+        import ict_dashboard
+        import core.dashboard_engine
+        import core.enterprise_singleton_manager
         
-        def start(self):
-            print("🔄 [FALLBACK] Dashboard trading iniciado")
-            print("📈 [TRADING] Monitoreo de cuenta activo")
+        # Asignar clases dinámicamente
+        components['ICTDashboard'] = ict_dashboard.ICTDashboard
+        components['DashboardEngine'] = core.dashboard_engine.DashboardEngine
+        components['EnterpriseSingletonManager'] = core.enterprise_singleton_manager.EnterpriseSingletonManager
+        components['initialize_enterprise_components'] = core.enterprise_singleton_manager.initialize_enterprise_components
+        components['cleanup_enterprise_components'] = core.enterprise_singleton_manager.cleanup_enterprise_components
         
-        def stop(self):
-            print("🔄 [FALLBACK] Dashboard trading detenido")
-            print("💰 [TRADING] Cuenta asegurada")
+        # Intentar importar data collector del dashboard
+        try:
+            from data.data_collector import RealICTDataCollector
+            components['RealICTDataCollector'] = RealICTDataCollector
+        except ImportError:
+            print("[INFO] Usando RealICTDataCollector externo")
+            components['RealICTDataCollector'] = None
+        
+        components['imports_ok'] = True
+        print("✅ [DASHBOARD] Imports principales cargados correctamente")
+        
+    except ImportError as e:
+        print(f"[WARNING] Algunos imports del dashboard no disponibles: {e}")
+        components['imports_ok'] = False
+        
+        # Definir clases fallback optimizadas para trading
+        class ICTDashboardFallback:
+            def __init__(self, config):
+                self.config = config
+                self.trading_active = True
+                print("📊 [DASHBOARD] Modo fallback trading activado")
+                print("💰 [TRADING] Sistema optimizado para manejo de cuenta")
+            
+            def start(self):
+                print("🔄 [FALLBACK] Dashboard trading iniciado")
+                print("📈 [TRADING] Monitoreo de cuenta activo")
+            
+            def stop(self):
+                print("🔄 [FALLBACK] Dashboard trading detenido")
+                print("💰 [TRADING] Cuenta asegurada")
+        
+        class DashboardEngineFallback:
+            def __init__(self, config):
+                self.config = config
+                self.account_monitoring = True
+        
+        # Fallback para Enterprise Singleton Manager
+        class EnterpriseSingletonManagerFallback:
+            @staticmethod
+            def cleanup_singletons():
+                print("🔄 [FALLBACK] Singleton cleanup ejecutado")
+        
+        def initialize_enterprise_components_fallback():
+            print("🔄 [FALLBACK] Enterprise components inicializados para trading")
+            print("💰 [TRADING] Componentes de cuenta configurados")
+            return True
+        
+        def cleanup_enterprise_components_fallback():
+            print("🔄 [FALLBACK] Enterprise components limpiados")
+        
+        # Asignar fallbacks
+        components['ICTDashboard'] = ICTDashboardFallback
+        components['DashboardEngine'] = DashboardEngineFallback
+        components['EnterpriseSingletonManager'] = EnterpriseSingletonManagerFallback
+        components['initialize_enterprise_components'] = initialize_enterprise_components_fallback
+        components['cleanup_enterprise_components'] = cleanup_enterprise_components_fallback
+        components['RealICTDataCollector'] = None
     
-    class DashboardEngine:
-        def __init__(self, config):
-            self.config = config
-            self.account_monitoring = True
-    
-    # Fallback para Enterprise Singleton Manager
-    class FallbackEnterpriseSingletonManager:
-        @staticmethod
-        def cleanup_singletons():
-            print("🔄 [FALLBACK] Singleton cleanup ejecutado")
-    
-    # Asignar fallback
-    EnterpriseSingletonManager = FallbackEnterpriseSingletonManager
-    
-    def initialize_enterprise_components() -> bool:
-        print("🔄 [FALLBACK] Enterprise components inicializados para trading")
-        print("💰 [TRADING] Componentes de cuenta configurados")
-        return True
-    
-    def cleanup_enterprise_components() -> None:
-        print("🔄 [FALLBACK] Enterprise components limpiados")
+    return components
 
 class StartDashboard:
     """🚀 Launcher del Dashboard Enterprise con cierre ultra-rápido"""
@@ -133,7 +142,10 @@ class StartDashboard:
         self.dashboard_dir = dashboard_dir
         self.real_data_collector = real_data_collector
         self.smart_logger = smart_logger
-        self.dashboard_instance: Optional[Any] = None  # Tipo dinámico para manejar ambas clases
+        self.dashboard_instance = None  # Tipo dinámico para manejar ambas clases
+        
+        # Cargar componentes dinámicamente
+        self.components = load_dashboard_components()
         
         # Verificar si se ejecuta desde main.py con datos reales
         self.real_mode = os.getenv('ICT_REAL_MODE', '0') == '1'
@@ -186,7 +198,9 @@ class StartDashboard:
                 # === CLEANUP FINAL RÁPIDO ===
                 try:
                     # Limpiar componentes enterprise
-                    cleanup_enterprise_components()
+                    cleanup_func = self.components.get('cleanup_enterprise_components')
+                    if cleanup_func:
+                        cleanup_func()
                     import gc
                     gc.collect()
                 except:
@@ -520,7 +534,11 @@ class StartDashboard:
             
             # === PHASE 1: ENTERPRISE COMPONENTS INITIALIZATION ===
             print("🏭 [ENTERPRISE] Inicializando componentes singleton...")
-            enterprise_success = initialize_enterprise_components()
+            initialize_func = self.components.get('initialize_enterprise_components')
+            if initialize_func:
+                enterprise_success = initialize_func()
+            else:
+                enterprise_success = False
             
             if enterprise_success:
                 print("✅ [ENTERPRISE] Componentes singleton inicializados correctamente")
@@ -544,7 +562,12 @@ class StartDashboard:
             
             # === PHASE 3: DASHBOARD INSTANCE CREATION ===
             print("🎯 [DASHBOARD] Creando instancia principal del dashboard...")
-            self.dashboard_instance = ICTDashboard(self.config)
+            ICTDashboardClass = self.components.get('ICTDashboard')
+            if ICTDashboardClass:
+                self.dashboard_instance = ICTDashboardClass(self.config)
+            else:
+                print("❌ [DASHBOARD] No se pudo cargar clase ICTDashboard")
+                return False
             
             print("✅ [DASHBOARD] Dashboard Enterprise inicializado correctamente")
             return True

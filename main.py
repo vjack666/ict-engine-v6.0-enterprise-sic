@@ -1,437 +1,453 @@
 #!/usr/bin/env python3
 """
-🚀 ICT ENGINE v6.0 ENTERPRISE - INICIO DIRECTO DASHBOARD
-=======================================================
-
-PUNTO DE ENTRADA DIRECTO al Dashboard Enterprise del ICT Engine v6.0
-CON LECTURA REAL DEL SISTEMA
-
-Características principales:
-- ✅ Inicio DIRECTO del Dashboard Enterprise
-- ✅ Lectura REAL del sistema MT5 en tiempo real
-- ✅ Sistema de trading completo con patrones ICT
-- ✅ Gestión automática de memoria y recursos
-- ✅ Cierre optimizado y controlado
-- ✅ Control estricto de procesos con datos reales
-
-COMPORTAMIENTO:
-Al ejecutar main.py se inicia DIRECTAMENTE el Dashboard Enterprise
-con todos los componentes reales y lectura del sistema en tiempo real.
-
-Autor: ICT Engine Team
-Versión: v6.0 Enterprise - Direct Dashboard
-Fecha: 10 de Septiembre, 2025
+main.py - ICT Engine v6.0 Enterprise
+Sistema de Trading Avanzado con Smart Money Concepts
 """
 
-import sys
 import os
-import signal
-import threading
+import sys
 import time
+import gc
 import subprocess
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, Any
+from typing import Union, Any
 
-# ═══════════════════════════════════════════════════════════════════════
-# CONFIGURACIÓN DE PATHS Y ENTORNO
-# ═══════════════════════════════════════════════════════════════════════
+# Determinar rutas del sistema
+current_file = Path(__file__).resolve()
+SYSTEM_ROOT = current_file.parent
+original_dir = os.getcwd()
 
-def setup_environment():
-    """Configurar entorno del sistema"""
-    # Configurar paths principales
-    project_root = Path(__file__).parent
-    core_path = project_root / "01-CORE"
-    data_path = project_root / "04-DATA"
-    logs_path = project_root / "05-LOGS"
-    dashboard_path = project_root / "09-DASHBOARD"
-    
-    # Agregar paths al sistema
-    paths_to_add = [
-        str(project_root),
-        str(core_path),
-        str(data_path),
-        str(logs_path),
-        str(dashboard_path),
-        str(dashboard_path / "data"),
-        str(dashboard_path / "widgets"),
-        str(dashboard_path / "core"),
-        str(dashboard_path / "bridge"),
-        str(core_path / "utils")
-    ]
-    
-    for path in paths_to_add:
-        if path not in sys.path:
-            sys.path.insert(0, path)
-    
-    print(f"🚀 [SETUP] Paths configurados correctamente")
-    print(f"   📁 Core: {core_path}")
-    print(f"   📁 Data: {data_path}")
-    print(f"   📁 Logs: {logs_path}")
-    print(f"   📁 Dashboard: {dashboard_path}")
-    
-    return project_root, core_path, data_path, logs_path, dashboard_path
+# Configurar paths principales
+CORE_PATH = SYSTEM_ROOT / "01-CORE"
+DATA_PATH = SYSTEM_ROOT / "04-DATA"
+LOGS_PATH = SYSTEM_ROOT / "05-LOGS"
+DASHBOARD_PATH = SYSTEM_ROOT / "09-DASHBOARD"
+DOCUMENTATION_PATH = SYSTEM_ROOT / "03-DOCUMENTATION"
 
-def setup_logging():
-    """Configurar sistema de logging"""
+# Configurar el path de Python
+if str(CORE_PATH) not in sys.path:
+    sys.path.insert(0, str(CORE_PATH))
+
+# ============================================================================
+# IMPORTS CON CARGA SEGURA
+# ============================================================================
+
+def safe_import_from_path(file_path, class_name, fallback_name=None):
+    """Importar una clase desde un archivo específico de forma segura"""
     try:
-        from config.logging_mode_config import LoggingModeConfig
-        LoggingModeConfig.enable_quiet_mode()
-        print("✅ [LOGGING] Modo silencioso activado")
+        if not Path(file_path).exists():
+            return None
         
-        from smart_trading_logger import get_centralized_logger
-        main_logger = get_centralized_logger("SYSTEM")
-        main_logger.log_session_start()
-        main_logger.log_system_status("ICT Engine v6.0 Enterprise iniciando...", "MAIN")
-        print("✅ [LOGGING] Sistema centralizado activado")
-        
-        return main_logger
-        
-    except Exception as e:
-        print(f"⚠️ [LOGGING] Error configurando logging: {e}")
+        import importlib.util
+        module_name = Path(file_path).stem
+        spec = importlib.util.spec_from_file_location(module_name, file_path)
+        if spec and spec.loader:
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return getattr(module, class_name, None)
+    except Exception:
         return None
 
-# ═══════════════════════════════════════════════════════════════════════
-# IMPORTACIÓN Y VALIDACIÓN DE COMPONENTES
-# ═══════════════════════════════════════════════════════════════════════
+# Clase fallback para SmartTradingLogger
+class BasicLogger:
+    """Logger básico como fallback"""
+    def __init__(self, name):
+        self.name = name
+    def info(self, msg): print(f"[{self.name}] {msg}")
+    def warning(self, msg): print(f"[{self.name}] WARNING: {msg}")
+    def error(self, msg): print(f"[{self.name}] ERROR: {msg}")
+    def debug(self, msg): print(f"[{self.name}] DEBUG: {msg}")
 
-def import_core_components():
-    """Importar componentes principales del sistema"""
-    try:
-        print("🔧 [IMPORT] Importando componentes principales...")
-        
-        # Import center
-        try:
-            import import_center  # type: ignore
-            get_smart_logger_safe = import_center.get_smart_logger_safe
-            get_mt5_manager_safe = import_center.get_mt5_manager_safe
-            print("   ✅ import_center")
-        except ImportError:
-            print("   ⚠️ import_center no disponible")
-            get_smart_logger_safe = lambda: None
-            get_mt5_manager_safe = lambda: None
-        
-        # Data collector
-        try:
-            from data.data_collector import RealICTDataCollector  # type: ignore
-            print("   ✅ data_collector")
-        except ImportError:
-            try:
-                from data_collector import RealICTDataCollector  # type: ignore
-                print("   ✅ data_collector (fallback)")
-            except ImportError:
-                print("   ⚠️ data_collector no disponible")
-                class RealICTDataCollector:
-                    def __init__(self):
-                        pass
-        
-        # Inicializar componentes
-        logger_class = get_smart_logger_safe()
-        logger = logger_class() if logger_class and hasattr(logger_class, '__call__') else logger_class
-        
-        mt5_manager_class = get_mt5_manager_safe()
-        mt5_manager = mt5_manager_class() if mt5_manager_class and hasattr(mt5_manager_class, '__call__') else mt5_manager_class
-        
-        print("✅ [IMPORT] Componentes importados exitosamente")
-        return {
-            'logger': logger,
-            'mt5_manager': mt5_manager,
-            'data_collector_class': RealICTDataCollector
-        }
-        
-    except Exception as e:
-        print(f"❌ [IMPORT] Error importando componentes: {e}")
-        raise
+# Imports críticos con fallbacks
+try:
+    from smart_trading_logger import SmartTradingLogger
+    SMART_LOGGER_AVAILABLE = True
+    LoggerClass = SmartTradingLogger
+except ImportError as e:
+    print(f"Warning: Could not import SmartTradingLogger: {e}")
+    SMART_LOGGER_AVAILABLE = False
+    LoggerClass = BasicLogger
 
-# ═══════════════════════════════════════════════════════════════════════
-# SISTEMA PRINCIPAL ICT ENTERPRISE
-# ═══════════════════════════════════════════════════════════════════════
+# ============================================================================
+# CLASES DE APOYO
+# ============================================================================
 
-class ICTEnterpriseSystem:
-    """Sistema ICT Engine v6.0 Enterprise"""
+class SystemStatus:
+    """Estado del sistema enterprise"""
+    def __init__(self):
+        self.mt5_connected = False
+        self.real_components_loaded = False
+        self.risk_monitoring = False
+        self.trading_active = False
+        self.data_feed_active = False
+        self.last_update = datetime.now()
+
+class AccountInfo:
+    """Información de la cuenta de trading"""
+    def __init__(self):
+        self.account_number = 0
+        self.balance = 0.0
+        self.equity = 0.0
+        self.margin = 0.0
+        self.free_margin = 0.0
+        self.margin_level = 0.0
+        self.profit = 0.0
+        self.currency = "USD"
+        self.leverage = 1
+        self.server = ""
+        self.company = ""
+        self.is_connected = False
+        self.last_update = datetime.now()
+
+# ============================================================================
+# SISTEMA ENTERPRISE PRINCIPAL
+# ============================================================================
+
+class ICTEnterpriseManager:
+    """Gestor principal del sistema ICT Enterprise v6.0"""
     
-    def __init__(self, main_logger: Optional[Any] = None):
-        """Inicializar sistema enterprise"""
-        self.main_logger = main_logger
-        self.is_running = False
-        self.shutdown_event = threading.Event()
+    def __init__(self):
+        """Inicializar el sistema enterprise"""
+        self.logger = LoggerClass("ICTEnterpriseManager")
+        self.system_status = SystemStatus()
+        self.account_info = AccountInfo()
+        
+        self.shutdown_requested = False
+        self.real_components_loaded = False
         self.data_collector = None
-        self.components = {}
+        self.dashboard_process = None
         
-        # Configurar handlers de señales
-        signal.signal(signal.SIGINT, self._signal_handler)
-        signal.signal(signal.SIGTERM, self._signal_handler)
+        # Setup inicial
+        self._setup_directories()
         
-        print("🚀 [SYSTEM] ICT Enterprise System inicializado")
-    
-    def _signal_handler(self, signum, frame):
-        """Manejar señales del sistema"""
-        print(f"\n🛑 [SYSTEM] Señal {signum} recibida - iniciando cierre limpio...")
-        self.shutdown()
-    
-    def ensure_directories(self):
-        """Asegurar que existen los directorios necesarios"""
-        required_dirs = [
-            "04-DATA",
-            "05-LOGS",
-            "05-LOGS/system",
-            "05-LOGS/mt5",
-            "05-LOGS/dashboard"
-        ]
+    def _setup_directories(self):
+        """Crear directorios necesarios"""
+        required_folders = [DATA_PATH, LOGS_PATH, DATA_PATH / "cache", DATA_PATH / "exports"]
         
-        for dir_name in required_dirs:
-            dir_path = Path(dir_name)
-            if not dir_path.exists():
-                dir_path.mkdir(parents=True, exist_ok=True)
-                print(f"📁 [SYSTEM] Creado directorio: {dir_name}")
+        for folder in required_folders:
+            folder.mkdir(parents=True, exist_ok=True)
+        
+        self.logger.info("📁 Estructura de directorios verificada")
     
-    def initialize_components(self):
-        """Inicializar componentes del sistema"""
-        try:
-            print("🔧 [SYSTEM] Inicializando componentes...")
-            
-            # Importar componentes principales
-            self.components = import_core_components()
-            
-            # Crear configuración para data collector
-            config = {
-                'symbols': ['EURUSD', 'GBPUSD', 'USDJPY', 'XAUUSD'],
-                'timeframes': ['M5', 'M15', 'H1', 'H4'],
-                'mode': 'enterprise',
-                'data_source': 'real'
-            }
-            
-            # Crear data collector con configuración
-            data_collector_class = self.components['data_collector_class']
-            self.data_collector = data_collector_class(config)
-            
-            print("✅ [SYSTEM] Componentes inicializados correctamente")
-            if self.main_logger:
-                self.main_logger.info("Componentes del sistema inicializados", "SYSTEM")
-            
-            return True
-            
-        except Exception as e:
-            print(f"❌ [SYSTEM] Error inicializando componentes: {e}")
-            if self.main_logger:
-                self.main_logger.error(f"Error inicializando componentes: {e}", "SYSTEM")
-            return False
-    
-    def show_main_menu(self):
-        """Mostrar menú principal del sistema"""
-        print("\n" + "="*70)
-        print("🚀 ICT ENGINE v6.0 ENTERPRISE - MENÚ PRINCIPAL")
-        print("="*70)
-        print("📊 OPCIONES DISPONIBLES:")
-        print()
-        print("   [1] 📈 Dashboard Enterprise (Análisis en Tiempo Real)")
-        print("   [2] 🔧 Herramientas de Sistema")
-        print("   [3] 📋 Logs y Diagnósticos")
-        print("   [4] ⚙️  Configuración")
-        print("   [0] 🚪 Salir")
-        print()
-        print("="*70)
+    def initialize_real_components(self):
+        """Inicializar RealICTDataCollector y componentes reales"""
+        self.logger.info("🔄 Inicializando componentes reales...")
         
         try:
-            choice = input("🎯 Selecciona una opción: ").strip()
-            return choice
-        except (EOFError, KeyboardInterrupt):
-            return "0"
-    
-    def handle_dashboard_option(self):
-        """Iniciar Dashboard Enterprise con lectura real del sistema"""
-        print("🚀 [DASHBOARD] Configurando Dashboard Enterprise con datos reales...")
-        print("📊 Estado del sistema:")
-        print(f"   ✅ Data Collector: {'Activo' if self.data_collector else 'Inactivo'}")
-        print(f"   ✅ Logger: {'Activo' if self.main_logger else 'Inactivo'}")
-        print(f"   ✅ MT5 Manager: {'Activo' if self.components.get('mt5_manager') else 'Inactivo'}")
-        print("   ✅ Modo: LECTURA REAL DEL SISTEMA")
-        print("="*60)
-        
-        # Verificar que el script del dashboard existe
-        dashboard_script = Path("09-DASHBOARD/start_dashboard.py")
-        if not dashboard_script.exists():
-            print("❌ [DASHBOARD] Archivo start_dashboard.py no encontrado")
-            return False
-        
-        try:
-            print("🚀 [SUBPROCESS] Iniciando dashboard con lectura real...")
-            print("📊 [SUBPROCESS] Datos reales MT5 habilitados")
-            print("🎯 [SUBPROCESS] Componentes enterprise activados")
+            # Añadir dashboard data path para imports
+            dashboard_data_path = str(DASHBOARD_PATH / "data")
+            if dashboard_data_path not in sys.path:
+                sys.path.insert(0, dashboard_data_path)
             
-            # Usar subprocess.Popen para control estricto con datos reales
-            dashboard_process = subprocess.Popen(
-                [sys.executable, str(dashboard_script)],
-                cwd=str(Path.cwd()),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                # Pasar componentes reales como variables de entorno
-                env={
-                    **os.environ,
-                    'ICT_REAL_MODE': '1',
-                    'ICT_DATA_COLLECTOR': 'active',
-                    'ICT_MT5_MANAGER': 'active',
-                    'ICT_ENTERPRISE_MODE': '1'
-                }
+            # Cargar RealICTDataCollector dinámicamente
+            data_collector_path = DASHBOARD_PATH / "data" / "data_collector_simplified.py"
+            RealICTDataCollector = safe_import_from_path(
+                data_collector_path,
+                "RealICTDataCollector",
+                "RealICTDataCollector"
             )
             
-            print(f"📊 [SUBPROCESS] Dashboard iniciado con PID: {dashboard_process.pid}")
-            print("🎯 [SUBPROCESS] Dashboard ejecutándose con lectura real...")
-            print("⚡ [SUBPROCESS] Para cerrar usa Ctrl+C")
+            if not RealICTDataCollector:
+                self.logger.warning("RealICTDataCollector no disponible - continuando sin él")
+                self.real_components_loaded = False
+                return
+            
+            self.logger.info("[SYSTEM] Creando RealICTDataCollector...")
+            
+            # Crear instancia del data collector con configuración básica
+            config = {
+                'symbols': ['EURUSD', 'GBPUSD', 'USDCAD', 'AUDUSD'],
+                'timeframes': ['M1', 'M5', 'M15'],
+                'data_path': str(DATA_PATH)
+            }
+            self.data_collector = RealICTDataCollector(config)
+            
+            self.logger.info("✅ RealICTDataCollector: Inicializado correctamente")
+            print("🚀 [SYSTEM] ✅ RealICTDataCollector: Inicializado correctamente")
+            print("    - Configuración aplicada")
+            print("    - Sistema listo para operación")
+            self.real_components_loaded = True
+            self.system_status.real_components_loaded = True
+                
+        except Exception as e:
+            self.logger.error(f"Error inicializando componentes reales: {e}")
+            print(f"[X] Error inicializando componentes reales: {e}")
+            self.real_components_loaded = False
+            self.system_status.real_components_loaded = False
+    
+    def show_system_info(self):
+        """Mostrar información del sistema con estado de componentes reales"""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        print("\n" + "="*80)
+        print("ICT ENGINE v6.0 ENTERPRISE - SISTEMA REAL DE TRADING")
+        print("="*80)
+        print(f"🕒 Timestamp: {timestamp}")
+        print(f"📂 Project Root: {SYSTEM_ROOT}")
+        print(f"🔧 Core Path: {CORE_PATH}")
+        print(f"📊 Data Path: {DATA_PATH}")
+        print(f"📝 Logs Path: {LOGS_PATH}")
+        print(f"📈 Dashboard Path: {DASHBOARD_PATH}")
+        print()
+        print("ESTADO DE COMPONENTES REALES:")
+        print("-" * 40)
+        print(f"📊 RealICTDataCollector: {'✓ Activo' if self.real_components_loaded else '✗ Error'}")
+        print(f"🔗 MT5 Connection: {'✓ Conectado' if self.system_status.mt5_connected else '✗ Desconectado'}")
+        print(f"📝 SmartTradingLogger: {'✓ Activo' if SMART_LOGGER_AVAILABLE else '✗ Básico'}")
+        print()
+        print("🎯 Modo: TRADING REAL - Sin Mock Data")
+        print("="*80)
+        print()
+
+    def run_dashboard_with_real_data(self):
+        """Iniciar Dashboard Enterprise en ventana separada"""
+        self.logger.info("🚀 INICIANDO DASHBOARD ENTERPRISE CON DATOS REALES...")
+        print("\n[ROCKET] INICIANDO DASHBOARD ENTERPRISE CON DATOS REALES...")
+        print("=" * 60)
+        
+        try:
+            # Asegurar que los componentes están inicializados
+            if not self.real_components_loaded:
+                self.logger.info("Inicializando componentes reales para dashboard")
+                print("[INFO] Inicializando componentes reales...")
+                self.initialize_real_components()
+            
+            # Verificar estado del data collector
+            self.logger.info("Verificando RealICTDataCollector para dashboard")
+            print("[DATA] Verificando RealICTDataCollector...")
+            
+            if hasattr(self, 'data_collector') and self.data_collector:
+                self.logger.info("RealICTDataCollector disponible para dashboard")
+                print("[OK] RealICTDataCollector: ✓ Disponible")
+                print("    - Sistema configurado con datos reales")
+                print("    - Dashboard listo para cargar")
+            else:
+                self.logger.warning("RealICTDataCollector no disponible, modo básico")
+                print("[WARN] RealICTDataCollector: Iniciando en modo básico")
+            
+            # Cargar el dashboard
+            dashboard_script = DASHBOARD_PATH / "start_dashboard.py"
+            
+            if dashboard_script.exists():
+                self.logger.info(f"Ejecutando dashboard desde: {dashboard_script}")
+                print("[ROCKET] 🚀 Abriendo dashboard en ventana separada...")
+                
+                # Configurar variables de entorno para el dashboard
+                env = os.environ.copy()
+                env['PYTHONPATH'] = os.pathsep.join([
+                    str(SYSTEM_ROOT),
+                    str(CORE_PATH),
+                    str(DASHBOARD_PATH)
+                ])
+                env['ICT_DASHBOARD_MODE'] = 'subprocess'
+                
+                print("[SUBPROCESS] 🚀 Iniciando dashboard en proceso separado...")
+                
+                # Usar Popen para control completo del proceso
+                self.dashboard_process = subprocess.Popen(
+                    [sys.executable, str(dashboard_script)], 
+                    cwd=str(DASHBOARD_PATH),
+                    env=env,
+                    text=True,
+                    bufsize=1,
+                    universal_newlines=True,
+                    creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == 'nt' else 0
+                )
+                
+                print(f"[SUBPROCESS] 📊 Dashboard iniciado con PID: {self.dashboard_process.pid}")
+                print("[SUBPROCESS] 🎯 Dashboard abriendo en ventana separada...")
+                print("[SUBPROCESS] 💡 El dashboard debería aparecer en una nueva ventana")
+                print("[SUBPROCESS] ⏳ Esperando que uses el dashboard...")
+                print("[SUBPROCESS] 🔑 Presiona 'q' en el dashboard para cerrar y regresar aquí")
+                
+                try:
+                    # Esperar a que termine el proceso
+                    result_code = self.dashboard_process.wait()
+                    
+                except KeyboardInterrupt:
+                    print("\n[SUBPROCESS] ⚠️ Interrupción detectada - cerrando dashboard...")
+                    try:
+                        self.dashboard_process.terminate()
+                        self.dashboard_process.wait(timeout=5)
+                        result_code = 0
+                    except subprocess.TimeoutExpired:
+                        print("[SUBPROCESS] 🔧 Forzando cierre del dashboard...")
+                        self.dashboard_process.kill()
+                        self.dashboard_process.wait()
+                        result_code = -1
+                
+                print(f"[SUBPROCESS] ✅ Dashboard cerrado con código: {result_code}")
+                
+                if result_code == 0:
+                    print("\n[OK] ✅ DASHBOARD ENTERPRISE CERRADO EXITOSAMENTE")
+                    print("[INFO] 🔄 Regresando automáticamente al menú principal...")
+                    print("="*60)
+                    print("[SUCCESS] 🏁 SESIÓN DASHBOARD COMPLETADA")
+                    print("   ✅ Dashboard cerrado correctamente")
+                    print("   🔄 Control devuelto al menú principal")
+                    print("   🟢 Sistema listo para nueva operación")
+                    print("="*60)
+                    print("\n[PRODUCCIÓN] 🚀 Menú principal se mostrará en 3 segundos...")
+                    time.sleep(3)
+                else:
+                    print(f"\n[WARN] ⚠️ Dashboard finalizó con código: {result_code}")
+                    print("[INFO] 🔄 Regresando automáticamente al menú principal...")
+                    time.sleep(2)
+                    
+            else:
+                print("[X] No se encontró start_dashboard.py")
+                print(f"[TOOL] Verificar ruta: {dashboard_script}")
+                
+        except KeyboardInterrupt:
+            print("\n[SUBPROCESS] ⚠️ Dashboard cerrado por el usuario")
+        except Exception as e:
+            self.logger.error(f"Error ejecutando dashboard: {e}")
+            print(f"[X] Error ejecutando dashboard: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def main_menu(self):
+        """Menú principal simplificado para producción enterprise"""
+        while True:
+            print("\n" + "="*60)
+            print("ICT ENGINE v6.0 ENTERPRISE - TRADING REAL")
+            print("="*60)
+            print("1. [DASHBOARD] Iniciar Sistema Enterprise")
+            print("2. [X] Salir")
+            print("="*60)
             
             try:
-                # Esperar a que termine el proceso
-                result_code = dashboard_process.wait()
+                choice = input("\n[TARGET] Selecciona una opción (1-2): ").strip()
                 
+                if choice == "1":
+                    if not self.real_components_loaded:
+                        print("\n[INFO] Inicializando componentes reales...")
+                        self.initialize_real_components()
+                    
+                    print("\n[INFO] 🚀 Iniciando sistema enterprise con datos reales...")
+                    print("[INFO] 📊 Componentes reales configurados y listos")
+                    print("[INFO] ⚡ Cargando interfaz enterprise...")
+                    
+                    time.sleep(1.5)
+                    # Usar subprocess por defecto ya que es más estable
+                    self.run_dashboard_with_real_data()
+                    
+                elif choice == "2":
+                    print("\n[EXIT] Cerrando sistema de trading...")
+                    break
+                    
+                else:
+                    print("[X] Opción no válida. Usa 1-2.")
+                    continue
+                    
             except KeyboardInterrupt:
-                print("\n⚠️ [SUBPROCESS] Interrupción detectada - cerrando dashboard...")
-                try:
-                    dashboard_process.terminate()
-                    dashboard_process.wait(timeout=5)
-                    result_code = 0
-                except subprocess.TimeoutExpired:
-                    print("🔧 [SUBPROCESS] Forzando cierre del dashboard...")
-                    dashboard_process.kill()
-                    dashboard_process.wait()
-                    result_code = -1
-            
-            print(f"\n✅ [SUBPROCESS] Dashboard cerrado con código: {result_code}")
-            
-            if result_code == 0:
-                print("✅ [DASHBOARD] Dashboard Enterprise finalizado correctamente")
-                print("� [DASHBOARD] Lectura real del sistema completada")
-            else:
-                print(f"⚠️ [DASHBOARD] Dashboard finalizó con código: {result_code}")
-                print("� [DASHBOARD] Revisa los logs si hay problemas")
-            
-            print("="*60)
-            print("🏁 DASHBOARD ENTERPRISE CON LECTURA REAL COMPLETADO")
-            print("   Estado: ✅ Cerrado correctamente")
-            print("   Datos: ✅ Lectura real del sistema")
-            print("="*60)
-            
-            return result_code == 0
-            
-        except Exception as e:
-            print(f"❌ [SUBPROCESS] Error ejecutando dashboard: {e}")
-            if self.main_logger:
-                self.main_logger.error(f"Error ejecutando dashboard: {e}", "DASHBOARD")
-            return False
-    
-    def run(self):
-        """Ejecutar el sistema principal - Inicio directo del dashboard"""
-        try:
-            print("🚀 [SYSTEM] Iniciando ICT Engine v6.0 Enterprise...")
-            
-            # Asegurar directorios
-            self.ensure_directories()
-            
-            # Inicializar componentes
-            if not self.initialize_components():
-                print("❌ [SYSTEM] Error inicializando componentes")
-                return False
-            
-            self.is_running = True
-            print("✅ [SYSTEM] Sistema enterprise listo")
-            
-            # INICIO DIRECTO DEL DASHBOARD CON DATOS REALES
-            print("\n" + "="*70)
-            print("🚀 ICT ENGINE v6.0 ENTERPRISE - INICIO DIRECTO DASHBOARD")
-            print("="*70)
-            print("📊 Iniciando Dashboard Enterprise con lectura real del sistema...")
-            print("="*70)
-            
-            # Ejecutar dashboard directamente
-            success = self.handle_dashboard_option()
-            
-            if success:
-                print("✅ [SYSTEM] Dashboard Enterprise finalizado correctamente")
-            else:
-                print("❌ [SYSTEM] Dashboard Enterprise terminó con errores")
-            
-            return success
-            
-        except Exception as e:
-            print(f"❌ [SYSTEM] Error fatal: {e}")
-            if self.main_logger:
-                self.main_logger.error(f"Error fatal: {e}", "SYSTEM")
-            return False
+                print("\n[EXIT] Saliendo...")
+                break
+            except EOFError:
+                print("\n[EXIT] Saliendo...")
+                break
+                
+            # Pausa antes de mostrar el menú de nuevo
+            if choice == "1":
+                print("\n" + "="*80)
+                print("🔄 RETORNANDO AL MENÚ PRINCIPAL")
+                print("="*80)
+                print("⚡ [PRODUCCIÓN] Regresando automáticamente al menú...")
+                time.sleep(2)  # Pausa breve para que el usuario vea el mensaje
+                print("\n" + "🔄 " + "="*78)
     
     def shutdown(self):
-        """Cerrar el sistema limpiamente"""
-        print("🛑 [SYSTEM] Iniciando cierre del sistema...")
+        """🛑 Cerrar sistema limpiamente"""
+        print("🛑 [SHUTDOWN] Iniciando cierre del sistema...")
+        start_time = time.time()
         
-        self.is_running = False
-        self.shutdown_event.set()
-        
-        # Cerrar componentes
-        if self.data_collector:
-            try:
-                if hasattr(self.data_collector, 'close'):
-                    self.data_collector.close()
-                print("✅ [SYSTEM] Data collector cerrado")
-            except Exception as e:
-                print(f"⚠️ [SYSTEM] Error cerrando data collector: {e}")
-        
-        print("✅ [SYSTEM] Sistema cerrado correctamente")
+        try:
+            self.shutdown_requested = True
+            
+            # Cerrar dashboard process si existe
+            if self.dashboard_process:
+                try:
+                    self.dashboard_process.terminate()
+                    self.dashboard_process.wait(timeout=2)
+                except:
+                    if self.dashboard_process.poll() is None:
+                        self.dashboard_process.kill()
+            
+            # Cerrar componentes críticos
+            if hasattr(self, 'data_collector') and self.data_collector:
+                try:
+                    if hasattr(self.data_collector, 'shutdown_sync'):
+                        self.data_collector.shutdown_sync()
+                    else:
+                        self.logger.info("Forzando cierre inmediato de data collector")
+                except:
+                    pass
+            
+            # Force garbage collection
+            collected = gc.collect()
+            
+            shutdown_time = time.time() - start_time
+            self.logger.info(f"🛑 Shutdown completado en {shutdown_time:.2f}s (GC: {collected} objetos)")
+            
+        except Exception as e:
+            shutdown_time = time.time() - start_time
+            self.logger.error(f"Error en shutdown ({shutdown_time:.2f}s): {e}")
 
-# ═══════════════════════════════════════════════════════════════════════
+# ============================================================================
 # FUNCIÓN PRINCIPAL
-# ═══════════════════════════════════════════════════════════════════════
+# ============================================================================
 
 def main():
-    """Función principal del sistema"""
-    # Guardar directorio original
-    original_dir = os.getcwd()
+    """Función principal simplificada"""
+    global original_dir
     
     try:
-        print("🚀 ICT ENGINE v6.0 ENTERPRISE")
-        print("=" * 50)
-        print(f"📅 Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"📁 Directorio: {Path.cwd()}")
-        print("=" * 50)
+        print("🚀 [MAIN] 🎯 INICIANDO ICT ENGINE v6.0 ENTERPRISE")
+        print("🚀 [MAIN] " + "="*50)
         
-        # Configurar entorno
-        project_root, core_path, data_path, logs_path, dashboard_path = setup_environment()
+        # Log estructurado del inicio del sistema
+        print("🚀 [MAIN] 📊 Verificando estructura del proyecto...")
         
-        # Configurar logging
-        main_logger = setup_logging()
+        # Verificar que las rutas existen
+        if not CORE_PATH.exists():
+            print(f"🚀 [MAIN] ❌ Error: No se encuentra 01-CORE en {CORE_PATH}")
+            print("🚀 [MAIN] 📝 NOTA: Verificar estructura del proyecto")
+            sys.exit(1)
         
-        # Crear y ejecutar sistema
-        system = ICTEnterpriseSystem(main_logger)
-        success = system.run()
+        print("🚀 [MAIN] ✅ Estructura del proyecto verificada")
         
-        if success:
-            print("✅ [MAIN] Sistema finalizado correctamente")
-        else:
-            print("❌ [MAIN] Sistema finalizado con errores")
-            
+        # Crear y ejecutar sistema enterprise
+        print("🚀 [MAIN] 🏗️ Creando sistema enterprise...")
+        enterprise_system = ICTEnterpriseManager()
+        
+        print("🚀 [MAIN] 📊 Mostrando información del sistema...")
+        enterprise_system.show_system_info()
+        
+        print("🚀 [MAIN] 🚀 Iniciando menú principal...")
+        enterprise_system.main_menu()
+        
+        # Shutdown limpio
+        enterprise_system.shutdown()
+        
     except KeyboardInterrupt:
-        print("\n🛑 [MAIN] Sistema terminado por el usuario")
-        if 'main_logger' in locals() and main_logger:
-            main_logger.warning("Sistema terminado por el usuario", "MAIN")
+        print("\n🚀 [MAIN] 🛑 Sistema enterprise terminado por el usuario")
     except Exception as e:
-        print(f"❌ [MAIN] Error fatal: {e}")
-        if 'main_logger' in locals() and main_logger:
-            main_logger.error(f"Error fatal: {e}", "MAIN")
+        print(f"🚀 [MAIN] ❌ Error fatal: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
     finally:
         # Restaurar directorio original
         try:
             os.chdir(original_dir)
-            print(f"📂 [MAIN] Directorio restaurado: {original_dir}")
+            print(f"🚀 [MAIN] 📂 Directorio restaurado: {original_dir}")
         except Exception as e:
-            print(f"⚠️ [MAIN] Error restaurando directorio: {e}")
+            print(f"🚀 [MAIN] ⚠️ No se pudo restaurar directorio: {e}")
         
-        # Cerrar logging
-        if 'main_logger' in locals() and main_logger:
-            main_logger.log_session_end()
-            print("📝 [MAIN] Sesión de logging cerrada")
+        print("🚀 [MAIN] 👋 ¡Hasta pronto!")
         
-        print("👋 [MAIN] ¡Hasta pronto!")
-        
-        # Asegurar flush de streams
+        # Asegurar que el terminal regrese al prompt
         sys.stdout.flush()
         sys.stderr.flush()
 
