@@ -44,6 +44,122 @@ grep "COMPONENTE" 03-DOCUMENTATION/COPILOT-CONTEXT-CARDS.md # Context específic
 4. ❌ NO duplicar funcionalidad existente
 ```
 
+### 🚫 **REGLA #15: TESTING CON MAIN - NO ACUMULAR TESTS**
+**Prioridad:** CRÍTICA - OBLIGATORIO CUMPLIR  
+**Fecha Creación:** 11 de Septiembre, 2025
+
+#### **🎯 PRINCIPIO FUNDAMENTAL: MAIN COMO HERRAMIENTA DE TESTING**
+```
+🚫 PROHIBIDO ABSOLUTAMENTE:
+❌ Crear archivos test_*.py para validar funcionalidades
+❌ Crear suites de testing separadas
+❌ Acumular archivos de testing en el proyecto
+❌ Usar pytest, unittest, o frameworks de testing
+❌ Crear directorios /tests/ adicionales
+
+✅ OBLIGATORIO SIEMPRE:
+✅ Usar main.py con parámetros para validar
+✅ Implementar comprobaciones directas con --flags
+✅ Validar funcionamiento en tiempo real
+✅ Usar mismo entry point para testing y producción
+```
+
+#### **🔧 METODOLOGÍA OBLIGATORIA - IMPLEMENTACIÓN EN MAIN:**
+```python
+# ✅ FORMATO OBLIGATORIO EN main.py:
+if __name__ == "__main__":
+    import argparse
+    
+    parser = argparse.ArgumentParser()
+    # Parámetros normales de producción
+    parser.add_argument('--symbol', default='EURUSD')
+    parser.add_argument('--timeframe', default='M5')
+    
+    # ✅ PARÁMETROS DE TESTING OBLIGATORIOS:
+    parser.add_argument('--test-position-sizing', action='store_true',
+                       help='Test auto position sizing system')
+    parser.add_argument('--test-emergency-stop', action='store_true', 
+                       help='Test emergency stop system')
+    parser.add_argument('--validate-signals', action='store_true',
+                       help='Validate signal validation engine')
+    parser.add_argument('--balance', type=float, default=10000,
+                       help='Balance for testing position sizing')
+    parser.add_argument('--confluence', type=float, default=70,
+                       help='Confluence threshold for testing')
+    
+    args = parser.parse_args()
+    
+    # ✅ LÓGICA DE TESTING INTEGRADA:
+    if args.test_position_sizing:
+        test_position_sizing_system(args.balance)
+        return
+        
+    if args.test_emergency_stop:
+        test_emergency_stop_system()
+        return
+        
+    if args.validate_signals:
+        test_signal_validation(args.symbol, args.confluence)
+        return
+    
+    # Lógica normal de producción
+    main_trading_logic()
+```
+
+#### **📊 COMANDOS TESTING ESTÁNDAR OBLIGATORIOS:**
+```bash
+# ✅ FORMATO REQUERIDO:
+python main.py --test-position-sizing --balance=10000
+python main.py --test-emergency-stop --simulate-drawdown=5
+python main.py --validate-signals --symbol=EURUSD --confluence=70
+python main.py --test-execution --symbol=GBPUSD --type=market
+python main.py --risk-dashboard --test-mode
+python main.py --test-all --quick
+```
+
+#### **🗑️ GESTIÓN DE TESTS EXISTENTES - PROCESO OBLIGATORIO:**
+```
+🔄 ANTES DE ELIMINAR CUALQUIER TEST EXISTENTE:
+
+1. ✅ ANALIZAR TEST EXISTENTE:
+   - Leer completamente el archivo test_*.py
+   - Entender qué funcionalidad está probando
+   - Identificar casos edge importantes
+   - Documentar findings críticos
+
+2. ✅ MEJORAR MÓDULO TESTEADO:
+   - Aplicar mejoras identificadas en el test
+   - Corregir bugs encontrados por el test
+   - Optimizar performance issues detectados
+   - Añadir error handling faltante
+
+3. ✅ INTEGRAR TESTING EN MAIN:
+   - Crear función test_* integrada en main.py
+   - Implementar mismos casos de prueba
+   - Asegurar mismo nivel de coverage
+   - Validar funcionamiento correcto
+
+4. ✅ SOLO ENTONCES ELIMINAR:
+   - Confirmar que main.py tiene testing equivalente
+   - Verificar que no se pierde funcionalidad
+   - Eliminar archivo test_*.py obsoleto
+```
+
+#### **⚠️ ENFORCEMENT OBLIGATORIO:**
+```
+✅ ANTES DE CUALQUIER COMMIT:
+- Verificar que no hay nuevos test_*.py
+- Confirmar que testing está en main.py
+- Validar que comandos testing funcionan
+- Asegurar coverage mantenido o mejorado
+
+🚨 PROHIBIDO:
+- Eliminar tests sin analizar contenido
+- Eliminar tests sin mejorar módulo testeado  
+- Eliminar tests sin integrar en main
+- Perder coverage o casos edge importantes
+```
+
 ## 📚 **DOCUMENTOS OBLIGATORIOS PRE-PROYECTO**
 
 ### 🚨 **PRIORIDAD CRÍTICA - LEER SIEMPRE ANTES DE INICIAR**

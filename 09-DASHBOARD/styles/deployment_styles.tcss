@@ -1,0 +1,241 @@
+/* 🚀 DEPLOYMENT INTERFACE STYLES - ICT ENGINE v6.0 ENTERPRISE */
+
+.deployment-header {
+    background: $primary;
+    color: white;
+    height: 3;
+    content-align: center middle;
+    text-style: bold;
+    margin: 1;
+}
+
+.section-header {
+    background: $secondary;
+    color: white;
+    height: 2;
+    content-align: center middle;
+    text-style: bold;
+    margin: 0 0 1 0;
+}
+
+.config-panel {
+    border: solid $primary;
+    height: auto;
+    margin: 1;
+    padding: 1;
+}
+
+.connection-panel {
+    border: solid $warning;
+    height: auto;
+    margin: 1;
+    padding: 1;
+}
+
+.validation-panel {
+    border: solid $success;
+    height: auto;
+    margin: 1;
+    padding: 1;
+}
+
+.deployment-panel {
+    border: solid $error;
+    height: auto;
+    margin: 1;
+    padding: 1;
+}
+
+.config-row {
+    height: 3;
+    margin: 0 0 1 0;
+}
+
+.config-label {
+    width: 15;
+    margin: 0 1 0 0;
+    color: $text;
+    text-style: bold;
+}
+
+.balance-input {
+    width: 15;
+    margin: 0 1 0 0;
+}
+
+.currency-label {
+    width: 5;
+    color: $primary;
+    text-style: bold;
+}
+
+.connection-row {
+    height: 3;
+    margin: 0 0 1 0;
+}
+
+.connection-btn {
+    width: 20;
+    background: $warning;
+    color: white;
+    margin: 0 1 0 0;
+    text-style: bold;
+}
+
+.connection-btn:hover {
+    background: $warning-lighten-1;
+}
+
+.status-disconnected {
+    color: $error;
+    text-style: bold;
+}
+
+.status-connected {
+    color: $success;
+    text-style: bold;
+}
+
+.status-error {
+    color: $error;
+    text-style: bold;
+}
+
+.connection-label {
+    width: 10;
+    margin: 0 1 0 0;
+}
+
+.broker-name {
+    color: $primary;
+    text-style: bold;
+}
+
+.account-info {
+    color: $text;
+    text-style: italic;
+}
+
+.validate-btn {
+    height: 3;
+    background: $secondary;
+    color: white;
+    margin: 0 0 1 0;
+    width: 100%;
+    text-style: bold;
+}
+
+.validate-btn:hover {
+    background: $secondary-lighten-1;
+}
+
+.validate-btn-primary {
+    height: 3;
+    background: $primary;
+    color: white;
+    margin: 1 0 1 0;
+    width: 100%;
+    text-style: bold;
+}
+
+.validate-btn-primary:hover {
+    background: $primary-lighten-1;
+}
+
+.deployment-controls {
+    height: 4;
+    margin: 1 0;
+}
+
+.deploy-btn-primary {
+    height: 3;
+    width: 20;
+    background: $success;
+    color: white;
+    text-style: bold;
+    margin: 0 1 0 0;
+}
+
+.deploy-btn-primary:hover {
+    background: $success-lighten-1;
+}
+
+.emergency-btn {
+    height: 3;
+    width: 20;
+    background: $error;
+    color: white;
+    text-style: bold;
+    margin: 0 1 0 0;
+}
+
+.emergency-btn:hover {
+    background: $error-lighten-1;
+}
+
+.dashboard-btn {
+    height: 3;
+    width: 20;
+    background: $accent;
+    color: white;
+    text-style: bold;
+}
+
+.dashboard-btn:hover {
+    background: $accent-lighten-1;
+}
+
+.status-ready {
+    color: $primary;
+    text-style: bold;
+    margin: 1 0;
+}
+
+.status-live {
+    color: $success;
+    text-style: bold;
+    margin: 1 0;
+}
+
+.status-stopped {
+    color: $error;
+    text-style: bold;
+    margin: 1 0;
+}
+
+.live-monitor {
+    border: solid $accent;
+    height: auto;
+    margin: 1 0 0 0;
+    padding: 1;
+}
+
+.monitor-header {
+    background: $accent;
+    color: white;
+    height: 2;
+    content-align: center middle;
+    text-style: bold;
+    margin: 0 0 1 0;
+}
+
+.monitor-status {
+    color: $text;
+    height: 3;
+    content-align: center middle;
+}
+
+#validation-progress {
+    margin: 1 0;
+    height: 1;
+}
+
+#validation-status {
+    color: $text;
+    margin: 1 0;
+}
+
+.deployment-content {
+    padding: 1;
+    height: auto;
+}

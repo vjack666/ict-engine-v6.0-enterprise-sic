@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICT Engine v6.0 Enterprise - Deployment Dashboard</title>
+    <link rel="stylesheet" href="deployment_styles.css">
+    <style>
+        /* Custom integrations for real trading */
+        .real-trading-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--live-trading-color);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 700;
+            z-index: 1000;
+            animation: pulse-live 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="real-trading-indicator">
+        🟢 LIVE TRADING ACTIVE
+    </div>
+
+    <div class="dashboard-container">
+        <!-- HEADER PRINCIPAL -->
+        <header class="deployment-header fade-in">
+            <h1>🚀 ICT Engine v6.0 Enterprise</h1>
+            <div class="subtitle">Professional Trading Deployment System</div>
+        </header>
+
+        <!-- MÉTRICAS DE TRADING -->
+        <section class="trading-metrics">
+            <div class="metric-card profit fade-in">
+                <div class="metric-value">$10,250.00</div>
+                <div class="metric-label">Account Balance</div>
+            </div>
+            <div class="metric-card loss fade-in">
+                <div class="metric-value">-1.5%</div>
+                <div class="metric-label">Drawdown</div>
+            </div>
+            <div class="metric-card profit fade-in">
+                <div class="metric-value">+$350.00</div>
+                <div class="metric-label">Daily P&L</div>
+            </div>
+            <div class="metric-card neutral fade-in">
+                <div class="metric-value">3</div>
+                <div class="metric-label">Open Positions</div>
+            </div>
+        </section>
+
+        <!-- GRID PRINCIPAL -->
+        <div class="deployment-grid">
+            <!-- PANEL DE CONFIGURACIÓN -->
+            <section class="config-panel slide-in">
+                <div class="section-header">⚙️ Account Configuration</div>
+                
+                <div class="config-row">
+                    <label class="config-label">Initial Balance:</label>
+                    <input type="number" class="balance-input" value="10000" placeholder="Enter balance">
+                    <span class="currency-label">USD</span>
+                </div>
+                
+                <div class="config-row">
+                    <label class="config-label">Risk per Trade:</label>
+                    <input type="number" class="balance-input" value="1.5" placeholder="Risk percentage">
+                    <span class="currency-label">%</span>
+                </div>
+                
+                <div class="config-row">
+                    <label class="config-label">Max Drawdown:</label>
+                    <input type="number" class="balance-input" value="5.0" placeholder="Max drawdown">
+                    <span class="currency-label">%</span>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-label">Configuration Progress:</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 85%"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANEL DE CONEXIÓN MT5 -->
+            <section class="connection-panel slide-in">
+                <div class="section-header">🔗 MT5 Connection</div>
+                
+                <div class="connection-row">
+                    <button class="connection-btn">Connect to MT5</button>
+                    <div class="connection-status status-connected">Connected</div>
+                </div>
+                
+                <div class="config-row">
+                    <span class="config-label">Broker:</span>
+                    <span class="broker-name">ICMarkets</span>
+                </div>
+                
+                <div class="config-row">
+                    <span class="config-label">Account:</span>
+                    <span class="account-info">#12345678 (Real Account)</span>
+                </div>
+                
+                <div class="config-row">
+                    <span class="config-label">Server:</span>
+                    <span class="account-info">ICMarkets-Live02</span>
+                </div>
+
+                <div class="alert alert-success">
+                    ✅ Successfully connected to live trading account
+                </div>
+            </section>
+
+            <!-- PANEL DE VALIDACIÓN -->
+            <section class="validation-panel slide-in full-width">
+                <div class="section-header">✅ System Validation</div>
+                
+                <div class="deployment-grid">
+                    <div>
+                        <button class="validate-btn">Validate Configuration</button>
+                        <button class="validate-btn">Test Connection</button>
+                        <button class="validate-btn-primary">Run System Check</button>
+                    </div>
+                    
+                    <div class="status-indicator status-live">
+                        🟢 All Systems Ready for Live Trading
+                    </div>
+                </div>
+
+                <div class="alert alert-warning">
+                    ⚠️ Remember: This will deploy to your REAL trading account
+                </div>
+            </section>
+
+            <!-- PANEL DE DEPLOYMENT -->
+            <section class="deployment-panel slide-in full-width">
+                <div class="section-header">🚀 Live Deployment Controls</div>
+                
+                <div class="deployment-controls">
+                    <button class="deploy-btn-primary">🚀 Deploy Live</button>
+                    <button class="emergency-btn">🛑 Emergency Stop</button>
+                    <button class="dashboard-btn">📊 Open Dashboard</button>
+                </div>
+
+                <div class="status-indicator status-ready">
+                    System Ready - Click Deploy Live to Begin Trading
+                </div>
+            </section>
+        </div>
+
+        <!-- MONITOR EN VIVO -->
+        <section class="live-monitor fade-in">
+            <div class="monitor-header">📊 Live Trading Monitor</div>
+            <div class="monitor-status">
+                Real-time monitoring will appear here once deployment is active
+            </div>
+
+            <!-- TABLA DE POSICIONES -->
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Type</th>
+                        <th>Size</th>
+                        <th>Open Price</th>
+                        <th>Current Price</th>
+                        <th>P&L</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>EURUSD</strong></td>
+                        <td>BUY</td>
+                        <td>1.50 lots</td>
+                        <td>1.1050</td>
+                        <td>1.1075</td>
+                        <td class="text-profit">+$375.00</td>
+                        <td><span class="alert alert-success" style="padding: 5px 10px; margin: 0;">Open</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>GBPJPY</strong></td>
+                        <td>SELL</td>
+                        <td>0.80 lots</td>
+                        <td>150.25</td>
+                        <td>149.85</td>
+                        <td class="text-profit">+$280.00</td>
+                        <td><span class="alert alert-success" style="padding: 5px 10px; margin: 0;">Open</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>USDJPY</strong></td>
+                        <td>BUY</td>
+                        <td>1.00 lots</td>
+                        <td>148.50</td>
+                        <td>148.25</td>
+                        <td class="text-loss">-$170.00</td>
+                        <td><span class="alert alert-warning" style="padding: 5px 10px; margin: 0;">Open</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- ALERTAS DEL SISTEMA -->
+        <section class="slide-in">
+            <h3 style="margin-bottom: 20px;">🔔 System Alerts</h3>
+            <div class="alert alert-success">
+                ✅ All risk management systems are active and monitoring
+            </div>
+            <div class="alert alert-warning">
+                ⚠️ Approaching daily loss limit (75% of $500 limit reached)
+            </div>
+            <div class="alert alert-error">
+                ❌ Emergency stop will trigger if drawdown exceeds 5%
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Simular actualizaciones en tiempo real
+        function updateMetrics() {
+            const balanceElement = document.querySelector('.metric-card.profit .metric-value');
+            const currentBalance = parseFloat(balanceElement.textContent.replace('$', '').replace(',', ''));
+            const change = (Math.random() - 0.5) * 20; // +/- $10 random change
+            const newBalance = currentBalance + change;
+            balanceElement.textContent = `$${newBalance.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+        }
+
+        function updateProgress() {
+            const progressFill = document.querySelector('.progress-fill');
+            const currentWidth = parseInt(progressFill.style.width);
+            if (currentWidth < 100) {
+                progressFill.style.width = (currentWidth + 1) + '%';
+            }
+        }
+
+        // Actualizar métricas cada 5 segundos
+        setInterval(updateMetrics, 5000);
+        
+        // Actualizar progreso cada 2 segundos
+        setInterval(updateProgress, 2000);
+
+        // Efectos de hover para botones críticos
+        document.querySelectorAll('.emergency-btn').forEach(btn => {
+            btn.addEventListener('mouseenter', () => {
+                btn.textContent = '⚠️ CONFIRM STOP';
+            });
+            btn.addEventListener('mouseleave', () => {
+                btn.textContent = '🛑 Emergency Stop';
+            });
+        });
+    </script>
+</body>
+</html>

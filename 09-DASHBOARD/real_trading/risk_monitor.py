@@ -13,24 +13,209 @@ Características:
 - Alert system integration
 """
 
-import streamlit as st
-import pandas as pd
-import plotly.graph_objects as go
-import plotly.express as px
+# Standard imports
 from datetime import datetime, timedelta
 import json
-from typing import Dict, Any, List
+import sys
+import os
+import importlib.util
+from pathlib import Path
+from typing import Dict, Any, List, Optional
 
-# Imports sistema ICT existente
+# Add project paths
+project_root = Path(__file__).parent.parent.parent
+core_path = project_root / "01-CORE"
+sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(core_path))
+
+# Optional imports with fallbacks usando importlib
+# Verificar disponibilidad de dependencias sin importar directamente
+streamlit_available = importlib.util.find_spec('streamlit') is not None
+pandas_available = importlib.util.find_spec('pandas') is not None
+plotly_available = importlib.util.find_spec('plotly') is not None
+numpy_available = importlib.util.find_spec('numpy') is not None
+
+# Importar solo si están disponibles
+if streamlit_available and pandas_available and plotly_available and numpy_available:
+    try:
+        # Importación dinámica usando importlib
+        streamlit_module = importlib.import_module('streamlit')
+        pandas_module = importlib.import_module('pandas')
+        plotly_go = importlib.import_module('plotly.graph_objects')
+        plotly_px = importlib.import_module('plotly.express')
+        numpy_module = importlib.import_module('numpy')
+        
+        # Asignar a variables locales
+        st = streamlit_module
+        pd = pandas_module
+        go = plotly_go
+        px = plotly_px
+        np = numpy_module
+        
+        STREAMLIT_AVAILABLE = True
+        print("✅ All dashboard dependencies loaded successfully")
+    except ImportError as e:
+        print(f"⚠️ Error importing modules: {e}")
+        STREAMLIT_AVAILABLE = False
+else:
+    STREAMLIT_AVAILABLE = False
+    missing_deps = []
+    if not streamlit_available:
+        missing_deps.append('streamlit')
+    if not pandas_available:
+        missing_deps.append('pandas')
+    if not plotly_available:
+        missing_deps.append('plotly')
+    if not numpy_available:
+        missing_deps.append('numpy')
+    print(f"⚠️ Missing dependencies: {', '.join(missing_deps)}")
+
+if not STREAMLIT_AVAILABLE:
+    print("⚠️ Streamlit not available - using console fallback mode")
+    # Create mock objects for development
+    class MockLayoutColumn:
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        
+    class MockStreamlit:
+        def set_page_config(self, **kwargs): pass
+        def title(self, text): print(f"TITLE: {text}")
+        def markdown(self, text): print(f"MARKDOWN: {text}")
+        def columns(self, spec): 
+            if isinstance(spec, list):
+                return [MockLayoutColumn() for _ in spec]
+            else:
+                return [MockLayoutColumn() for _ in range(spec)]
+        def metric(self, label, value, delta=None, delta_color=None): 
+            print(f"METRIC: {label} = {value}")
+        def info(self, text): print(f"INFO: {text}")
+        def success(self, text): print(f"SUCCESS: {text}")
+        def warning(self, text): print(f"WARNING: {text}")
+        def error(self, text): print(f"ERROR: {text}")
+        def plotly_chart(self, fig, use_container_width=True): pass
+        def dataframe(self, df, hide_index=True): print(f"DATAFRAME: {len(df) if hasattr(df, '__len__') else 'N/A'} rows")
+        def write(self, text): print(f"WRITE: {text}")
+        
+        class Sidebar:
+            def markdown(self, text): print(f"SIDEBAR: {text}")
+            def slider(self, label, min_val, max_val, default, step): return default
+            def number_input(self, label, min_val, max_val, default, step=None): return default
+            def checkbox(self, label, default): return default
+            def selectbox(self, label, options, index=0, format_func=None): return options[index]
+            def button(self, label): return False
+            def error(self, text): print(f"SIDEBAR ERROR: {text}")
+            def success(self, text): print(f"SIDEBAR SUCCESS: {text}")
+        
+        sidebar = Sidebar()
+    
+    st = MockStreamlit()
+    
+    class MockDataFrame:
+        def __init__(self, data):
+            if isinstance(data, list) and data:
+                # Convert list of dicts to dict of lists
+                if isinstance(data[0], dict):
+                    keys = data[0].keys()
+                    self.data = {key: [item[key] for item in data] for key in keys}
+                else:
+                    self.data = {'values': data}
+            else:
+                self.data = data if isinstance(data, dict) else {}
+            self._keys = list(self.data.keys())
+            
+        def __len__(self): 
+            if self._keys:
+                return len(self.data[self._keys[0]]) if self.data[self._keys[0]] else 0
+            return 0
+            
+        def __getitem__(self, key):
+            if isinstance(key, list):
+                # Return a new MockDataFrame with selected columns
+                new_data = {}
+                for k in key:
+                    if k in self.data:
+                        new_data[k] = self.data[k]
+                return MockDataFrame(new_data)
+            # Return a MockDataColumn for single column access
+            column_data = self.data.get(key, [])
+            return MockDataColumn(column_data)
+            
+        def __setitem__(self, key, value):
+            if isinstance(value, MockDataColumn):
+                self.data[key] = value.data
+            else:
+                self.data[key] = value
+            if key not in self._keys:
+                self._keys.append(key)
+            
+        def copy(self): return MockDataFrame(self.data.copy())
+        def apply(self, func): 
+            if isinstance(self.data, dict) and self._keys:
+                return [func(x) for x in self.data.values()]
+            return []
+    
+    class MockDataColumn:
+        def __init__(self, data):
+            self.data = data
+            
+        def apply(self, func):
+            if isinstance(self.data, list):
+                return MockDataColumn([func(x) for x in self.data])
+            return MockDataColumn([func(self.data)])
+    
+    class MockPandas:
+        @staticmethod
+        def DataFrame(data): return MockDataFrame(data)
+        @staticmethod
+        def date_range(start, periods, freq): return [start] * periods
+    
+    pd = MockPandas()
+    
+    class MockPlotly:
+        @staticmethod
+        def pie(*args, **kwargs): 
+            class MockFig:
+                def update_layout(self, **kwargs): pass
+            return MockFig()
+        @staticmethod
+        def line(*args, **kwargs): 
+            class MockFig:
+                def update_layout(self, **kwargs): pass
+            return MockFig()
+    
+    px = MockPlotly()
+    
+    class MockGo:
+        class Figure:
+            def __init__(self, *args): pass
+            def update_layout(self, **kwargs): pass
+        
+        class Indicator:
+            def __init__(self, *args, **kwargs): pass
+    
+    go = MockGo()
+    
+    class MockRandom:
+        @staticmethod
+        def normal(mean, std): return mean + (std * 0.1)
+    
+    class MockNumpy:
+        random = MockRandom()
+    
+    np = MockNumpy()
+    print("⚠️ Streamlit not available - using console fallback mode")
+
+# ICT System imports
 try:
-    from ..real_trading import (
+    from real_trading import (
         AutoPositionSizer, EmergencyStopSystem,
         SignalValidator, ExecutionEngine
     )
-    from ..data_management.mt5_data_manager import MT5DataManager
+    from data_management.mt5_data_manager import MT5DataManager
+    REAL_TRADING_AVAILABLE = True
 except ImportError:
-    # Fallback para development
-    pass
+    REAL_TRADING_AVAILABLE = False
+    print("⚠️ Real trading components not available - using simulation mode")
 
 class RiskMonitorDashboard:
     """
@@ -55,12 +240,17 @@ class RiskMonitorDashboard:
     
     def _load_components(self):
         """Carga componentes real trading"""
+        # Always create dummy data first
+        self._create_dummy_data()
+        
         try:
             # Load existing components if available
+            if REAL_TRADING_AVAILABLE:
+                # Initialize real components here if needed
+                pass
+        except Exception as e:
+            print(f"⚠️ Could not load real trading components: {e}")
             pass
-        except:
-            # Create dummy data for development
-            self._create_dummy_data()
     
     def _create_dummy_data(self):
         """Datos dummy para desarrollo"""
@@ -299,11 +489,11 @@ class RiskMonitorDashboard:
         
         # Generate sample equity curve
         dates = pd.date_range(start='2025-09-01', periods=30, freq='D')
-        equity = [10000]
+        equity = [10000.0]  # Start with float
         
         for i in range(1, 30):
             change = np.random.normal(10, 50)  # Random walk
-            equity.append(equity[-1] + change)
+            equity.append(float(equity[-1] + change))  # Ensure float type
         
         df = pd.DataFrame({'Date': dates, 'Equity': equity})
         

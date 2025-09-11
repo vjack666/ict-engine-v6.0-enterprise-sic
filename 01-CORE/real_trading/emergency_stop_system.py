@@ -26,10 +26,12 @@ import json
 try:
     from ..data_management.mt5_data_manager import MT5DataManager
     from ..smart_trading_logger import SmartTradingLogger
-    from ..enums import TradingStatus
+    from ..enums import SystemStateV6
 except ImportError:
     # Fallback para testing
-    pass
+    MT5DataManager = None
+    SmartTradingLogger = None
+    SystemStateV6 = None
 
 class EmergencyLevel(Enum):
     """Niveles de emergencia del sistema"""
@@ -119,11 +121,19 @@ class EmergencyStopSystem:
         
         # Integración sistema existente
         try:
-            self.mt5_manager = MT5DataManager()
-            self.logger = SmartTradingLogger("EmergencyStop")
-        except:
+            if MT5DataManager is not None:
+                self.mt5_manager = MT5DataManager()
+            else:
+                self.mt5_manager = None
+                
+            if SmartTradingLogger is not None:
+                self.logger = SmartTradingLogger("EmergencyStop")
+            else:
+                self.logger = logging.getLogger("EmergencyStop")
+        except Exception as e:
             self.mt5_manager = None
             self.logger = logging.getLogger("EmergencyStop")
+            print(f"Warning: Could not initialize MT5 components: {e}")
             
         # Estado inicial
         self._initialize_account_health()
@@ -177,7 +187,7 @@ class EmergencyStopSystem:
         if self.mt5_manager:
             try:
                 # Get initial account info
-                account_info = self._get_account_info()
+                account_info = self.mt5_manager.get_connection_status()
                 balance = account_info.get('balance', 0.0)
                 
                 self.account_health = AccountHealth(
@@ -195,12 +205,14 @@ class EmergencyStopSystem:
                 
             except Exception as e:
                 self.logger.error(f"Failed to initialize account health: {str(e)}")
+                # Initialize with default values
+                self.account_health = AccountHealth()
     
     def _update_account_health(self):
         """Actualiza estado salud cuenta"""
         try:
             # Get current account info
-            account_info = self._get_account_info()
+            account_info = self.mt5_manager.get_connection_status() if self.mt5_manager else {}
             current_balance = account_info.get('balance', 0.0)
             equity = account_info.get('equity', current_balance)
             
@@ -292,9 +304,10 @@ class EmergencyStopSystem:
             
         try:
             # Simple ping test
-            account_info = self._get_account_info()
-            return account_info.get('balance', 0) == 0  # Suspicious if 0
-        except:
+            connection_status = self.mt5_manager.get_connection_status()
+            return not connection_status.get('connected', False)  # True if disconnected
+        except Exception as e:
+            self.logger.error(f"Connection health check failed: {e}")
             return True  # Connection failed
     
     def _check_market_conditions(self) -> bool:
@@ -473,8 +486,11 @@ class EmergencyStopSystem:
     def _get_account_info(self) -> Dict[str, Any]:
         """Obtiene información cuenta MT5"""
         if self.mt5_manager:
-            # TODO: Use actual MT5DataManager method
-            return {'balance': 10000.0, 'equity': 10000.0}  # Dummy data
+            try:
+                return self.mt5_manager.get_connection_status()
+            except Exception as e:
+                self.logger.error(f"Error getting account info: {e}")
+                return {}
         return {}
     
     def _get_open_positions_count(self) -> int:

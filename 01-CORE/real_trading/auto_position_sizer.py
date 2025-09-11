@@ -21,11 +21,13 @@ from enum import Enum
 # Imports del sistema ICT existente
 try:
     from ..data_management.mt5_data_manager import MT5DataManager
-    from ..enums import TradingSignalType
+    from ..enums import TradingDirectionV6
     from ..smart_trading_logger import SmartTradingLogger
 except ImportError:
     # Fallback para testing
-    pass
+    MT5DataManager = None
+    TradingDirectionV6 = None
+    SmartTradingLogger = None
 
 class RiskLevel(Enum):
     """Niveles de riesgo configurables"""
@@ -77,11 +79,19 @@ class AutoPositionSizer:
         
         # Integración con sistema existente
         try:
-            self.mt5_manager = MT5DataManager()
-            self.logger = SmartTradingLogger("AutoPositionSizer")
-        except:
+            if MT5DataManager is not None:
+                self.mt5_manager = MT5DataManager()
+            else:
+                self.mt5_manager = None
+                
+            if SmartTradingLogger is not None:
+                self.logger = SmartTradingLogger("AutoPositionSizer")
+            else:
+                self.logger = logging.getLogger("AutoPositionSizer")
+        except Exception as e:
             self.mt5_manager = None
             self.logger = logging.getLogger("AutoPositionSizer")
+            print(f"Warning: Could not initialize MT5 components: {e}")
             
         # Cache para optimización
         self._symbol_specs_cache = {}
@@ -169,10 +179,10 @@ class AutoPositionSizer:
         """Obtiene balance cuenta MT5"""
         if self.mt5_manager:
             try:
-                account_info = self.mt5_manager.get_account_info()
-                return account_info.get('balance', 0.0)
-            except:
-                pass
+                connection_status = self.mt5_manager.get_connection_status()
+                return connection_status.get('balance', 0.0)
+            except Exception as e:
+                self.logger.error(f"Error getting account balance: {e}")
         return 0.0
     
     def _get_effective_risk_percent(self) -> float:

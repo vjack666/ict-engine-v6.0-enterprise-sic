@@ -18,6 +18,7 @@ dashboard_root = Path(__file__).parent.parent
 project_root = dashboard_root.parent
 sys.path.insert(0, str(project_root / "01-CORE"))
 sys.path.insert(0, str(dashboard_root))
+sys.path.insert(0, str(dashboard_root / "components"))
 
 from textual.app import App, ComposeResult
 from textual.containers import Container, Vertical, VerticalScroll, Horizontal
@@ -27,6 +28,38 @@ from textual.reactive import reactive
 
 # Importar pestaña de patrones - REACTIVADO TRAS CORREGIR IMPORTACIONES
 from .patterns_tab import PatternsTab
+
+# Importar componente de deployment - USANDO IMPORTLIB CON FALLBACK
+import importlib.util
+import sys
+from textual.widgets import Static
+
+# Variable global para controlar disponibilidad
+DEPLOYMENT_WIDGET_AVAILABLE = False
+
+# Intentar cargar DeploymentWidget dinámicamente
+deployment_widget_path = dashboard_root / "components" / "deployment_widget.py"
+if deployment_widget_path.exists():
+    try:
+        spec = importlib.util.spec_from_file_location("deployment_widget", deployment_widget_path)
+        if spec and spec.loader:
+            deployment_module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(deployment_module)
+            DeploymentWidget = deployment_module.DeploymentWidget
+            DEPLOYMENT_WIDGET_AVAILABLE = True
+            print("✅ DeploymentWidget loaded successfully")
+    except Exception as e:
+        print(f"⚠️ Error loading DeploymentWidget: {e}")
+        DEPLOYMENT_WIDGET_AVAILABLE = False
+
+# Fallback si no se pudo cargar
+if not DEPLOYMENT_WIDGET_AVAILABLE:
+    print("⚠️ DeploymentWidget not available - using fallback")
+    
+    class DeploymentWidget(Static):
+        """Fallback DeploymentWidget cuando el real no está disponible"""
+        def __init__(self, **kwargs):
+            super().__init__("🚀 Deployment Widget - Fallback Mode\nReal deployment widget not available", **kwargs)
 
 class TextualDashboardApp(App[None]):
     """Dashboard ICT Enterprise"""
@@ -106,6 +139,7 @@ class TextualDashboardApp(App[None]):
         Binding("2", "switch_tab_analysis", "📊 Análisis", show=True), 
         Binding("3", "switch_tab_monitor", "📡 Monitor", show=True),
         Binding("4", "switch_tab_patterns", "🎯 Patrones", show=True),
+        Binding("5", "switch_tab_deployment", "🚀 Deploy", show=True),
         Binding("F5", "refresh_all", "🔄 Refresh", show=True),
         Binding("q", "quit", "Salir", show=True),
     ]
@@ -154,6 +188,11 @@ class TextualDashboardApp(App[None]):
                 with TabPane("🎯 Patrones", id="tab_patterns"):
                     with VerticalScroll():
                         yield Static(self.render_patterns_tab(), id="patterns_display", classes="patterns-content")
+                
+                # NUEVA TAB - Live Deployment
+                with TabPane("🚀 Live Deploy", id="tab_deployment"):
+                    with VerticalScroll():
+                        yield DeploymentWidget(classes="deployment-content")
         
         yield Footer()
     
@@ -545,6 +584,10 @@ class TextualDashboardApp(App[None]):
     def action_switch_tab_patterns(self):
         """Cambiar a pestaña Patrones"""
         self.query_one("#main_tabs", TabbedContent).active = "tab_patterns"
+    
+    def action_switch_tab_deployment(self):
+        """Cambiar a pestaña Live Deployment"""
+        self.query_one("#main_tabs", TabbedContent).active = "tab_deployment"
     
     def action_refresh_all(self):
         """Actualizar todas las pestañas"""

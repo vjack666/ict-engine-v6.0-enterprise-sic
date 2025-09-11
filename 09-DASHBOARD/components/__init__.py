@@ -9,10 +9,12 @@ from .fvg_widget import FVGStatsWidget
 from .market_widget import MarketDataWidget
 from .coherence_widget import CoherenceAnalysisWidget
 from .alerts_widget import AlertsWidget
+from .deployment_widget import DeploymentWidget
 
 __all__ = [
     'FVGStatsWidget',
     'MarketDataWidget', 
     'CoherenceAnalysisWidget',
-    'AlertsWidget'
+    'AlertsWidget',
+    'DeploymentWidget'
 ]
