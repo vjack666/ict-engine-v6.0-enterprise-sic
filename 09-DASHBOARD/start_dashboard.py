@@ -310,7 +310,7 @@ class StartDashboard:
             'mode': 'enterprise_real' if self.real_mode else 'enterprise',
             'data_source': 'real',  # Siempre usar datos reales
             'logging_mode': 'silent',  # Mantener modo silencioso del main.py
-            'refresh_rate': 0.5,  # Actualización cada 0.5 segundos para trading activo
+            'refresh_rate': 0.05,  # ✅ ULTRA-RÁPIDO: 0.05 segundos para detectar operaciones inmediatamente
             'auto_start': True,
             
             # === OPTIMIZACIONES ESPECÍFICAS PARA MANEJO DE CUENTA ===

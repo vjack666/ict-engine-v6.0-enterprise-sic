@@ -38,7 +38,7 @@ class DashboardDataCollector:
     Usa el sistema ICT Engine existente, no duplica lógica.
     """
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: Dict[str, Any] = None):
         """Inicializar collector optimizado"""
         self.config = config or {}
         self.use_real_data = True  # Siempre usar datos reales
@@ -335,6 +335,6 @@ class DashboardDataCollector:
 # FACTORY FUNCTION
 # =============================================================================
 
-def create_dashboard_data_collector(config: Optional[Dict[str, Any]] = None) -> DashboardDataCollector:
+def create_dashboard_data_collector(config: Dict[str, Any] = None) -> DashboardDataCollector:
     """Factory function para crear el data collector"""
     return DashboardDataCollector(config)

@@ -57,6 +57,57 @@ class RealMarketBridge:
         
         print("🌉 RealMarketBridge inicializado (modular)")
     
+    def get_live_positions_data(self):
+        """📊 Obtener posiciones MT5 en tiempo real"""
+        try:
+            import MetaTrader5 as mt5
+            if not mt5.initialize():
+                return {'total_positions': 0, 'positions': [], 'total_pnl': 0.0, 'status': 'MT5_NOT_INITIALIZED'}
+            
+            positions = mt5.positions_get()
+            if positions is None:
+                positions = []
+            
+            positions_data = {
+                'total_positions': len(positions),
+                'total_pnl': 0.0,
+                'positions': [],
+                'status': 'ACTIVE',
+                'last_update': datetime.now().strftime("%H:%M:%S.%f")[:-3]
+            }
+            
+            for pos in positions:
+                # Calcular pips
+                symbol = pos.symbol
+                point_value = 0.0001 if 'JPY' not in symbol else 0.01
+                if pos.type == 0:  # BUY
+                    pips = (pos.price_current - pos.price_open) / point_value
+                else:  # SELL
+                    pips = (pos.price_open - pos.price_current) / point_value
+                
+                position_info = {
+                    'ticket': pos.ticket,
+                    'symbol': pos.symbol,
+                    'type': 'BUY' if pos.type == 0 else 'SELL',
+                    'volume': pos.volume,
+                    'open_price': pos.price_open,
+                    'current_price': pos.price_current,
+                    'profit': pos.profit,
+                    'pips': round(pips, 1),
+                    'open_time': datetime.fromtimestamp(pos.time).strftime("%H:%M:%S"),
+                    'comment': getattr(pos, 'comment', ''),
+                    'swap': getattr(pos, 'swap', 0.0)
+                }
+                positions_data['positions'].append(position_info)
+                positions_data['total_pnl'] += pos.profit
+            
+            return positions_data
+            
+        except ImportError:
+            return {'total_positions': 0, 'positions': [], 'total_pnl': 0.0, 'status': 'MT5_MODULE_NOT_AVAILABLE'}
+        except Exception as e:
+            return {'total_positions': 0, 'positions': [], 'total_pnl': 0.0, 'status': f'ERROR: {str(e)}'}
+    
     def _get_active_symbols(self) -> List[str]:
         """Obtener símbolos activos según configuración multi-símbolo"""
         try:

@@ -62,6 +62,7 @@ class DashboardData:
     real_data_status: Dict[str, Any]
     symbols_data: Dict[str, Any]
     cache_stats: Dict[str, Any]
+    live_positions: Dict[str, Any]  # ✅ NUEVO: Posiciones en tiempo real
 
 class RealICTDataCollector:
     """📡 Recolector de datos simplificado conectado al sistema ICT Engine real"""
@@ -73,7 +74,12 @@ class RealICTDataCollector:
         self.callbacks = []
         self.components = {}
         self.latest_data = None
-        self.collected_data = {}  # Agregar atributo faltante
+        self.collected_data = {}
+        
+        # Variables para monitoreo MT5 en tiempo real
+        self.mt5_connected = False
+        self.last_positions_count = 0
+        self.positions_cache = {}
         
         # Símbolos y timeframes
         self.symbols = config.get('data', {}).get('symbols', ['EURUSD', 'GBPUSD', 'USDJPY'])
@@ -81,6 +87,35 @@ class RealICTDataCollector:
         
         print(f"🚀 [RealDataCollector] Inicializando sistema ICT Engine simplificado...")
         self._initialize_basic_components()
+        self._initialize_mt5_monitor()
+        
+    def _initialize_mt5_monitor(self):
+        """Inicializar monitoreo MT5 en tiempo real"""
+        try:
+            import MetaTrader5 as mt5
+            if mt5.initialize():
+                self.mt5_connected = True
+                self.mt5 = mt5
+                print("✅ [MT5] Conexión establecida para monitoreo en tiempo real")
+                
+                # Verificar posiciones iniciales
+                initial_positions = mt5.positions_get()
+                if initial_positions:
+                    print(f"📊 [MT5] {len(initial_positions)} posiciones detectadas inicialmente")
+                    self.last_positions_count = len(initial_positions)
+                else:
+                    print("📊 [MT5] Sin posiciones abiertas inicialmente")
+                    
+            else:
+                print("⚠️ [MT5] No se pudo conectar para monitoreo")
+                self.mt5_connected = False
+                
+        except ImportError:
+            print("⚠️ [MT5] MetaTrader5 module no disponible")
+            self.mt5_connected = False
+        except Exception as e:
+            print(f"❌ [MT5] Error inicializando monitor: {e}")
+            self.mt5_connected = False
         
     def _initialize_basic_components(self):
         """Inicializar componentes básicos sin ImportCenter"""
@@ -99,6 +134,85 @@ class RealICTDataCollector:
         except Exception as e:
             print(f"❌ Error inicializando componentes básicos: {e}")
             traceback.print_exc()
+    
+    def get_live_positions_data(self):
+        """Obtener datos de posiciones en tiempo real desde MT5"""
+        if not self.mt5_connected:
+            return {
+                'total_positions': 0,
+                'total_pnl': 0.0,
+                'positions': [],
+                'status': 'MT5_DISCONNECTED'
+            }
+            
+        try:
+            # Obtener posiciones actuales
+            positions = self.mt5.positions_get()
+            
+            if positions is None:
+                positions = []
+            
+            positions_data = {
+                'total_positions': len(positions),
+                'total_pnl': 0.0,
+                'positions': [],
+                'status': 'ACTIVE',
+                'last_update': datetime.now().strftime("%H:%M:%S.%f")[:-3]  # Con milisegundos
+            }
+            
+            # Procesar cada posición
+            for pos in positions:
+                position_info = {
+                    'ticket': pos.ticket,
+                    'symbol': pos.symbol,
+                    'type': 'BUY' if pos.type == 0 else 'SELL',
+                    'volume': pos.volume,
+                    'open_price': pos.price_open,
+                    'current_price': pos.price_current,
+                    'profit': pos.profit,
+                    'pips': self._calculate_pips(pos),
+                    'open_time': datetime.fromtimestamp(pos.time).strftime("%H:%M:%S"),
+                    'comment': pos.comment if hasattr(pos, 'comment') else '',
+                    'swap': pos.swap if hasattr(pos, 'swap') else 0.0,
+                    'commission': pos.commission if hasattr(pos, 'commission') else 0.0
+                }
+                positions_data['positions'].append(position_info)
+                positions_data['total_pnl'] += pos.profit
+            
+            # Detectar cambios en posiciones
+            current_count = len(positions)
+            if current_count != self.last_positions_count:
+                if current_count > self.last_positions_count:
+                    print(f"🔵 [LIVE] Nueva posición detectada! Total: {current_count}")
+                elif current_count < self.last_positions_count:
+                    print(f"🔴 [LIVE] Posición cerrada! Total: {current_count}")
+                self.last_positions_count = current_count
+            
+            return positions_data
+            
+        except Exception as e:
+            print(f"❌ Error obteniendo posiciones live: {e}")
+            return {
+                'total_positions': 0,
+                'total_pnl': 0.0,
+                'positions': [],
+                'status': f'ERROR: {str(e)}'
+            }
+    
+    def _calculate_pips(self, position):
+        """Calcular pips para una posición"""
+        try:
+            symbol = position.symbol
+            point_value = 0.0001 if 'JPY' not in symbol else 0.01
+            
+            if position.type == 0:  # BUY
+                pips = (position.price_current - position.price_open) / point_value
+            else:  # SELL
+                pips = (position.price_open - position.price_current) / point_value
+                
+            return round(pips, 1)
+        except:
+            return 0.0
     
     def _collect_real_system_data(self):
         """Recopilar datos reales del sistema para el dashboard"""
@@ -193,6 +307,9 @@ class RealICTDataCollector:
                 'source': 'ICT_ENGINE_v6.0',
                 'data_source': 'REAL_FVG_MEMORY_MANAGER'
             }
+            
+            # OBTENER POSICIONES EN TIEMPO REAL
+            live_positions = self.get_live_positions_data()
             
             # Pattern stats del sistema real
             pattern_stats = {
@@ -313,7 +430,8 @@ class RealICTDataCollector:
                 system_metrics=system_metrics,
                 real_data_status=real_data_status,
                 symbols_data=symbols_data,
-                cache_stats=cache_stats
+                cache_stats=cache_stats,
+                live_positions=live_positions  # ✅ AGREGADO: Posiciones en tiempo real
             )
             
             print("✅ [RealDataCollector] Conectado al ICT Engine real exitosamente")
@@ -379,7 +497,8 @@ class RealICTDataCollector:
                 system_metrics={},
                 real_data_status={'system_status': 'ERROR'},
                 symbols_data={},
-                cache_stats={}
+                cache_stats={},
+                live_positions={'total_positions': 0, 'positions': [], 'status': 'ERROR'}  # ✅ AGREGADO
             )     
     def start(self):
         """Iniciar el recolector de datos"""

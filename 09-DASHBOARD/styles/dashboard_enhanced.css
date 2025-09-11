@@ -1,0 +1,181 @@
+/* 🎨 ICT ENGINE v6.0 ENTERPRISE - DASHBOARD CSS ENHANCED */
+
+/* Panel principal mejorado */
+.dashboard-main {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    color: #ffffff;
+    padding: 2;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Headers con mejor contraste */
+.section-header {
+    background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+    color: white;
+    text-align: center;
+    padding: 1;
+    border-radius: 5px;
+    font-weight: bold;
+    margin-bottom: 1;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Status indicators mejorados */
+.status-connected {
+    color: #00ff88;
+    font-weight: bold;
+    background: rgba(0, 255, 136, 0.1);
+    padding: 0 1;
+    border-radius: 3px;
+}
+
+.status-disconnected {
+    color: #ff4757;
+    font-weight: bold;
+    background: rgba(255, 71, 87, 0.1);
+    padding: 0 1;
+    border-radius: 3px;
+}
+
+/* Datos de mercado con colores */
+.market-data-row {
+    background: rgba(255, 255, 255, 0.05);
+    margin: 0 0 1 0;
+    padding: 1;
+    border-radius: 5px;
+    border-left: 3px solid #3a7bd5;
+}
+
+.market-symbol-up {
+    color: #00ff88;
+    font-weight: bold;
+}
+
+.market-symbol-down {
+    color: #ff4757;
+    font-weight: bold;
+}
+
+.market-symbol-neutral {
+    color: #ffa502;
+    font-weight: bold;
+}
+
+/* P&L con colores dinámicos */
+.pnl-positive {
+    color: #00ff88;
+    font-weight: bold;
+    background: rgba(0, 255, 136, 0.1);
+}
+
+.pnl-negative {
+    color: #ff4757;
+    font-weight: bold;
+    background: rgba(255, 71, 87, 0.1);
+}
+
+.pnl-neutral {
+    color: #ffa502;
+    font-weight: bold;
+}
+
+/* Posiciones activas */
+.position-active {
+    background: linear-gradient(90deg, rgba(0, 255, 136, 0.1), rgba(58, 123, 213, 0.1));
+    border: 1px solid #00ff88;
+    padding: 1;
+    border-radius: 5px;
+    margin: 0 0 1 0;
+}
+
+/* Métricas de performance */
+.performance-metric {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 1 2;
+    margin: 0 1 1 0;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Alertas y warnings */
+.alert-warning {
+    background: rgba(255, 165, 2, 0.2);
+    border: 1px solid #ffa502;
+    color: #ffa502;
+    padding: 1;
+    border-radius: 5px;
+    margin: 1 0;
+}
+
+.alert-success {
+    background: rgba(0, 255, 136, 0.2);
+    border: 1px solid #00ff88;
+    color: #00ff88;
+    padding: 1;
+    border-radius: 5px;
+    margin: 1 0;
+}
+
+/* Animaciones sutiles */
+.live-indicator {
+    animation: pulse 2s infinite;
+}
+
+/* ICT Signals enhanced */
+.fvg-count {
+    color: #00d2ff;
+    text-style: bold;
+    background: rgba(0, 210, 255, 0.1);
+    padding: 0 1;
+    border-radius: 3px;
+}
+
+.ob-count {
+    color: #ff6b35;
+    text-style: bold;
+    background: rgba(255, 107, 53, 0.1);
+    padding: 0 1;
+    border-radius: 3px;
+}
+
+.bullish-signal {
+    color: #00ff88;
+    text-style: bold;
+}
+
+.bearish-signal {
+    color: #ff4757;
+    text-style: bold;
+}
+
+/* Trading status enhanced */
+.trading-active {
+    color: #00ff88;
+    text-style: bold;
+    animation: pulse 2s infinite;
+}
+
+/* Balance display */
+.balance-display {
+    color: #ffd700;
+    text-style: bold;
+    font-size: 1.2em;
+}
+
+/* Connection status colors */
+.connection-excellent {
+    color: #00ff88;
+    background: rgba(0, 255, 136, 0.1);
+}
+
+.connection-good {
+    color: #ffa502;
+    background: rgba(255, 165, 2, 0.1);
+}
+
+.connection-poor {
+    color: #ff4757;
+    background: rgba(255, 71, 87, 0.1);
+}
