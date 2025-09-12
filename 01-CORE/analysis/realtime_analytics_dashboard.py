@@ -34,8 +34,14 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 try:
-    from smart_trading_logger import get_smart_logger
+    from ict_engine.unified_logging import (
+        log_info, log_warning, log_error, log_debug,
+        UnifiedLoggingSystem, create_unified_logger
+    )
     SLUC_AVAILABLE = True
+    def get_smart_logger(name="RealtimeAnalyticsDashboard"):
+        """Wrapper para compatibilidad"""
+        return create_unified_logger(name)
 except ImportError:
     SLUC_AVAILABLE = False
     logging.basicConfig(level=logging.INFO)

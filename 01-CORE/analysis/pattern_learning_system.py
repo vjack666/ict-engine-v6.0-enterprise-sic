@@ -34,20 +34,86 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 try:
-    from smart_trading_logger import get_smart_logger
+    from ict_engine.unified_logging import (
+        log_info, log_warning, log_error, log_debug,
+        UnifiedLoggingSystem, create_unified_logger
+    )
     SLUC_AVAILABLE = True
+    # Wrapper function to match expected signature
+    def get_smart_logger(name="PatternLearningSystem"):  # type: ignore
+        """Smart logger wrapper that returns UnifiedLoggingSystem"""
+        return create_unified_logger(name)
 except ImportError:
     SLUC_AVAILABLE = False
     logging.basicConfig(level=logging.INFO)
+    # Fallback logging functions
+    def log_info(message, component="CORE"): logging.info(f"[{component}] {message}")
+    def log_warning(message, component="CORE"): logging.warning(f"[{component}] {message}") 
+    def log_error(message, component="CORE"): logging.error(f"[{component}] {message}")
+    def log_debug(message, component="CORE"): logging.debug(f"[{component}] {message}")
+    def get_smart_logger(name="PatternLearningSystem"): return logging.getLogger(name)
 
-# Analysis engines integration
+# Analysis engines integration with intelligent fallbacks
+# Optimized for real trading accounts - robust type handling
 try:
-    from analysis.pattern_confluence_engine import get_confluence_engine, PatternType
-    from analysis.market_structure_intelligence import get_market_structure_intelligence, MarketPhase
-    from analysis.trading_signal_synthesizer import get_trading_signal_synthesizer, TradingSignal
-    ANALYSIS_ENGINES_AVAILABLE = True
-except ImportError:
+    # Import with explicit type annotations for Pylance compatibility
+    import analysis.analysis_fallbacks as fallback_system
+    
+    # Use the fallback system's types directly without local redefinition
+    PatternType = fallback_system.PatternType  # type: ignore[assignment]
+    MarketPhase = fallback_system.MarketPhase  # type: ignore[assignment] 
+    TradingSignal = fallback_system.TradingSignal  # type: ignore[assignment]
+    
+    # Use the fallback system's functions with proper typing
+    get_confluence_engine = fallback_system.get_confluence_engine  # type: ignore[assignment]
+    get_market_structure_intelligence = fallback_system.get_market_structure_intelligence  # type: ignore[assignment]
+    get_trading_signal_synthesizer = fallback_system.get_trading_signal_synthesizer  # type: ignore[assignment]
+    
+    ANALYSIS_ENGINES_AVAILABLE = fallback_system.ANALYSIS_ENGINES_AVAILABLE
+    
+    log_info("✅ Analysis engines loaded via intelligent fallbacks system", "PATTERN_LEARNING")
+    log_info(f"🎯 Real trading ready: Engines available = {ANALYSIS_ENGINES_AVAILABLE}", "PATTERN_LEARNING")
+    
+except ImportError as e:
+    log_error(f"❌ Fallbacks system not available: {e}", "PATTERN_LEARNING")
+    log_warning("⚠️ Using emergency local fallbacks - not optimal for real trading", "PATTERN_LEARNING")
+    
+    # Emergency local fallbacks - minimal and conservative for real trading
+    from enum import Enum
+    
+    class PatternType(Enum):  # type: ignore
+        FAIR_VALUE_GAP = "FAIR_VALUE_GAP"
+        ORDER_BLOCK = "ORDER_BLOCK"
+        BREAK_OF_STRUCTURE = "BREAK_OF_STRUCTURE"
+        CONSOLIDATION_BREAK = "CONSOLIDATION_BREAK"  # Safe pattern for real trading
+    
+    class MarketPhase(Enum):  # type: ignore
+        ACCUMULATION = "ACCUMULATION"
+        CONSOLIDATION = "CONSOLIDATION"  # Conservative default for real trading
+        DISTRIBUTION = "DISTRIBUTION"
+        TRENDING = "TRENDING"
+    
+    class TradingSignal(Enum):  # type: ignore
+        WAIT = "WAIT"  # Conservative default
+        WEAK_BUY = "WEAK_BUY"
+        WEAK_SELL = "WEAK_SELL" 
+        HOLD = "HOLD"
+    
+    # Conservative fallback functions for real trading
+    def get_confluence_engine():  # type: ignore
+        log_warning("⚠️ Using minimal confluence engine - limited functionality", "PATTERN_LEARNING")
+        return None
+    
+    def get_market_structure_intelligence():  # type: ignore
+        log_warning("⚠️ Using minimal market structure intelligence - limited functionality", "PATTERN_LEARNING")
+        return None
+        
+    def get_trading_signal_synthesizer():  # type: ignore
+        log_warning("⚠️ Using minimal signal synthesizer - limited functionality", "PATTERN_LEARNING")
+        return None
+        
     ANALYSIS_ENGINES_AVAILABLE = False
+    log_error("❌ CRITICAL: Real trading not recommended without full analysis engines", "PATTERN_LEARNING")
 
 
 class LearningMode(Enum):
@@ -340,11 +406,11 @@ class PatternLearningSystem:
         """🌍 Generate market condition context"""
         now = datetime.now()
         
-        # Basic context generation (can be enhanced with real market data)
+        # Conservative context generation optimized for real trading
         market_context = MarketConditionContext(
             volatility_regime="MEDIUM",
             trend_strength=50.0,
-            market_phase=MarketPhase.ACCUMULATION,
+            market_phase=MarketPhase.CONSOLIDATION,  # Conservative default for real trading
             session_time=self._get_session_time(now),
             day_of_week=now.strftime("%A").upper(),
             news_impact_level="LOW",
@@ -449,11 +515,15 @@ class PatternLearningSystem:
         else:
             adjustment -= 2.0  # Less active sessions
         
-        # Market phase adjustment
+        # Market phase adjustment - optimized for real trading
         if market_context.market_phase == MarketPhase.ACCUMULATION:
             adjustment += 5.0  # Accumulation phase is good for patterns
-        elif market_context.market_phase == MarketPhase.MANIPULATION:
-            adjustment -= 3.0  # Manipulation can be challenging
+        elif market_context.market_phase == MarketPhase.DISTRIBUTION:
+            adjustment -= 3.0  # Distribution can be challenging for longs
+        elif market_context.market_phase == MarketPhase.TRENDING:
+            adjustment += 3.0  # Trending markets favor pattern continuation
+        elif market_context.market_phase == MarketPhase.CONSOLIDATION:
+            adjustment += 1.0  # Consolidation provides balanced opportunities
         
         return adjustment
     

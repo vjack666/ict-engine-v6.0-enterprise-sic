@@ -42,11 +42,26 @@ except ImportError:
 
 # Imports del sistema principal
 try:
-    from smart_trading_logger import SmartTradingLogger, log_info, log_warning
+    from ict_engine.unified_logging import (
+        log_info, log_warning, log_error, log_debug,
+        UnifiedLoggingSystem, create_unified_logger
+    )
     from analysis.unified_memory_system import get_unified_memory_system
     CORE_AVAILABLE = True
+    SmartTradingLogger = UnifiedLoggingSystem  # Para compatibilidad
 except ImportError:
     CORE_AVAILABLE = False
+    # Fallback logging functions
+    def log_info(message, component="CORE"): print(f"[{component}] INFO: {message}")
+    def log_warning(message, component="CORE"): print(f"[{component}] WARNING: {message}") 
+    def log_error(message, component="CORE"): print(f"[{component}] ERROR: {message}")
+    def log_debug(message, component="CORE"): print(f"[{component}] DEBUG: {message}")
+    def get_unified_memory_system(): return None
+    class SmartTradingLogger:
+        def __init__(self, name): 
+            self.name = name
+        def info(self, msg): print(f"[{self.name}] INFO: {msg}")
+        def warning(self, msg): print(f"[{self.name}] WARNING: {msg}")
 
 
 class OrderBlocksPatternDetector:

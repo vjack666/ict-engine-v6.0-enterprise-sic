@@ -3,18 +3,17 @@
 Advanced trading signal generation from pattern confluence
 
 PHASE 3 - DAY 3 Implementation:
-- Synthesize all patterns into actionable trading signals
-- Signal strength calculation with multi-pattern confirmation
-- Entry/exit point optimization using ICT methodology
-- Risk/reward calculation with dynamic position sizing
-- Trade setup validation with market structure context
+- Combine multiple analysis engines
+- Generate unified trading signals  
+- Signal strength scoring (0-100)
+- Multi-timeframe signal validation
+- Risk-weighted signal recommendations
 
 Dependencies:
 - PatternConfluenceEngine (v6.1)
-- MarketStructureIntelligence (v6.1)
-- FairValueGapDetector (Enterprise v6.1)
-- EnhancedOrderBlockDetector (v6.1)
+- MarketStructureIntelligence (v6.1) 
 - UnifiedMemorySystem (v6.1)
+- Black Box Logger (v6.1)
 """
 
 import time
@@ -27,21 +26,25 @@ from enum import Enum
 import logging
 import numpy as np
 
-# Enterprise logging integration
-import sys
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
+# Centralized analysis fallbacks integration
 try:
-    from smart_trading_logger import get_smart_logger
-    SLUC_AVAILABLE = True
+    from analysis.analysis_fallbacks import get_analysis_logger  # type: ignore
+    LOGGING_AVAILABLE = True
 except ImportError:
-    SLUC_AVAILABLE = False
+    LOGGING_AVAILABLE = False
+    import logging
     logging.basicConfig(level=logging.INFO)
+    def get_analysis_logger(name: str = "AnalysisSystem") -> logging.Logger:
+        return logging.getLogger(name)
 
-# Analysis engines integration
+# Analysis engines integration with fallbacks - use dynamic imports to avoid type conflicts
+ANALYSIS_ENGINES_AVAILABLE = False
+confluence_engine_module = None
+structure_intelligence_module = None
+
 try:
-    from analysis.pattern_confluence_engine import get_confluence_engine, ConfluenceAnalysis
-    from analysis.market_structure_intelligence import get_market_structure_intelligence, MarketStructureAnalysis
+    import analysis.pattern_confluence_engine as confluence_engine_module
+    import analysis.market_structure_intelligence as structure_intelligence_module
     ANALYSIS_ENGINES_AVAILABLE = True
 except ImportError:
     ANALYSIS_ENGINES_AVAILABLE = False
@@ -129,15 +132,25 @@ class TradingSignalSynthesizer:
     
     def __init__(self):
         """Initialize Trading Signal Synthesizer"""
-        # Smart logging integration
-        if SLUC_AVAILABLE:
-            self.logger = get_smart_logger("TradingSignalSynthesizer")
-        else:
-            self.logger = logging.getLogger("TradingSignalSynthesizer")
+        # Smart logging integration - use centralized logger
+        self.logger = get_analysis_logger("TradingSignalSynthesizer")
         
-        # Analysis engines
-        self.confluence_engine = get_confluence_engine() if ANALYSIS_ENGINES_AVAILABLE else None
-        self.structure_intelligence = get_market_structure_intelligence() if ANALYSIS_ENGINES_AVAILABLE else None
+        # Analysis engines integration with safe module access
+        if ANALYSIS_ENGINES_AVAILABLE and confluence_engine_module:
+            try:
+                self.confluence_engine = confluence_engine_module.get_confluence_engine()
+            except AttributeError:
+                self.confluence_engine = None
+        else:
+            self.confluence_engine = None
+            
+        if ANALYSIS_ENGINES_AVAILABLE and structure_intelligence_module:
+            try:
+                self.structure_intelligence = structure_intelligence_module.get_market_structure_intelligence()
+            except AttributeError:
+                self.structure_intelligence = None
+        else:
+            self.structure_intelligence = None
         
         # Performance tracking
         self.lock = threading.Lock()

@@ -117,6 +117,15 @@ class SimpleOrderBlockDetector:
         # Configurar logger para Order Blocks
         self.logger = get_smart_logger()
         
+        # ⚡ Estadísticas de performance
+        self.stats = {
+            'total_detections': 0,
+            'total_detection_time': 0.0,
+            'high_confidence_blocks_last': 0,
+            'symbols_processed': set(),
+            'avg_blocks_per_symbol': 0.0
+        }
+        
         # Configurar rutas para archivos organizados usando estructura existente
         self.project_root = Path(__file__).parent.parent.parent.parent
         self.order_blocks_logs_dir = self.project_root / "01-CORE" / "data" / "logs" / "ict"
@@ -150,10 +159,15 @@ class SimpleOrderBlockDetector:
             Lista de BasicOrderBlock detectados
         """
         
+        # ⚡ Medir tiempo de detección
+        import time
+        start_time = time.time()
+        
         if len(data) < self.lookback_period:
             return []
             
         basic_blocks = []
+        self.stats['symbols_processed'].add(symbol)
         
         # 🔍 BUSCAR SWING HIGHS/LOWS EN ÚLTIMAS VELAS
         start_idx = max(5, len(data) - self.lookback_period)
@@ -238,6 +252,13 @@ class SimpleOrderBlockDetector:
             # 📈 GENERAR RESUMEN DE SESIÓN usando logging centralizado
             self._generate_session_summary(basic_blocks, symbol, timeframe, current_price)
         
+        # ⚡ Actualizar estadísticas de performance
+        detection_time = time.time() - start_time
+        self.stats['total_detections'] += 1
+        self.stats['total_detection_time'] += detection_time
+        self.stats['high_confidence_blocks_last'] = len([b for b in basic_blocks if b.confidence >= 70])
+        self.stats['avg_blocks_per_symbol'] = len(basic_blocks)
+        
         return basic_blocks[:5]  # Top 5 más relevantes
     
     def _is_swing_low(self, data: Any, idx: int, lookback: int = 3) -> bool:
@@ -296,13 +317,25 @@ class SimpleOrderBlockDetector:
         body_size = abs(candle['close'] - candle['open'])
         wick_ratio = wick_size / (body_size + 0.0001)  # Evitar división por 0
         
-        confidence = min(90, 40 + (wick_ratio * 20) + (10 if volume_conf else 0) + 
-                        max(0, 20 - distance_pips))
+        # Confidence dinámico basado en configuración - DEMAND ZONE
+        max_confidence = self.config.get('max_confidence', 90)
+        base_confidence = self.config.get('base_confidence', 40)
+        wick_multiplier = self.config.get('wick_confidence_multiplier', 20)
+        volume_bonus = self.config.get('volume_confidence_bonus', 10)
+        distance_penalty_threshold = self.config.get('distance_penalty_threshold', 20)
         
-        # 📈 NIVELES DE TRADING BÁSICOS
-        entry_price = candle['low'] + (candle['high'] - candle['low']) * 0.25
-        stop_loss = candle['low'] - (candle['high'] - candle['low']) * 0.1
-        take_profit = entry_price + (entry_price - stop_loss) * 2.0
+        confidence = min(max_confidence, base_confidence + (wick_ratio * wick_multiplier) + 
+                        (volume_bonus if volume_conf else 0) + 
+                        max(0, distance_penalty_threshold - distance_pips))
+        
+        # 📈 NIVELES DE TRADING DINÁMICOS
+        entry_offset = self.config.get('demand_entry_offset', 0.25)
+        stop_offset = self.config.get('demand_stop_offset', 0.1)
+        risk_reward_ratio = self.config.get('risk_reward_ratio', 2.0)
+        
+        entry_price = candle['low'] + (candle['high'] - candle['low']) * entry_offset
+        stop_loss = candle['low'] - (candle['high'] - candle['low']) * stop_offset
+        take_profit = entry_price + (entry_price - stop_loss) * risk_reward_ratio
         
         risk_reward = abs(take_profit - entry_price) / abs(entry_price - stop_loss) if entry_price != stop_loss else 0
         
@@ -346,13 +379,25 @@ class SimpleOrderBlockDetector:
         body_size = abs(candle['close'] - candle['open'])
         wick_ratio = wick_size / (body_size + 0.0001)
         
-        confidence = min(90, 40 + (wick_ratio * 20) + (10 if volume_conf else 0) + 
-                        max(0, 20 - distance_pips))
+        # Confidence dinámico basado en configuración - SUPPLY ZONE
+        max_confidence = self.config.get('max_confidence', 90)
+        base_confidence = self.config.get('base_confidence', 40)
+        wick_multiplier = self.config.get('wick_confidence_multiplier', 20)
+        volume_bonus = self.config.get('volume_confidence_bonus', 10)
+        distance_penalty_threshold = self.config.get('distance_penalty_threshold', 20)
         
-        # 📉 NIVELES DE TRADING BÁSICOS
-        entry_price = candle['high'] - (candle['high'] - candle['low']) * 0.25
-        stop_loss = candle['high'] + (candle['high'] - candle['low']) * 0.1
-        take_profit = entry_price - (stop_loss - entry_price) * 2.0
+        confidence = min(max_confidence, base_confidence + (wick_ratio * wick_multiplier) + 
+                        (volume_bonus if volume_conf else 0) + 
+                        max(0, distance_penalty_threshold - distance_pips))
+        
+        # 📉 NIVELES DE TRADING DINÁMICOS
+        entry_offset = self.config.get('supply_entry_offset', 0.25)
+        stop_offset = self.config.get('supply_stop_offset', 0.1)
+        risk_reward_ratio = self.config.get('risk_reward_ratio', 2.0)
+        
+        entry_price = candle['high'] - (candle['high'] - candle['low']) * entry_offset
+        stop_loss = candle['high'] + (candle['high'] - candle['low']) * stop_offset
+        take_profit = entry_price - (stop_loss - entry_price) * risk_reward_ratio
         
         risk_reward = abs(take_profit - entry_price) / abs(entry_price - stop_loss) if entry_price != stop_loss else 0
         
@@ -518,3 +563,23 @@ class SimpleOrderBlockDetector:
             
         except Exception as e:
             log_error(f"Error generando resumen de sesión: {e}", "ORDER_BLOCKS")
+    
+    def get_performance_stats(self) -> Dict[str, Any]:
+        """⚡ Obtener estadísticas de performance del detector"""
+        
+        if self.stats['total_detections'] == 0:
+            return {
+                'total_detections': 0,
+                'avg_detection_time_ms': 0.0,
+                'high_confidence_blocks_last': 0,
+                'symbols_processed': 0,
+                'avg_blocks_per_symbol': 0.0
+            }
+        
+        return {
+            'total_detections': self.stats['total_detections'],
+            'avg_detection_time_ms': (self.stats['total_detection_time'] / self.stats['total_detections']) * 1000,
+            'high_confidence_blocks_last': self.stats['high_confidence_blocks_last'],
+            'symbols_processed': len(self.stats['symbols_processed']),
+            'avg_blocks_per_symbol': self.stats['avg_blocks_per_symbol']
+        }

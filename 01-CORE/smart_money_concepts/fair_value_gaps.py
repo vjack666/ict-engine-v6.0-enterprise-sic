@@ -32,13 +32,16 @@ import logging
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-# Enterprise logging integration
+# Centralized analysis fallbacks integration
 try:
-    from smart_trading_logger import get_smart_logger
-    SLUC_AVAILABLE = True
+    from analysis.analysis_fallbacks import get_analysis_logger
+    LOGGING_AVAILABLE = True
 except ImportError:
-    SLUC_AVAILABLE = False
+    LOGGING_AVAILABLE = False
+    import logging
     logging.basicConfig(level=logging.INFO)
+    def get_analysis_logger(name="FairValueGaps"):
+        return logging.getLogger(name)
 
 # Black box logging
 try:
@@ -173,11 +176,8 @@ class FairValueGapDetector:
     
     def __init__(self):
         """Initialize Enhanced FVG Detector for Multi-Symbol Support"""
-        # Smart logging integration
-        if SLUC_AVAILABLE:
-            self.logger = get_smart_logger("FVGDetector")
-        else:
-            self.logger = logging.getLogger("FVGDetector")
+        # Smart logging integration - use centralized logger
+        self.logger = get_analysis_logger("FVGDetector")
         
         # Black box logging
         self.black_box = get_black_box_logger() if BLACK_BOX_AVAILABLE else None

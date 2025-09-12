@@ -18,8 +18,10 @@ Fecha: 4 de Septiembre 2025 - 15:20 GMT
 
 import sys
 import os
+import logging
 from pathlib import Path
 import importlib.util
+from typing import Optional, Any
 
 # === AGREGAR PATHS AL SISTEMA ===
 project_root = Path(__file__).parent.parent.parent
@@ -27,12 +29,74 @@ sys.path.insert(0, str(project_root / "01-CORE" / "core"))
 sys.path.insert(0, str(project_root / "01-CORE" / "core" / "analysis"))
 
 # === IMPORTS DEL SISTEMA ===
+# Variables para gestión de tipos sin conflictos
+FVGMemoryManager = None
+UnifiedLoggingSystem = None
+create_unified_logger = None
+LOGGING_AVAILABLE = False
+FVG_MEMORY_AVAILABLE = False
+
 try:
-    from analysis.fvg_memory_manager import FVGMemoryManager
-    from smart_trading_logger import SmartTradingLogger
+    from analysis.fvg_memory_manager import FVGMemoryManager as _FVGMemoryManager
+    FVGMemoryManager = _FVGMemoryManager
+    FVG_MEMORY_AVAILABLE = True
+except ImportError:
+    FVG_MEMORY_AVAILABLE = False
+    # Fallback FVGMemoryManager
+    class _FVGMemoryManagerFallback:
+        def __init__(self):
+            pass
+        def add_fvg(self, symbol, timeframe, fvg):
+            return f"fallback_fvg_{symbol}_{timeframe}"
+    FVGMemoryManager = _FVGMemoryManagerFallback
+
+try:
+    from ict_engine.unified_logging import (
+        log_info, log_warning, log_error, log_debug,
+        UnifiedLoggingSystem as _UnifiedLoggingSystem, 
+        create_unified_logger as _create_unified_logger
+    )
+    UnifiedLoggingSystem = _UnifiedLoggingSystem
+    create_unified_logger = _create_unified_logger
+    LOGGING_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ Error importando dependencias: {e}")
-    print("Verificar que los archivos estén en las rutas correctas")
+    print(f"⚠️ Error importando dependencias de logging: {e}")
+    LOGGING_AVAILABLE = False
+    
+    # Fallback logging functions
+    def log_info(message, component="CORE"): 
+        logging.info(f"[{component}] {message}")
+    def log_warning(message, component="CORE"): 
+        logging.warning(f"[{component}] {message}") 
+    def log_error(message, component="CORE"): 
+        logging.error(f"[{component}] {message}")
+    def log_debug(message, component="CORE"): 
+        logging.debug(f"[{component}] {message}")
+    
+    class _UnifiedLoggingSystemFallback:
+        def __init__(self, name="FVGIntegrationPatch"):
+            self.logger = logging.getLogger(name)
+        def info(self, msg, component="CORE"):
+            self.logger.info(f"[{component}] {msg}")
+        def warning(self, msg, component="CORE"):
+            self.logger.warning(f"[{component}] {msg}")
+        def error(self, msg, component="CORE"):
+            self.logger.error(f"[{component}] {msg}")
+        def debug(self, msg, component="CORE"):
+            self.logger.debug(f"[{component}] {msg}")
+    
+    UnifiedLoggingSystem = _UnifiedLoggingSystemFallback
+
+# Función unificada de logging que evita redeclaración
+def get_fvg_logger(name="FVGIntegrationPatch"):
+    """🎯 Get unified logger for FVG integration"""
+    if LOGGING_AVAILABLE and create_unified_logger:
+        return create_unified_logger(name)
+    else:
+        return logging.getLogger(name)
+
+# Alias para compatibilidad (ahora sin conflictos de tipo)
+SmartTradingLogger = UnifiedLoggingSystem
 
 class FVGIntegrationPatch:
     """
@@ -44,11 +108,24 @@ class FVGIntegrationPatch:
     """
     
     def __init__(self):
-        self.logger = SmartTradingLogger(name="FVG_Memory")
-        self.fvg_memory = FVGMemoryManager()
+        # Inicializar logger usando el sistema unificado
+        self.logger = get_fvg_logger("FVG_Memory")
         
-        self.logger.info("🔗 FVG Integration Patch inicializado", 
-                         component="fvg_integration")
+        # Inicializar FVG Memory Manager si está disponible
+        if FVG_MEMORY_AVAILABLE and FVGMemoryManager:
+            self.fvg_memory = FVGMemoryManager()
+        else:
+            # Fallback FVG Memory Manager
+            class FallbackFVGMemory:
+                def add_fvg(self, symbol, timeframe, fvg):
+                    return f"fallback_fvg_{symbol}_{timeframe}"
+            self.fvg_memory = FallbackFVGMemory()
+        
+        # Log usando el sistema unificado
+        if LOGGING_AVAILABLE:
+            log_info("🔗 FVG Integration Patch inicializado", "fvg_integration")
+        else:
+            self.logger.info("🔗 FVG Integration Patch inicializado")
     
     def patch_pattern_detector(self, pattern_detector_instance):
         """
@@ -109,14 +186,12 @@ class FVGIntegrationPatch:
                             
                             patterns.append(pattern)
                             
-                            self.logger.info(f"📈 FVG detectado y guardado: {fvg_id} - {symbol} {timeframe}", 
-                                             component="fvg_integration")
+                            self.logger.info(f"📈 FVG detectado y guardado: {fvg_id} - {symbol} {timeframe}")
                     
                     return patterns
                     
                 except Exception as e:
-                    self.logger.error(f"Error en enhanced_detect_fair_value_gaps: {e}", 
-                                      component="fvg_integration")
+                    self.logger.error(f"Error en enhanced_detect_fair_value_gaps: {e}")
                     # Fallback al método original si existe
                     if original_detect_fvgs:
                         return original_detect_fvgs(data, symbol, timeframe)
@@ -171,8 +246,7 @@ class FVGIntegrationPatch:
                                     self.fvg_memory.update_fvg_status(fvg_id, "partially_filled", fill_percentage)
                 
                 except Exception as e:
-                    self.logger.error(f"Error verificando llenado de FVGs: {e}", 
-                                      component="fvg_integration")
+                    self.logger.error(f"Error verificando llenado de FVGs: {e}")
             
             def get_fvg_statistics_for_symbol(self, symbol, timeframe=None):
                 """
@@ -183,8 +257,7 @@ class FVGIntegrationPatch:
                         return self.fvg_memory.get_fvg_statistics(symbol, timeframe)
                     return {}
                 except Exception as e:
-                    self.logger.error(f"Error obteniendo estadísticas FVG: {e}", 
-                                      component="fvg_integration")
+                    self.logger.error(f"Error obteniendo estadísticas FVG: {e}")
                     return {}
             
             def cleanup_old_fvgs(self):
@@ -196,8 +269,7 @@ class FVGIntegrationPatch:
                         return self.fvg_memory.cleanup_old_fvgs()
                     return 0
                 except Exception as e:
-                    self.logger.error(f"Error en cleanup FVGs: {e}", 
-                                      component="fvg_integration")
+                    self.logger.error(f"Error en cleanup FVGs: {e}")
                     return 0
             
             # === APLICAR PARCHES ===
@@ -213,14 +285,12 @@ class FVGIntegrationPatch:
             # Marcar como patcheado
             pattern_detector_instance._fvg_memory_enabled = True
             
-            self.logger.info("✅ Pattern Detector parcheado exitosamente con FVG Memory", 
-                             component="fvg_integration")
+            self.logger.info("✅ Pattern Detector parcheado exitosamente con FVG Memory")
             
             return True
             
         except Exception as e:
-            self.logger.error(f"Error aplicando parche FVG: {e}", 
-                              component="fvg_integration")
+            self.logger.error(f"Error aplicando parche FVG: {e}")
             return False
     
     def create_usage_example(self) -> str:

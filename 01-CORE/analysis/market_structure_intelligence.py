@@ -2,6 +2,12 @@
 📊 MARKET STRUCTURE INTELLIGENCE v6.1
 Advanced market structure analysis with context awareness
 
+OPTIMIZADO PARA LOGGING CENTRAL:
+- Integración completa con sistema de logging unificado
+- Fallback robusto para operaciones sin sistema central
+- Eliminación de redeclaraciones de funciones
+- Logging dual: centralizado + local para máxima robustez
+
 PHASE 2 - DAY 3 Implementation:
 - Market structure state machine
 - Trend/range identification with ICT methodology
@@ -12,8 +18,9 @@ PHASE 2 - DAY 3 Implementation:
 Dependencies:
 - PatternConfluenceEngine (v6.1)
 - UnifiedMemorySystem (v6.1)
-- Black Box Logger (v6.1)
+- Black Box Logger (v6.1)  
 - ICT methodologies integration
+- UnifiedLoggingSystem (centralizado)
 """
 
 import time
@@ -28,16 +35,36 @@ import logging
 import numpy as np
 import pandas as pd
 
-# Enterprise logging integration
+# Enterprise logging integration - Optimizado para logging central
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+# Sistema de logging centralizado con fallback robusto
+create_unified_logger_func = None  # Variable global para función
+SLUC_AVAILABLE = False
+
 try:
-    from smart_trading_logger import get_smart_logger
+    from ict_engine.unified_logging import (
+        log_info, log_warning, log_error, log_debug,
+        UnifiedLoggingSystem, create_unified_logger
+    )
+    create_unified_logger_func = create_unified_logger
     SLUC_AVAILABLE = True
 except ImportError:
     SLUC_AVAILABLE = False
     logging.basicConfig(level=logging.INFO)
+    # Fallback logging functions
+    def log_info(message, component="CORE"): logging.info(f"[{component}] {message}")
+    def log_warning(message, component="CORE"): logging.warning(f"[{component}] {message}") 
+    def log_error(message, component="CORE"): logging.error(f"[{component}] {message}")
+    def log_debug(message, component="CORE"): logging.debug(f"[{component}] {message}")
+
+def get_smart_logger(name="MarketStructureIntelligence"):
+    """🎯 Get smart logger optimizado para sistema central"""
+    if SLUC_AVAILABLE and create_unified_logger_func:
+        return create_unified_logger_func(name)
+    else:
+        return logging.getLogger(name)
 
 # Black box logging
 try:
@@ -168,12 +195,9 @@ class MarketStructureIntelligence:
     """
     
     def __init__(self):
-        """Initialize Market Structure Intelligence"""
-        # Smart logging integration
-        if SLUC_AVAILABLE:
-            self.logger = get_smart_logger("MarketStructureIntelligence")
-        else:
-            self.logger = logging.getLogger("MarketStructureIntelligence")
+        """Initialize Market Structure Intelligence with centralized logging"""
+        # Smart logging integration - Usar siempre función centralizada
+        self.logger = get_smart_logger("MarketStructureIntelligence")
         
         # Black box logging
         self.black_box = get_black_box_logger() if BLACK_BOX_AVAILABLE else None
@@ -201,11 +225,14 @@ class MarketStructureIntelligence:
         self.analysis_cache = {}
         self.cache_ttl = 300  # 5 minutes
         
+        # Initialization logging con sistema centralizado
+        log_info("📊 Market Structure Intelligence v6.1 initialized", "MSI")
         self.logger.info("📊 Market Structure Intelligence v6.1 initialized")
         if self.black_box:
             self.black_box.log_health_status("MarketStructureIntelligence", {
                 "status": "initialized", 
                 "version": "v6.1",
+                "logging_system": "centralized" if SLUC_AVAILABLE else "fallback",
                 "timestamp": datetime.now().isoformat()
             })
     
@@ -225,6 +252,8 @@ class MarketStructureIntelligence:
         analysis_id = f"MSA_{symbol}_{timeframe}_{int(time.time())}"
         
         try:
+            # Logging centralizado para análisis crítico
+            log_info(f"📊 Starting market structure analysis: {symbol} {timeframe}", "MSI")
             self.logger.info(f"📊 Starting market structure analysis: {symbol} {timeframe}")
             
             # Convert to DataFrame if needed
@@ -288,12 +317,14 @@ class MarketStructureIntelligence:
             # Cache analysis
             self._cache_analysis(analysis)
             
-            # Log results
-            self.logger.info(
+            # Log results con sistema centralizado
+            success_msg = (
                 f"📊 Market structure analysis completed: {len(structure_points)} structures | "
                 f"Phase: {current_phase.value} | Trend: {trend_direction.value} | "
                 f"{processing_time:.2f}ms"
             )
+            log_info(success_msg, "MSI")
+            self.logger.info(success_msg)
             
             if self.black_box:
                 self.black_box.log_market_structure_analysis(analysis)
@@ -301,7 +332,10 @@ class MarketStructureIntelligence:
             return analysis
             
         except Exception as e:
-            self.logger.error(f"❌ Error in market structure analysis: {e}")
+            # Error logging con sistema centralizado
+            error_msg = f"❌ Error in market structure analysis: {e}"
+            log_error(error_msg, "MSI")
+            self.logger.error(error_msg)
             processing_time = (time.time() - start_time) * 1000
             
             # Return basic analysis on error

@@ -22,23 +22,16 @@ if str(project_root) not in sys.path:
 
 # Import central logger
 try:
-    from smart_trading_logger import get_smart_logger, log_info, log_warning, log_error, log_debug, SmartTradingLogger  # type: ignore
-    _central_logger = get_smart_logger("RealTradingLogger")
+    from analysis.analysis_fallbacks import get_analysis_logger
+    LOGGING_AVAILABLE = True
+    _central_logger = get_analysis_logger("RealTradingLogger")
 except ImportError:
-    # Fallback para compatibilidad
-    class SmartTradingLogger:
-        def __init__(self, name="ICT_Engine", level="INFO"):
-            self.logger = logging.getLogger(name)
-        def info(self, msg): self.logger.info(msg)
-        def warning(self, msg): self.logger.warning(msg)
-        def error(self, msg): self.logger.error(msg)
-        def debug(self, msg): self.logger.debug(msg)
-    
-    _central_logger = SmartTradingLogger()
-    def log_info(message, component="CORE"): _central_logger.info(f"[{component}] {message}")
-    def log_warning(message, component="CORE"): _central_logger.warning(f"[{component}] {message}")
-    def log_error(message, component="CORE"): _central_logger.error(f"[{component}] {message}")
-    def log_debug(message, component="CORE"): _central_logger.debug(f"[{component}] {message}")
+    LOGGING_AVAILABLE = False
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    def get_analysis_logger(name="RealTradingLogger"):
+        return logging.getLogger(name)
+    _central_logger = get_analysis_logger("RealTradingLogger")
 
 class RealTradingLogger:
     """
@@ -75,7 +68,7 @@ class RealTradingLogger:
         """Initialize real trading logger"""
         if base_logger is None:
             try:
-                self.base_logger = get_smart_logger("RealTradingLogger") 
+                self.base_logger = get_analysis_logger("RealTradingLogger") 
             except:
                 self.base_logger = _central_logger
         else:

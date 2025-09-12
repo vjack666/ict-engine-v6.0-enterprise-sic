@@ -44,11 +44,34 @@ try:
 except ImportError:
     UNIFIED_MEMORY_AVAILABLE = False
     ENTERPRISE_COMPONENTS_AVAILABLE = False
+    
+    # Fallback logging functions
+    def log_info(message: str, component: str = "pattern_analyzer_enterprise") -> None:
+        """Fallback log_info function"""
+        print(f"[INFO] {component}: {message}")
+    
+    def log_warning(message: str, component: str = "pattern_analyzer_enterprise") -> None:
+        """Fallback log_warning function"""
+        print(f"[WARNING] {component}: {message}")
+    
+    def log_error(message: str, component: str = "pattern_analyzer_enterprise") -> None:
+        """Fallback log_error function"""
+        print(f"[ERROR] {component}: {message}")
+    
+    def log_debug(message: str, component: str = "pattern_analyzer_enterprise") -> None:
+        """Fallback log_debug function"""
+        print(f"[DEBUG] {component}: {message}")
+    
     def get_unified_memory_system() -> Optional[Any]:
         """Fallback para testing cuando UnifiedMemorySystem no está disponible"""
         return None
 
 # Import Pattern Detectors
+SilverBulletDetectorEnterprise = None
+JudasSwingDetectorEnterprise = None
+LiquidityGrabDetectorEnterprise = None
+OrderBlockMitigationDetectorEnterprise = None
+
 try:
     from .silver_bullet_enterprise import SilverBulletDetectorEnterprise
     from .judas_swing_enterprise import JudasSwingDetectorEnterprise
@@ -226,20 +249,24 @@ class PatternAnalyzerEnterprise:
         
         try:
             # Initialize Silver Bullet Detector
-            self.detectors[PatternType.SILVER_BULLET] = SilverBulletDetectorEnterprise()
-            log_info("✅ Silver Bullet Detector inicializado", "pattern_analyzer_enterprise")
+            if SilverBulletDetectorEnterprise is not None:
+                self.detectors[PatternType.SILVER_BULLET] = SilverBulletDetectorEnterprise()
+                log_info("✅ Silver Bullet Detector inicializado", "pattern_analyzer_enterprise")
             
             # Initialize Judas Swing Detector
-            self.detectors[PatternType.JUDAS_SWING] = JudasSwingDetectorEnterprise()
-            log_info("✅ Judas Swing Detector inicializado", "pattern_analyzer_enterprise")
+            if JudasSwingDetectorEnterprise is not None:
+                self.detectors[PatternType.JUDAS_SWING] = JudasSwingDetectorEnterprise()
+                log_info("✅ Judas Swing Detector inicializado", "pattern_analyzer_enterprise")
             
             # Initialize Liquidity Grab Detector
-            self.detectors[PatternType.LIQUIDITY_GRAB] = LiquidityGrabDetectorEnterprise()
-            log_info("✅ Liquidity Grab Detector inicializado", "pattern_analyzer_enterprise")
+            if LiquidityGrabDetectorEnterprise is not None:
+                self.detectors[PatternType.LIQUIDITY_GRAB] = LiquidityGrabDetectorEnterprise()
+                log_info("✅ Liquidity Grab Detector inicializado", "pattern_analyzer_enterprise")
             
             # Initialize Order Block Mitigation Detector
-            self.detectors[PatternType.ORDER_BLOCK_MITIGATION] = OrderBlockMitigationDetectorEnterprise()
-            log_info("✅ Order Block Mitigation Detector inicializado", "pattern_analyzer_enterprise")
+            if OrderBlockMitigationDetectorEnterprise is not None:
+                self.detectors[PatternType.ORDER_BLOCK_MITIGATION] = OrderBlockMitigationDetectorEnterprise()
+                log_info("✅ Order Block Mitigation Detector inicializado", "pattern_analyzer_enterprise")
             
             # Initialize Breaker Blocks Detector
             # self.detectors[PatternType.BREAKER_BLOCKS] = BreakerBlocksDetectorEnterprise()

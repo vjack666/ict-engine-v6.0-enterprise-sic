@@ -236,9 +236,9 @@ class ExecutionEngine:
             symbol_info = self.mt5_manager.get_symbol_info(request.symbol)
             if symbol_info:
                 # Usar bid/ask para precio de ejecución realista
-                current_price = symbol_info.get('bid', 1.1000)  # Default fallback
+                current_price = symbol_info.get('bid', request.entry_price or 0.0)
             else:
-                current_price = request.entry_price if request.entry_price else 1.1000
+                current_price = request.entry_price if request.entry_price else 0.0
             
             # Simular pequeño slippage realista
             import random
@@ -269,7 +269,7 @@ class ExecutionEngine:
         
         # Simulate successful execution with slight slippage
         simulated_slippage = 0.5  # 0.5 pips average
-        execution_price = request.entry_price if request.entry_price else 1.1000  # Default
+        execution_price = request.entry_price if request.entry_price else 0.0  # No default price
         
         # Add small random slippage
         import random
@@ -380,11 +380,13 @@ class ExecutionEngine:
                 # TODO: Implementar métodos reales en MT5DataManager
                 
                 # Simular que se cerraron algunas posiciones
+                import random
+                base_price = random.uniform(0.9000, 1.5000)  # Precio base aleatorio realista
                 for i in range(2):  # Simular 2 posiciones cerradas
                     order_result = OrderResult(
                         success=True,
                         order_id=1000 + i,
-                        execution_price=1.1000 + (i * 0.0001),
+                        execution_price=base_price + (i * 0.0001),
                         execution_time_ms=150.0 + (i * 50),
                         error_message=""
                     )
@@ -393,11 +395,13 @@ class ExecutionEngine:
                 self.logger.info(f"Simulated closure of {len(results)} positions")
             else:
                 # Simulation mode - pretend to close positions
+                import random
+                simulated_price = random.uniform(0.9000, 1.5000)  # Precio simulado realista
                 self.logger.info("Simulating position closure (MT5 not available)")
                 results.append(OrderResult(
                     success=True, 
                     order_id=999999,
-                    execution_price=1.1000,
+                    execution_price=simulated_price,
                     execution_time_ms=100.0
                 ))
         

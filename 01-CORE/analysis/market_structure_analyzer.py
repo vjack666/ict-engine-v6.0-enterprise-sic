@@ -39,7 +39,7 @@ import sys
 import os
 import threading
 import time
-from typing import Dict, List, Optional, Callable, Any, Set, Tuple, Union
+from typing import Dict, List, Optional, Callable, Any, Set, Tuple, Union, TYPE_CHECKING
 from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -198,14 +198,42 @@ if not SIC_LOGGING_AVAILABLE:
         timestamp = datetime.now().strftime("%H:%M:%S")
         print(f"[{timestamp}] [{level}] {module}.{category}: {message}")
 
-# Componentes v6.0
+# Componentes v6.0 - Variables globales para evitar problemas de Pylance
+AdvancedCandleDownloader = None
+MT5DataManager = None
+COMPONENTS_AVAILABLE = False
+
+# Imports para type checking
+if TYPE_CHECKING:
+    from data_management.advanced_candle_downloader import AdvancedCandleDownloader as _AdvancedCandleDownloaderType
+    from data_management.mt5_data_manager import MT5DataManager as _MT5DataManagerType
+else:
+    _AdvancedCandleDownloaderType = Any
+    _MT5DataManagerType = Any
+
 try:
-    from data_management.advanced_candle_downloader import AdvancedCandleDownloader
-    from data_management.mt5_data_manager import MT5DataManager
+    from data_management.advanced_candle_downloader import AdvancedCandleDownloader as _AdvancedCandleDownloader
+    from data_management.mt5_data_manager import MT5DataManager as _MT5DataManager
+    AdvancedCandleDownloader = _AdvancedCandleDownloader
+    MT5DataManager = _MT5DataManager
     COMPONENTS_AVAILABLE = True
 except ImportError:
     COMPONENTS_AVAILABLE = False
     print("⚠️ Algunos componentes v6.0 no están disponibles, usando fallbacks")
+    
+    # Fallback AdvancedCandleDownloader
+    class _AdvancedCandleDownloaderFallback:
+        def __init__(self):
+            pass
+        def get_data(self, *args, **kwargs):
+            return None
+    
+    class _MT5DataManagerFallback:
+        def __init__(self):
+            pass
+    
+    AdvancedCandleDownloader = _AdvancedCandleDownloaderFallback
+    MT5DataManager = _MT5DataManagerFallback
 
 # ===============================
 # TIPOS Y ENUMS ICT
@@ -360,7 +388,7 @@ class MarketStructureAnalyzer:
         self.current_trend = TradingDirection.NEUTRAL
         
         # Componentes v6.0
-        self._downloader: Optional[AdvancedCandleDownloader] = None
+        self._downloader: Optional[Any] = None
         self._pandas_module = None
         self._performance_metrics = []
         
@@ -392,8 +420,11 @@ class MarketStructureAnalyzer:
                     self._downloader = get_advanced_candle_downloader()
                     self._log_info("AdvancedCandleDownloader singleton conectado")
                 except ImportError:
-                    self._downloader = AdvancedCandleDownloader()
-                    self._log_info("AdvancedCandleDownloader conectado")
+                    if AdvancedCandleDownloader:
+                        self._downloader = AdvancedCandleDownloader()
+                        self._log_info("AdvancedCandleDownloader conectado")
+                    else:
+                        self._log_warning("AdvancedCandleDownloader no disponible - usando fallback")
             else:
                 self._log_warning("AdvancedCandleDownloader no disponible")
             
@@ -871,8 +902,13 @@ class MarketStructureAnalyzer:
                         from data_management.advanced_candle_downloader_singleton import get_advanced_candle_downloader
                         downloader = get_advanced_candle_downloader()
                     except ImportError:
-                        from data_management.advanced_candle_downloader import AdvancedCandleDownloader
-                        downloader = AdvancedCandleDownloader()
+                        try:
+                            # Intentar import directo como fallback
+                            from data_management.advanced_candle_downloader import AdvancedCandleDownloader as _DirectAdvancedCandleDownloader
+                            downloader = _DirectAdvancedCandleDownloader()
+                        except ImportError:
+                            self._log_warning("AdvancedCandleDownloader no disponible en ninguna forma")
+                            return None
                     
                     self._data_manager = get_ict_data_manager(downloader=downloader)
                 

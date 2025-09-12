@@ -34,14 +34,40 @@ if TYPE_CHECKING:
 else:
     DataFrameType = Any
 
-# 🏗️ ENTERPRISE ARCHITECTURE v6.0
+# 🏗️ ENTERPRISE ARCHITECTURE v6.0 - UNIFIED LOGGING
 try:
-    from smart_trading_logger import SmartTradingLogger, log_info, log_warning, log_error, log_debug
+    from ..unified_logging import log_info, log_warning, log_error, log_debug, SmartTradingLogger, create_unified_logger
     from analysis.unified_memory_system import get_unified_memory_system
     UNIFIED_MEMORY_AVAILABLE = True
 except ImportError:
-    SmartTradingLogger = Any
-    UNIFIED_MEMORY_AVAILABLE = False
+    try:
+        # Fallback para imports desde nivel superior
+        from unified_logging import log_info, log_warning, log_error, log_debug, SmartTradingLogger, create_unified_logger
+        from analysis.unified_memory_system import get_unified_memory_system
+        UNIFIED_MEMORY_AVAILABLE = True
+    except ImportError:
+        # Fallback completo
+        import logging
+        _fallback_logger = logging.getLogger("JUDAS_SWING_FALLBACK")
+        if not _fallback_logger.handlers:
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter('[%(asctime)s] [JUDAS_SWING] [%(levelname)s] %(message)s', '%H:%M:%S')
+            handler.setFormatter(formatter)
+            _fallback_logger.addHandler(handler)
+            _fallback_logger.setLevel(logging.INFO)
+        
+        def log_info(message: str, component: str = "JUDAS_SWING"):
+            _fallback_logger.info(f"[{component}] {message}")
+        def log_warning(message: str, component: str = "JUDAS_SWING"):
+            _fallback_logger.warning(f"[{component}] {message}")
+        def log_error(message: str, component: str = "JUDAS_SWING"):
+            _fallback_logger.error(f"[{component}] {message}")
+        def log_debug(message: str, component: str = "JUDAS_SWING"):
+            _fallback_logger.debug(f"[{component}] {message}")
+        
+        SmartTradingLogger = Any
+        create_unified_logger = lambda x: None
+        UNIFIED_MEMORY_AVAILABLE = False
     
     def get_unified_memory_system() -> Optional[Any]:
         """Fallback para testing cuando UnifiedMemorySystem no está disponible"""

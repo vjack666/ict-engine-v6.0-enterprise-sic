@@ -29,16 +29,16 @@ from enum import Enum
 import logging
 import numpy as np
 
-# Enterprise logging integration
-import sys
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
+# Centralized analysis fallbacks integration
 try:
-    from smart_trading_logger import get_smart_logger
-    SLUC_AVAILABLE = True
+    from analysis.analysis_fallbacks import get_analysis_logger  # type: ignore
+    LOGGING_AVAILABLE = True
 except ImportError:
-    SLUC_AVAILABLE = False
+    LOGGING_AVAILABLE = False
+    import logging
     logging.basicConfig(level=logging.INFO)
+    def get_analysis_logger(name: str = "AnalysisSystem") -> logging.Logger:
+        return logging.getLogger(name)
 
 # Black box logging
 try:
@@ -62,21 +62,52 @@ try:
 except Exception:
     BLACK_BOX_AVAILABLE = False
 
-# Pattern detectors integration
-try:
-    from smart_money_concepts.fair_value_gaps import FairValueGapDetector, FairValueGap
-    from smart_money_concepts.order_blocks import EnhancedOrderBlockDetector
-    from smart_money_concepts.smart_money_detector import SmartMoneyDetector
-    PATTERN_DETECTORS_AVAILABLE = True
-except ImportError:
-    PATTERN_DETECTORS_AVAILABLE = False
-
-# Memory system integration
+# Memory system integration with fallback
+get_unified_memory_system = None
 try:
     from analysis.unified_memory_system import get_unified_memory_system
     MEMORY_SYSTEM_AVAILABLE = True
 except ImportError:
     MEMORY_SYSTEM_AVAILABLE = False
+    get_unified_memory_system = lambda: None
+
+# Pattern detectors integration with fallbacks - use lazy imports to avoid circular dependencies
+PATTERN_DETECTORS_AVAILABLE = False
+FairValueGapDetector = None
+EnhancedOrderBlockDetector = None
+SmartMoneyDetector = None
+
+def _load_pattern_detectors():
+    """Lazy load pattern detectors to avoid circular imports"""
+    global PATTERN_DETECTORS_AVAILABLE, FairValueGapDetector, EnhancedOrderBlockDetector, SmartMoneyDetector
+    
+    if PATTERN_DETECTORS_AVAILABLE or FairValueGapDetector is not None:
+        return  # Already loaded
+        
+    try:
+        import smart_money_concepts.fair_value_gaps as fvg_module
+        import smart_money_concepts.order_blocks as ob_module  
+        import smart_money_concepts.smart_money_detector as sm_module
+        
+        FairValueGapDetector = fvg_module.FairValueGapDetector
+        EnhancedOrderBlockDetector = ob_module.EnhancedOrderBlockDetector
+        SmartMoneyDetector = sm_module.SmartMoneyDetector
+        PATTERN_DETECTORS_AVAILABLE = True
+    except (ImportError, AttributeError):
+        # Fallback classes
+        class _FallbackDetector:
+            def __init__(self, *args, **kwargs):
+                pass
+            def detect_fair_value_gaps(self, *args, **kwargs):
+                return []
+            def detect_order_blocks(self, *args, **kwargs):
+                return []
+            def detect_patterns(self, *args, **kwargs):
+                return []
+        
+        FairValueGapDetector = _FallbackDetector
+        EnhancedOrderBlockDetector = _FallbackDetector
+        SmartMoneyDetector = _FallbackDetector
 
 
 class ConfluenceStrength(Enum):
@@ -147,20 +178,17 @@ class PatternConfluenceEngine:
     
     def __init__(self):
         """Initialize Pattern Confluence Engine"""
-        # Smart logging integration
-        if SLUC_AVAILABLE:
-            self.logger = get_smart_logger("PatternConfluenceEngine")
-        else:
-            self.logger = logging.getLogger("PatternConfluenceEngine")
+        # Smart logging integration - use centralized logger
+        self.logger = get_analysis_logger("PatternConfluenceEngine")
         
         # Black box logging
         self.black_box = get_black_box_logger() if BLACK_BOX_AVAILABLE else None
         
         # Memory system integration
-        self.memory_system = get_unified_memory_system() if MEMORY_SYSTEM_AVAILABLE else None
+        self.memory_system = get_unified_memory_system() if MEMORY_SYSTEM_AVAILABLE and get_unified_memory_system else None
         
-        # Pattern detectors
-        self.fvg_detector = FairValueGapDetector() if PATTERN_DETECTORS_AVAILABLE else None
+        # Pattern detectors - use lazy loading to avoid circular imports
+        self.fvg_detector = None  # Will be loaded on demand
         self.order_block_detector = None  # Will be initialized if available
         self.smart_money_detector = None  # Will be initialized if available
         
@@ -319,6 +347,16 @@ class PatternConfluenceEngine:
     def _analyze_fvg_patterns(self, candles, symbol: str, timeframe: str) -> List[PatternConfluence]:
         """📊 Analyze Fair Value Gap patterns"""
         fvg_confluences = []
+        
+        # Lazy load FVG detector to avoid circular imports
+        if not self.fvg_detector:
+            _load_pattern_detectors()
+            if FairValueGapDetector:
+                try:
+                    self.fvg_detector = FairValueGapDetector()
+                except Exception as e:
+                    self.logger.warning(f"⚠️ Could not initialize FVG detector: {e}")
+                    return fvg_confluences
         
         if not self.fvg_detector:
             return fvg_confluences

@@ -37,23 +37,30 @@ from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 
-# Imports que serán gestionados por Enterprise system
+# Imports que serán gestionados por Enterprise system - Con definición explícita
+import time  # Disponible en stdlib, siempre presente
+import os  # Disponible en stdlib, siempre presente 
+import subprocess  # Disponible en stdlib, siempre presente
+import random  # Disponible en stdlib, siempre presente
+import threading  # Disponible en stdlib, siempre presente
+
+# Flags de disponibilidad para compatibilidad
+TIME_AVAILABLE = True
+OS_AVAILABLE = True
+SUBPROCESS_AVAILABLE = True
+RANDOM_AVAILABLE = True
+THREADING_AVAILABLE = True
+
+# Import del sistema de logging empresarial - definición global
 try:
-    # Estos imports serán manejados por el sistema central cuando esté disponible
-    import time
-    import os
-    import subprocess
-    import random
-    TIME_AVAILABLE = True
-    OS_AVAILABLE = True
-    SUBPROCESS_AVAILABLE = True
-    RANDOM_AVAILABLE = True
+    from smart_trading_logger import log_trading_decision_smart_v6  # type: ignore
+    SMART_LOGGING_AVAILABLE = True
 except ImportError:
-    # Fallbacks mínimos
-    TIME_AVAILABLE = False
-    OS_AVAILABLE = False
-    SUBPROCESS_AVAILABLE = False
-    RANDOM_AVAILABLE = False
+    # Fallback para logging cuando no está disponible
+    def log_trading_decision_smart_v6(*args, **kwargs):  # type: ignore
+        """Fallback seguro para logging empresarial"""
+        pass
+    SMART_LOGGING_AVAILABLE = False
 
 # Imports críticos para funcionamiento
 try:
@@ -1847,6 +1854,10 @@ class AdvancedCandleDownloader:
         threading.current_thread().name = f"Download-{request.symbol}-{request.timeframe}"
 
         start_time = time.time()
+        # Inicializar variables que deben estar siempre definidas
+        total_bars = 0  # Valor por defecto seguro
+        downloaded = 0  # Valor por defecto seguro
+        
         stats = DownloadStats(
             symbol=request.symbol,
             timeframe=request.timeframe,
@@ -1876,8 +1887,7 @@ class AdvancedCandleDownloader:
             # ✅ IMPLEMENTACIÓN REAL CON MT5 - TODO COMPLETADO
             # Usar _download_with_mt5() existente para descarga real
             try:
-                # Log inicio de descarga real con SLUC v2.1
-                from smart_trading_logger import log_trading_decision_smart_v6
+                # Log inicio de descarga real con SLUC v2.1 - usando import global
                 log_trading_decision_smart_v6(
                     "CANDLE_DOWNLOAD_START",
                     {
@@ -2079,7 +2089,7 @@ class AdvancedCandleDownloader:
                 except Exception as e:
                     print(f"   ❌ Error deteniendo worker: {e}")
             
-            import threading
+            # threading ya está importado globalmente
             worker_stop_thread = threading.Thread(target=stop_worker, daemon=True)
             worker_stop_thread.start()
             shutdown_tasks.append(('Worker', worker_stop_thread))

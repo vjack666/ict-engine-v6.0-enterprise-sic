@@ -36,13 +36,39 @@ if TYPE_CHECKING:
 else:
     DataFrameType = Any
 
-# Importar otros componentes
+# Importar otros componentes con fallbacks robustos
+from typing import Any
+
 try:
     from ..data_management.advanced_candle_downloader import get_advanced_candle_downloader
     from .pattern_detector import get_pattern_detector, PatternType
     from .market_structure_analyzer import get_market_structure_analyzer
-except ImportError:
-    print("[WARNING] Algunos componentes no disponibles - funcionalidad limitada")
+    print("[INFO] Componentes POI System cargados exitosamente")
+except ImportError as e:
+    print(f"[WARNING] Algunos componentes no disponibles: {e}")
+    print("[INFO] POI System funcionará con capacidad limitada")
+    
+    # Fallback functions para evitar errores "possibly unbound"
+    def get_advanced_candle_downloader(config: Any = None) -> Any:  # type: ignore
+        """Fallback para advanced candle downloader"""
+        print("[WARNING] Advanced Candle Downloader no disponible - usando fallback")
+        return None
+    
+    def get_pattern_detector(config: Any = None) -> Any:  # type: ignore
+        """Fallback para pattern detector"""
+        print("[WARNING] Pattern Detector no disponible - usando fallback")
+        return None
+        
+    def get_market_structure_analyzer(config: Any = None) -> Any:  # type: ignore
+        """Fallback para market structure analyzer"""
+        print("[WARNING] Market Structure Analyzer no disponible - usando fallback")
+        return None
+    
+    # Fallback PatternType enum
+    from enum import Enum
+    class PatternType(Enum):  # type: ignore
+        """Fallback PatternType enum para compatibilidad"""
+        UNKNOWN = "unknown"
 
 
 class POIType(Enum):
@@ -213,32 +239,59 @@ class POISystem:
         }
     
     def _initialize_components(self):
-        """Inicializar componentes integrados"""
+        """Inicializar componentes integrados con fallbacks robustos"""
         try:
-            # Downloader
-            if 'get_advanced_candle_downloader' in globals():
-                self._downloader = get_advanced_candle_downloader()
-                print("[INFO] Downloader conectado al POI System")
+            # Downloader - verificar que la función esté disponible y no sea fallback
+            if get_advanced_candle_downloader and callable(get_advanced_candle_downloader):
+                try:
+                    self._downloader = get_advanced_candle_downloader()
+                    if self._downloader is not None:
+                        print("[INFO] Downloader conectado al POI System")
+                    else:
+                        print("[INFO] Downloader en modo fallback")
+                except Exception as e:
+                    print(f"[WARNING] Error inicializando downloader: {e}")
+                    self._downloader = None
+            else:
+                print("[INFO] Downloader no disponible - usando modo básico")
             
-            # Pattern Detector
-            if 'get_pattern_detector' in globals():
-                self._pattern_detector = get_pattern_detector({
-                    'enable_debug': False,  # Evitar spam en logs
-                    'min_confidence': 65.0
-                })
-                print("[INFO] Pattern Detector conectado al POI System")
+            # Pattern Detector - verificar disponibilidad
+            if get_pattern_detector and callable(get_pattern_detector):
+                try:
+                    self._pattern_detector = get_pattern_detector({
+                        'enable_debug': False,  # Evitar spam en logs
+                        'min_confidence': 65.0
+                    })
+                    if self._pattern_detector is not None:
+                        print("[INFO] Pattern Detector conectado al POI System")
+                    else:
+                        print("[INFO] Pattern Detector en modo fallback")
+                except Exception as e:
+                    print(f"[WARNING] Error inicializando pattern detector: {e}")
+                    self._pattern_detector = None
+            else:
+                print("[INFO] Pattern Detector no disponible - usando detección básica")
             
-            # Market Analyzer
-            if 'get_market_structure_analyzer' in globals():
-                self._market_analyzer = get_market_structure_analyzer({
-                    'enable_debug': False
-                })
-                print("[INFO] Market Analyzer conectado al POI System")
+            # Market Analyzer - verificar disponibilidad
+            if get_market_structure_analyzer and callable(get_market_structure_analyzer):
+                try:
+                    self._market_analyzer = get_market_structure_analyzer({
+                        'enable_debug': False
+                    })
+                    if self._market_analyzer is not None:
+                        print("[INFO] Market Analyzer conectado al POI System")
+                    else:
+                        print("[INFO] Market Analyzer en modo fallback")
+                except Exception as e:
+                    print(f"[WARNING] Error inicializando market analyzer: {e}")
+                    self._market_analyzer = None
+            else:
+                print("[INFO] Market Analyzer no disponible - usando análisis básico")
             
             self.is_initialized = True
             
         except Exception as e:
-            print(f"[WARNING] Error inicializando componentes: {e}")
+            print(f"[WARNING] Error general inicializando componentes: {e}")
             print("[INFO] Continuando en modo básico")
     
     def detect_pois(

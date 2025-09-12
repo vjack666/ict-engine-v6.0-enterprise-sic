@@ -34,17 +34,45 @@ if TYPE_CHECKING:
 else:
     DataFrameType = Any
 
-# 🏗️ ENTERPRISE ARCHITECTURE v6.0 - IMPORTS OPTIMIZADOS
+# 🏗️ ENTERPRISE ARCHITECTURE v6.0 - UNIFIED LOGGING OPTIMIZADO
 try:
-    from smart_trading_logger import SmartTradingLogger, log_info, log_warning, log_error, log_debug
+    from ..unified_logging import log_info, log_warning, log_error, log_debug, SmartTradingLogger, create_unified_logger
     from analysis.unified_memory_system import get_unified_memory_system
     from data_management.advanced_candle_downloader import _pandas_manager
     UNIFIED_MEMORY_AVAILABLE = True
     ENTERPRISE_COMPONENTS_AVAILABLE = True
 except ImportError:
-    SmartTradingLogger = Any
-    UNIFIED_MEMORY_AVAILABLE = False
-    ENTERPRISE_COMPONENTS_AVAILABLE = False
+    try:
+        # Fallback para imports desde nivel superior
+        from unified_logging import log_info, log_warning, log_error, log_debug, SmartTradingLogger, create_unified_logger
+        from analysis.unified_memory_system import get_unified_memory_system
+        from data_management.advanced_candle_downloader import _pandas_manager
+        UNIFIED_MEMORY_AVAILABLE = True
+        ENTERPRISE_COMPONENTS_AVAILABLE = True
+    except ImportError:
+        # Fallback completo
+        import logging
+        _fallback_logger = logging.getLogger("LIQUIDITY_GRAB_FALLBACK")
+        if not _fallback_logger.handlers:
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter('[%(asctime)s] [LIQUIDITY_GRAB] [%(levelname)s] %(message)s', '%H:%M:%S')
+            handler.setFormatter(formatter)
+            _fallback_logger.addHandler(handler)
+            _fallback_logger.setLevel(logging.INFO)
+        
+        def log_info(message: str, component: str = "LIQUIDITY_GRAB"):
+            _fallback_logger.info(f"[{component}] {message}")
+        def log_warning(message: str, component: str = "LIQUIDITY_GRAB"):
+            _fallback_logger.warning(f"[{component}] {message}")
+        def log_error(message: str, component: str = "LIQUIDITY_GRAB"):
+            _fallback_logger.error(f"[{component}] {message}")
+        def log_debug(message: str, component: str = "LIQUIDITY_GRAB"):
+            _fallback_logger.debug(f"[{component}] {message}")
+        
+        SmartTradingLogger = Any
+        create_unified_logger = lambda x: None
+        UNIFIED_MEMORY_AVAILABLE = False
+        ENTERPRISE_COMPONENTS_AVAILABLE = False
     
     def get_unified_memory_system() -> Optional[Any]:
         """Fallback para testing cuando UnifiedMemorySystem no está disponible"""

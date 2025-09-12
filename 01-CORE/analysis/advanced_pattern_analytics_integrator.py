@@ -22,27 +22,46 @@ from dataclasses import dataclass, field
 from enum import Enum
 import logging
 
-# Enterprise logging integration
+# Enterprise logging integration - usando sistema unificado central
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+# Variables globales para evitar problemas de Pylance
+create_unified_logger_func = None
+SLUC_AVAILABLE = False
+
 try:
-    from smart_trading_logger import get_smart_logger
+    from ict_engine.unified_logging import (
+        log_info, log_warning, log_error, log_debug,
+        UnifiedLoggingSystem, create_unified_logger
+    )
+    create_unified_logger_func = create_unified_logger
     SLUC_AVAILABLE = True
 except ImportError:
-    SLUC_AVAILABLE = False
     logging.basicConfig(level=logging.INFO)
+    # Fallback logging functions
+    def log_info(message, component="CORE"): logging.info(f"[{component}] {message}")
+    def log_warning(message, component="CORE"): logging.warning(f"[{component}] {message}") 
+    def log_error(message, component="CORE"): logging.error(f"[{component}] {message}")
+    def log_debug(message, component="CORE"): logging.debug(f"[{component}] {message}")
 
-# Analytics components integration
-try:
-    from analysis.pattern_confluence_engine import get_confluence_engine, PatternType
-    from analysis.market_structure_intelligence import get_market_structure_intelligence, MarketPhase
-    from analysis.trading_signal_synthesizer import get_trading_signal_synthesizer, TradingSignal
-    from analysis.pattern_learning_system import get_pattern_learning_system, PatternOutcome
-    from analysis.realtime_analytics_dashboard import get_realtime_analytics_dashboard, AnalyticsEventType, DashboardComponent
-    ANALYTICS_COMPONENTS_AVAILABLE = True
-except ImportError:
-    ANALYTICS_COMPONENTS_AVAILABLE = False
+# Función unificada de logging que evita redeclaración
+def get_integrator_logger(name="AdvancedPatternAnalyticsIntegrator"):
+    """🎯 Get unified logger for integrator"""
+    if SLUC_AVAILABLE and create_unified_logger_func:
+        return create_unified_logger_func(name)
+    else:
+        return logging.getLogger(name)
+
+# Direct imports - sistema probado y funcional
+from analysis.pattern_confluence_engine import get_confluence_engine, PatternType
+from analysis.market_structure_intelligence import get_market_structure_intelligence, MarketPhase  
+from analysis.trading_signal_synthesizer import get_trading_signal_synthesizer, TradingSignal
+from analysis.pattern_learning_system import get_pattern_learning_system, PatternOutcome
+from analysis.realtime_analytics_dashboard import get_realtime_analytics_dashboard, AnalyticsEventType, DashboardComponent
+
+ANALYTICS_COMPONENTS_AVAILABLE = True
+log_info("Todos los componentes de análisis cargados exitosamente", "INTEGRATOR")
 
 
 class AnalyticsMode(Enum):
@@ -102,11 +121,8 @@ class AdvancedPatternAnalyticsIntegrator:
     
     def __init__(self, mode: AnalyticsMode = AnalyticsMode.FULL_ANALYTICS):
         """Initialize Advanced Pattern Analytics Integrator"""
-        # Smart logging integration
-        if SLUC_AVAILABLE:
-            self.logger = get_smart_logger("AdvancedPatternAnalyticsIntegrator")
-        else:
-            self.logger = logging.getLogger("AdvancedPatternAnalyticsIntegrator")
+        # Smart logging integration - usando sistema unificado
+        self.logger = get_integrator_logger("AdvancedPatternAnalyticsIntegrator")
         
         self.mode = mode
         self.status = IntegrationStatus.NOT_INITIALIZED
