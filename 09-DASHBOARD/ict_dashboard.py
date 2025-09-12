@@ -32,7 +32,7 @@ sys.path.insert(0, str(dashboard_root))
 # Imports del dashboard modular
 from core.dashboard_engine import DashboardEngine
 from data.data_collector import RealICTDataCollector
-from widgets.main_interface import MainDashboardInterface
+from widgets.main_interface import TextualDashboardApp
 
 class ICTDashboard:
     """🎯 Dashboard principal del ICT Engine v6.1"""
@@ -47,7 +47,7 @@ class ICTDashboard:
         self.config = config or self._get_default_config()
         self.engine = DashboardEngine(self.config)
         self.data_collector = RealICTDataCollector(self.config)
-        self.interface = MainDashboardInterface(self.config)
+        self.interface = TextualDashboardApp(self.config)
         
     def _get_default_config(self) -> Dict[str, Any]:
         """Configuración por defecto del dashboard"""

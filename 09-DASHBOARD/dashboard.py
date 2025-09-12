@@ -42,7 +42,7 @@ sys.path.extend([
 
 # Imports del sistema ICT
 from data.data_collector import RealDataCollector
-from widgets.main_interface import MainDashboardInterface  
+from widgets.main_interface import TextualDashboardApp  
 
 # Dynamic import para dashboard_logger
 try:
@@ -75,7 +75,7 @@ class ICTDashboardApp:
         self.config = self._load_config()
         self.logger = DashboardLogger(self.config.get('logging', {}))
         self.data_collector: Optional[RealDataCollector] = None
-        self.dashboard_interface: Optional[MainDashboardInterface] = None
+        self.dashboard_interface: Optional[TextualDashboardApp] = None
         self.is_running = False
         
         # Configurar handlers de señales
@@ -176,7 +176,7 @@ class ICTDashboardApp:
             
             # Inicializar interfaz
             print("🎨 Inicializando Interfaz de Usuario...")
-            self.dashboard_interface = MainDashboardInterface(self.config)
+            self.dashboard_interface = TextualDashboardApp(self.config)
             print("✅ Interfaz inicializada")
             
             self.logger.info("Dashboard inicializado correctamente")
@@ -212,7 +212,9 @@ class ICTDashboardApp:
             
             # Ejecutar interfaz principal
             if self.dashboard_interface:
-                self.dashboard_interface.run(mock_engine, self.data_collector)
+                # TODO: Adaptar cuando dashboard esté completamente implementado
+                # self.dashboard_interface.run(mock_engine, self.data_collector)
+                print("⚠️ [DASHBOARD] Método run() temporalmente deshabilitado - Dashboard en construcción")
             else:
                 raise RuntimeError("Dashboard interface no se inicializó correctamente")
             
@@ -308,7 +310,7 @@ class ICTDashboardApp:
             
             # Inicializar interfaz
             print("🎨 Inicializando Interfaz de Usuario...")
-            self.dashboard_interface = MainDashboardInterface(self.config)
+            self.dashboard_interface = TextualDashboardApp(self.config)
             print("✅ Interfaz inicializada")
             
             self.logger.info("Dashboard inicializado correctamente")
