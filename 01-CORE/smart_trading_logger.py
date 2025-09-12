@@ -38,6 +38,39 @@ class DefaultLoggingModeConfig:
         }
         component_lower = component_name.lower()
         return any(silent_comp in component_lower for silent_comp in silent_components)
+        
+        
+    # ================= ENTERPRISE LOGGER CLASSES =================
+    class SmartTradingLogger:
+        def __init__(self, name: str = "SmartTradingLogger"):
+            self.name = name
+            self.logger = logging.getLogger(name)
+            self.logger.setLevel(logging.INFO)
+            if not self.logger.handlers:
+                handler = logging.StreamHandler(sys.stdout)
+                formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s')
+                handler.setFormatter(formatter)
+                self.logger.addHandler(handler)
+
+        def log_info(self, msg: str):
+            self.logger.info(msg)
+
+        def log_warning(self, msg: str):
+            self.logger.warning(msg)
+
+        def log_error(self, msg: str):
+            self.logger.error(msg)
+
+    class UnifiedLoggingSystem:
+        def __init__(self):
+            self.loggers = {}
+
+        def get_logger(self, name: str):
+            if name not in self.loggers:
+                self.loggers[name] = SmartTradingLogger(name)
+            return self.loggers[name]
+
+    unified_logger = UnifiedLoggingSystem()
 
 # Importar configuración de modo silencioso con manejo de tipos mejorado
 LoggingModeConfig: Type[LoggingModeConfigProtocol] = DefaultLoggingModeConfig

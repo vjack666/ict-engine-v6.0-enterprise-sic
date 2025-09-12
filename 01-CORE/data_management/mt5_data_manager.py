@@ -368,6 +368,12 @@ class MT5DataManager:
         except:
             return "Error al obtener información"
 
+    def get_historical_data(self, symbol: str, timeframe: str, count: int = 500):
+        """
+        Obtiene datos históricos - alias para get_direct_market_data para compatibilidad
+        """
+        return self.get_direct_market_data(symbol, timeframe, count)
+
     def get_direct_market_data(self, symbol: str, timeframe: str, count: int = 500):
         """
         Obtiene datos de mercado directamente de MT5 con manejo robusto de errores

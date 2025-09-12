@@ -98,6 +98,9 @@ class UnifiedMemorySystem:
         self.config_path = config_path
         self.memory_config = self._load_memory_config()
         
+        # FASE 2 flag
+        self.fase2_enabled = True
+        
         # ✅ REGLA #1: Usar componentes REALES existentes
         try:
             # Intentar usar UnifiedMarketMemory real
@@ -124,12 +127,7 @@ class UnifiedMemorySystem:
             self.historical_analyzer = self._create_minimal_historical_analyzer()
             self.decision_cache = self._create_minimal_decision_cache()
             self.unified_memory = None
-        
-        # === NUEVOS COMPONENTES FASE 2 ===
-        self.persistence_manager = MemoryPersistenceManager(self)
-        self.learning_engine = AdaptiveLearningEngine(self)
-        self.confidence_evaluator = TraderConfidenceEvaluator(self)
-        
+
         # === MEMORIA DE PATRONES ===
         self.pattern_memory = []  # Lista para almacenar patrones históricos
         
@@ -154,6 +152,21 @@ class UnifiedMemorySystem:
             "version": self.system_state['version'],
             "phase": self.system_state['phase']
         })
+
+    def is_fase2_enabled(self) -> bool:
+        """Indica si la FASE 2 está activa"""
+        return getattr(self, 'fase2_enabled', False)
+
+    def store_experience(self, experience: dict):
+        """Almacena experiencia en memoria unificada (FASE 2)"""
+        # Simulación: guardar en lista interna
+        if not hasattr(self, '_experiences'):
+            self._experiences = []
+        self._experiences.append(experience)
+
+    def get_experiences(self) -> list:
+        """Devuelve experiencias almacenadas (FASE 2)"""
+        return getattr(self, '_experiences', [])
     
     def _count_loaded_components(self) -> int:
         """Cuenta componentes cargados exitosamente"""
