@@ -100,7 +100,7 @@ class TextualDashboardApp(Screen):
         self.sub_title = f"Sesión: {self.session_id} | Clean State"
         
         # Configurar timer para actualizaciones
-        self.set_interval(5.0, self.periodic_update)
+        self.set_interval(0.5, self.periodic_update)
         
         print("✅ [DASHBOARD] Dashboard limpio montado correctamente")
     

@@ -21,13 +21,35 @@
     --padding-medium: 1rem;
     --padding-large: 2rem;
     
-    --transition-fast: all 0.2s ease;
-    --transition-smooth: all 0.3s ease-in-out;
+    --transition-fast: all 0.1s ease;
+    --transition-smooth: all 0.2s ease-in-out;
+    --transition-realtime: all 0.05s ease-in-out; /* Para actualizaciones ultra-rápidas */
 }
 
 /* Utilidades globales */
 .fade-in {
-    animation: fadeIn 0.5s ease-in;
+    animation: fadeIn 0.3s ease-in;
+}
+
+/* Animaciones optimizadas para actualizaciones cada 0.5s */
+.realtime-update {
+    transition: var(--transition-realtime);
+    will-change: transform, opacity, color;
+}
+
+.metrics-container {
+    transition: var(--transition-fast);
+    animation: none; /* Desactivar animaciones pesadas para mejor performance */
+}
+
+/* Pulso suave para indicadores live */
+.live-indicator {
+    animation: smooth-pulse 1s ease-in-out infinite;
+}
+
+@keyframes smooth-pulse {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
 }
 
 @keyframes fadeIn {

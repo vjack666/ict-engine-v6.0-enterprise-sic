@@ -52,7 +52,7 @@ class ICTDashboard:
     def _get_default_config(self) -> Dict[str, Any]:
         """Configuración por defecto del dashboard"""
         return {
-            'update_interval': 1.0,  # segundos
+            'update_interval': 0.5,  # segundos
             'symbols': ['EURUSD', 'GBPUSD', 'XAUUSD', 'USDJPY'],
             'timeframes': ['M15', 'H1', 'H4'],
             'theme': 'dark',
@@ -98,7 +98,7 @@ def main():
     # Configuración personalizada si es necesario
     custom_config = {
         'symbols': ['EURUSD', 'GBPUSD', 'XAUUSD'],
-        'update_interval': 2.0,
+        'update_interval': 0.5,
         'theme': 'professional',
         'show_debug': True
     }

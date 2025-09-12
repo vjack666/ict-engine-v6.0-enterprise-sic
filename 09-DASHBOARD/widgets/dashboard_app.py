@@ -156,7 +156,7 @@ class ICTDashboardApp(App):
                 "🔍 Status: [status_connected]CONNECTED TO MT5[/status_connected]\n" +
                 "📊 Last Update: [metric_value]Loading...[/metric_value]\n" +
                 "🎯 Symbols: [metric_value]EURUSD, GBPUSD, XAUUSD[/metric_value]\n" +
-                "⏰ Update Interval: [metric_value]2.0s[/metric_value]",
+                "⏰ Update Interval: [metric_value]0.5s[/metric_value]",
                 id="smart_money_metrics",
                 markup=True
             ),
@@ -263,8 +263,8 @@ class ICTDashboardApp(App):
         self.title = "ICT Engine v6.1 Enterprise - Live Dashboard"
         self.sub_title = "Real Market Data Analysis"
         
-        # Configurar timer para actualizaciones automáticas cada 5 segundos
-        self.set_interval(5.0, self.update_dashboard_data)
+        # Configurar timer para actualizaciones automáticas cada 0.5 segundos
+        self.set_interval(0.5, self.update_dashboard_data)
         
         print("✅ [DASHBOARD] ICT Dashboard Enterprise montado - Datos reales activos")
     
@@ -314,7 +314,7 @@ class ICTDashboardApp(App):
                 "🔍 Status: [status_connected]ANALYZING MARKET[/status_connected]\n" +
                 f"📊 Last Update: [metric_value]{current_time.strftime('%H:%M:%S')}[/metric_value]\n" +
                 "🎯 Symbols: [metric_value]EURUSD, GBPUSD, XAUUSD[/metric_value]\n" +
-                "⏰ Update Interval: [metric_value]5.0s[/metric_value]"
+                "⏰ Update Interval: [metric_value]0.5s[/metric_value]"
             )
             metrics_widget.update(metrics_text)
             

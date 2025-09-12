@@ -124,7 +124,7 @@ class ICTDashboardApp:
             'dashboard': {
                 'title': 'ICT Engine v6.1 Enterprise Dashboard',
                 'layout_mode': 'tabbed',
-                'update_interval': 2.0,
+                'update_interval': 0.5,
                 'theme': 'dark'
             },
             'data': {

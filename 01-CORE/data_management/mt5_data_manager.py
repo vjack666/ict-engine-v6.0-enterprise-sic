@@ -414,12 +414,17 @@ class MT5DataManager:
             # Convertir a DataFrame
             df = pd.DataFrame(rates)  # type: ignore
             
-            # Convertir timestamp a datetime
+            # Convertir timestamp a datetime pero MANTENER como columna
             df['time'] = pd.to_datetime(df['time'], unit='s')  # type: ignore
-            df.set_index('time', inplace=True)  # type: ignore
+            # NO establecer como índice - los algoritmos ICT necesitan 'time' como columna
+            # df.set_index('time', inplace=True)  # ← COMENTADO para reparar pipeline
             
-            # Renombrar columnas para consistencia
-            df.columns = ['open', 'high', 'low', 'close', 'tick_volume', 'spread', 'real_volume']  # type: ignore
+            # Renombrar tick_volume a volume para compatibilidad
+            if 'tick_volume' in df.columns:
+                df['volume'] = df['tick_volume']
+            
+            # NO forzar nombres de columnas - mantener estructura original + time + volume
+            # df.columns = ['open', 'high', 'low', 'close', 'tick_volume', 'spread', 'real_volume']  # COMENTADO
             
             self._log_info(f"✅ Datos obtenidos: {symbol} {timeframe} ({len(df)} velas)")
             return df

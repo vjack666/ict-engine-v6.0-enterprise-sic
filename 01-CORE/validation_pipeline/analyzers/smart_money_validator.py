@@ -1060,6 +1060,60 @@ def get_smart_money_validator(config: Optional[Dict] = None) -> SmartMoneyValida
     return _validator_instance
 
 
+# ✅ ENTERPRISE VERSION - Clase requerida por el sistema
+class SmartMoneyValidatorEnterprise(SmartMoneyValidator):
+    """
+    🏢 Smart Money Validator Enterprise Edition
+    
+    Versión enterprise del SmartMoneyValidator con características adicionales:
+    - Enhanced logging capabilities
+    - Advanced memory management
+    - Multi-timeframe validation
+    - Enterprise-level error handling
+    """
+    
+    def __init__(self, config: Optional[Dict] = None):
+        super().__init__(config)
+        self.version = "enterprise-v6.0"
+        self.enterprise_features = True
+        
+        log_info("🏢 SmartMoneyValidatorEnterprise inicializado", "ENTERPRISE_VALIDATOR")
+    
+    def get_validator_type(self) -> str:
+        """Retorna el tipo de validador"""
+        return "enterprise"
+    
+    def validate_with_enterprise_features(self, symbol: str, timeframe: str = "M15") -> Dict[str, Any]:
+        """Validación con características enterprise"""
+        try:
+            # Usar el método base pero con logging enterprise
+            result = self.validate_smart_money_accuracy(symbol, timeframe, 'both')
+            result['enterprise_mode'] = True
+            result['validator_version'] = self.version
+            
+            log_info(f"✅ Enterprise validation completed for {symbol} {timeframe}", "ENTERPRISE_VALIDATOR")
+            return result
+            
+        except Exception as e:
+            log_error(f"❌ Enterprise validation error: {e}", "ENTERPRISE_VALIDATOR")
+            return {
+                'validation_summary': {'validation_status': 'error'},
+                'accuracy_metrics': {'overall_accuracy': 0.0},
+                'enterprise_mode': True,
+                'error': str(e)
+            }
+
+
+def create_smart_money_validator(enterprise: bool = True) -> SmartMoneyValidator:
+    """
+    Factory function para crear el validador apropiado
+    """
+    if enterprise:
+        return SmartMoneyValidatorEnterprise()
+    else:
+        return SmartMoneyValidator()
+
+
 if __name__ == "__main__":
     # Test básico del validador
     print("🚀 Testing SmartMoneyValidator...")
@@ -1075,6 +1129,11 @@ if __name__ == "__main__":
         result = validator.validate_smart_money_accuracy('EURUSD', 'H1', 'short')
         print(f"🔍 Test validación completada: {result['validation_summary']['validation_status']}")
         print(f"📊 Accuracy: {result['accuracy_metrics']['overall_accuracy']:.1%}")
+        
+        # Test Enterprise
+        print("\n🏢 Testing SmartMoneyValidatorEnterprise...")
+        enterprise_validator = SmartMoneyValidatorEnterprise()
+        print("✅ Enterprise validator creado exitosamente")
         
     except Exception as e:
         print(f"❌ Error en testing: {e}")

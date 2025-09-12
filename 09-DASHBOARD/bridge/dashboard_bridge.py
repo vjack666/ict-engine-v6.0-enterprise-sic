@@ -180,7 +180,7 @@ class DashboardBridge:
             config = {
                 'symbols': ['EURUSD', 'GBPUSD', 'USDJPY', 'XAUUSD'],
                 'timeframes': ['M15', 'H1', 'H4'],
-                'update_interval': 1.0,
+                'update_interval': 0.5,
                 'theme': 'enterprise',
                 'enable_alerts': True,
                 'auto_refresh': True,
@@ -227,7 +227,7 @@ class DashboardBridge:
             basic_config = {
                 'symbols': ['EURUSD', 'GBPUSD'],
                 'timeframes': ['H1', 'H4'],
-                'update_interval': 5.0,
+                'update_interval': 0.5,
                 'theme': 'basic',
                 'enable_alerts': False,
                 'auto_refresh': True,
