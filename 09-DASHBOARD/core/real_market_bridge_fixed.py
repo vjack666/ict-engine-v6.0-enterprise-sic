@@ -451,7 +451,7 @@ class RealMarketBridge:
             return None
     
     def get_real_order_blocks(self) -> Dict[str, Any]:
-        """📦 Obtener Order Blocks REALES - CONECTADO CON PATTERN DETECTOR OPTIMIZADO"""
+        """📦 Obtener Order Blocks - Con generación automática si es primera ejecución"""
         try:
             symbols = self._get_active_symbols()
             
@@ -473,179 +473,31 @@ class RealMarketBridge:
                 print(f"✅ Order Blocks iniciales generados: {total_blocks['total_blocks']} bloques")
                 return total_blocks
             
-            # ✅ NUEVA IMPLEMENTACIÓN: Conectar con PatternDetector optimizado
-            return self._get_real_order_blocks_from_detector(symbols)
-            
-        except Exception as e:
-            print(f"❌ Error en get_real_order_blocks: {e}")
-            # Usar symbols de manera segura
-            fallback_symbols = []
-            try:
-                fallback_symbols = self._get_active_symbols()
-            except:
-                fallback_symbols = ['EURUSD', 'GBPUSD', 'USDJPY']  # Fallback básico
-            
-            return self._get_fallback_order_blocks(fallback_symbols)
-    
-    def _get_real_order_blocks_from_detector(self, symbols: List[str]) -> Dict[str, Any]:
-        """🎯 Obtener Order Blocks reales usando PatternDetector optimizado"""
-        try:
-            # Importar PatternDetector correcto
-            from analysis.pattern_detector import PatternDetector
-            
-            # Inicializar detector
-            detector = PatternDetector()
-            
+            # Versión estándar - sin implementación completa aún
             total_blocks = {
                 'total_blocks': 0,
                 'bullish_blocks': 0,
                 'bearish_blocks': 0,
                 'by_symbol': {},
                 'symbols_analyzed': len(symbols),
-                'data_source': 'REAL_PATTERN_DETECTOR_V6_OPTIMIZED',
-                'timestamp': datetime.now().isoformat(),
-                'detection_quality': 'excellent',
-                'real_time_analysis': True
+                'data_source': 'ORDER_BLOCKS_NOT_IMPLEMENTED',
+                'timestamp': datetime.now().isoformat()
             }
-            
-            print(f"[INFO] 🎯 Detectando Order Blocks reales en {len(symbols)} símbolos...")
             
             for symbol in symbols:
-                try:
-                    # Generar datos sintéticos para análisis (simulando datos históricos reales)
-                    market_data = self._generate_synthetic_market_data(symbol)
-                    
-                    if market_data is not None and len(market_data) >= 20:
-                        # Detectar Order Blocks usando la función correcta del detector
-                        if hasattr(detector, '_find_order_blocks'):
-                            order_blocks = detector._find_order_blocks(market_data)
-                        else:
-                            print(f"[ERROR] Detector no tiene método _find_order_blocks")
-                            order_blocks = []
-                        
-                        if order_blocks and len(order_blocks) > 0:
-                            # Contar por tipo
-                            bullish_count = len([ob for ob in order_blocks if ob.get('type') == 'bullish'])
-                            bearish_count = len(order_blocks) - bullish_count
-                            
-                            total_blocks['by_symbol'][symbol] = {
-                                'total': len(order_blocks),
-                                'bullish': bullish_count,
-                                'bearish': bearish_count,
-                                'quality': 'good',
-                                'institutional_bias': self._calculate_bias(order_blocks),
-                                'last_detection': datetime.now().isoformat()
-                            }
-                            
-                            # Agregar a totales
-                            total_blocks['total_blocks'] += len(order_blocks)
-                            total_blocks['bullish_blocks'] += bullish_count
-                            total_blocks['bearish_blocks'] += bearish_count
-                            
-                            print(f"[SUCCESS] ✅ {symbol}: {len(order_blocks)} Order Blocks (B:{bullish_count}, S:{bearish_count})")
-                        else:
-                            # No se detectaron Order Blocks
-                            total_blocks['by_symbol'][symbol] = {'total': 0, 'bullish': 0, 'bearish': 0}
-                            print(f"[INFO] ⚠️ {symbol}: No Order Blocks detectados")
-                    else:
-                        total_blocks['by_symbol'][symbol] = {'total': 0, 'bullish': 0, 'bearish': 0}
-                        print(f"[WARNING] ⚠️ {symbol}: Datos insuficientes para análisis")
-                        
-                except Exception as symbol_error:
-                    print(f"[ERROR] Error analizando {symbol}: {symbol_error}")
-                    total_blocks['by_symbol'][symbol] = {'total': 0, 'bullish': 0, 'bearish': 0}
+                total_blocks['by_symbol'][symbol] = {'total': 0, 'bullish': 0, 'bearish': 0}
             
-            print(f"[FINAL] 🎯 Total Order Blocks detectados: {total_blocks['total_blocks']}")
             return total_blocks
             
-        except ImportError as ie:
-            print(f"[ERROR] No se puede importar PatternDetector: {ie}")
-            return self._get_fallback_order_blocks_enhanced(symbols)
         except Exception as e:
-            print(f"[ERROR] Error en detección real de Order Blocks: {e}")
-            return self._get_fallback_order_blocks_enhanced(symbols)
-    
-    def _detect_order_blocks_optimized(self, detector, data, symbol: str, timeframe: str) -> Dict[str, Any]:
-        """Método wrapper para detectar Order Blocks con el detector optimizado"""
-        try:
-            # Llamar al método optimizado del detector
-            if hasattr(detector, '_find_order_blocks_optimized'):
-                order_blocks = detector._find_order_blocks_optimized(data, timeframe)
-            elif hasattr(detector, '_find_order_blocks'):
-                order_blocks = detector._find_order_blocks(data)
-            else:
-                print(f"[WARNING] Detector no tiene métodos de Order Blocks disponibles")
-                return {'detected': False, 'order_blocks': []}
-            
-            if order_blocks:
-                return {
-                    'detected': True,
-                    'order_blocks': order_blocks,
-                    'analysis_quality': 'good' if len(order_blocks) > 2 else 'fair',
-                    'institutional_bias': self._calculate_bias(order_blocks)
-                }
-            else:
-                return {'detected': False, 'order_blocks': []}
-                
-        except Exception as e:
-            print(f"[ERROR] Error en _detect_order_blocks_optimized: {e}")
-            return {'detected': False, 'order_blocks': []}
-    
-    def _calculate_bias(self, order_blocks: List[Dict]) -> str:
-        """Calcular bias institucional de los Order Blocks"""
-        if not order_blocks:
-            return 'neutral'
-            
-        bullish_count = len([ob for ob in order_blocks if ob.get('type') == 'bullish'])
-        bearish_count = len(order_blocks) - bullish_count
-        
-        if bullish_count > bearish_count * 1.3:
-            return 'bullish'
-        elif bearish_count > bullish_count * 1.3:
-            return 'bearish'
-        else:
-            return 'neutral'
-    
-    def _get_fallback_order_blocks_enhanced(self, symbols: List[str]) -> Dict[str, Any]:
-        """Fallback mejorado con algunos Order Blocks básicos"""
-        try:
-            print("[INFO] 🔄 Usando fallback mejorado para Order Blocks...")
-            
-            total_blocks = {
-                'total_blocks': len(symbols),  # Al menos 1 por símbolo
-                'bullish_blocks': len(symbols) // 2,
-                'bearish_blocks': len(symbols) - (len(symbols) // 2),
+            print(f"❌ Error en get_real_order_blocks: {e}")
+            return {
+                'total_blocks': 0,
+                'bullish_blocks': 0,
+                'bearish_blocks': 0,
                 'by_symbol': {},
-                'symbols_analyzed': len(symbols),
-                'data_source': 'ENHANCED_FALLBACK_ORDER_BLOCKS',
-                'timestamp': datetime.now().isoformat(),
-                'detection_quality': 'basic_fallback'
-            }
-            
-            for i, symbol in enumerate(symbols):
-                ob_type = 'bullish' if i % 2 == 0 else 'bearish'
-                total_blocks['by_symbol'][symbol] = {
-                    'total': 1, 
-                    'bullish': 1 if ob_type == 'bullish' else 0,
-                    'bearish': 1 if ob_type == 'bearish' else 0,
-                    'fallback': True
-                }
-            
-            return total_blocks
-            
-        except Exception as e:
-            print(f"[ERROR] Error en fallback mejorado: {e}")
-            return self._get_fallback_order_blocks(symbols)
-    
-    def _get_fallback_order_blocks(self, symbols: List[str]) -> Dict[str, Any]:
-        """Fallback básico para Order Blocks"""
-        return {
-            'total_blocks': 0,
-            'bullish_blocks': 0,
-            'bearish_blocks': 0,
-            'by_symbol': {symbol: {'total': 0, 'bullish': 0, 'bearish': 0} for symbol in symbols},
-            'symbols_analyzed': len(symbols),
-            'data_source': 'FALLBACK_EMPTY_REAL',
+                'symbols_analyzed': 0,
+                'data_source': 'FALLBACK_EMPTY_REAL',
                 'timestamp': datetime.now().isoformat()
             }
     
@@ -853,94 +705,3 @@ class RealMarketBridge:
     def _log_data_source(self, data_type: str, source: str):
         """Log de fuente de datos para debugging"""
         print(f"📊 {data_type}: fuente = {source}")
-    
-    def _generate_synthetic_market_data(self, symbol: str):
-        """Generar datos sintéticos realistas para análisis de Order Blocks"""
-        try:
-            import random
-            import numpy as np
-            import pandas as pd
-            from datetime import timedelta
-            
-            # Configuración base por símbolo
-            base_prices = {
-                'EURUSD': 1.1000,
-                'GBPUSD': 1.3000, 
-                'USDJPY': 147.00,
-                'USDCAD': 1.3500,
-                'AUDUSD': 0.6700,
-                'XAUUSD': 2000.00
-            }
-            
-            base_price = base_prices.get(symbol, 1.0000)
-            volatility = 0.001  # 0.1% volatilidad
-            
-            # Generar 100 velas de M5
-            num_candles = 100
-            timestamps = []
-            opens = []
-            highs = []
-            lows = []
-            closes = []
-            
-            current_time = datetime.now() - timedelta(minutes=5*num_candles)
-            current_price = base_price
-            
-            for i in range(num_candles):
-                # Simular movimientos realistas
-                price_change = random.uniform(-volatility, volatility) * base_price
-                open_price = current_price
-                
-                # Simular rango de la vela
-                range_size = random.uniform(0.0001, 0.0020) * base_price
-                
-                # Determinar dirección de la vela
-                is_bullish = random.choice([True, False])
-                
-                if is_bullish:
-                    close_price = open_price + random.uniform(0.1, 0.8) * range_size
-                    high_price = max(open_price, close_price) + random.uniform(0, 0.3) * range_size
-                    low_price = min(open_price, close_price) - random.uniform(0, 0.2) * range_size
-                else:
-                    close_price = open_price - random.uniform(0.1, 0.8) * range_size
-                    high_price = max(open_price, close_price) + random.uniform(0, 0.2) * range_size
-                    low_price = min(open_price, close_price) - random.uniform(0, 0.3) * range_size
-                
-                # Crear velas de impulso ocasionalmente para Order Blocks
-                if i % 15 == 0 and random.random() < 0.3:  # 30% de probabilidad cada 15 velas
-                    impulse_size = range_size * random.uniform(2.0, 4.0)
-                    if is_bullish:
-                        close_price = open_price + impulse_size
-                        high_price = close_price + impulse_size * 0.1
-                        low_price = open_price - impulse_size * 0.1
-                    else:
-                        close_price = open_price - impulse_size  
-                        low_price = close_price - impulse_size * 0.1
-                        high_price = open_price + impulse_size * 0.1
-                
-                timestamps.append(current_time)
-                opens.append(open_price)
-                highs.append(high_price)
-                lows.append(low_price)
-                closes.append(close_price)
-                
-                current_price = close_price
-                current_time += timedelta(minutes=5)
-            
-            # Crear DataFrame
-            df = pd.DataFrame({
-                'timestamp': timestamps,
-                'open': opens,
-                'high': highs,
-                'low': lows,
-                'close': closes
-            })
-            
-            df.set_index('timestamp', inplace=True)
-            
-            print(f"[INFO] 📊 Datos sintéticos generados para {symbol}: {len(df)} velas")
-            return df
-            
-        except Exception as e:
-            print(f"[ERROR] Error generando datos sintéticos para {symbol}: {e}")
-            return None
