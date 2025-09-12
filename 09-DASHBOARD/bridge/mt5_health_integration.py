@@ -30,9 +30,11 @@ project_root = dashboard_dir.parent
 try:
     from components.mt5_health_widget import MT5HealthWidget, create_mt5_health_widget
     WIDGET_AVAILABLE = True
+    WIDGET_CREATE_FUNCTION = create_mt5_health_widget
 except ImportError as e:
     print(f"⚠️ MT5 Health Widget not available: {e}")
     WIDGET_AVAILABLE = False
+    WIDGET_CREATE_FUNCTION = None
 
 class MT5HealthDashboardIntegration:
     """
@@ -61,7 +63,11 @@ class MT5HealthDashboardIntegration:
             return False
             
         try:
-            self.widget = create_mt5_health_widget()
+            if not WIDGET_CREATE_FUNCTION:
+                print("❌ Widget create function no disponible")
+                return False
+                
+            self.widget = WIDGET_CREATE_FUNCTION()
             
             # Iniciar monitoring si está disponible
             if hasattr(self.widget, 'start_monitoring'):
@@ -94,26 +100,27 @@ class MT5HealthDashboardIntegration:
             try:
                 # Usar el MT5DataManager existente del sistema
                 import sys
-                sys.path.append('../01-CORE')
-                from utils.mt5_data_manager import get_mt5_manager
+                sys.path.append(str(project_root / '01-CORE'))
+                from data_management.mt5_data_manager import get_mt5_manager
                 
                 mt5_manager = get_mt5_manager()
                 if mt5_manager and mt5_manager.is_connected():
-                    account_info = mt5_manager.get_account_info()
-                    if account_info and account_info.balance > 0:
-                        return {
-                            'status': 'connected',
-                            'message': f'MT5 Connected - Balance: ${account_info.balance:.2f}',
-                            'color': 'green',
-                            'timestamp': datetime.now().isoformat()
-                        }
+                    connection_status = mt5_manager.get_connection_status()
+                    if connection_status and connection_status.get('connected'):
+                        balance = connection_status.get('balance', 0.0)
+                        if balance > 0:
+                            return {
+                                'status': 'connected',
+                                'message': f'MT5 Connected - Balance: ${balance:.2f}',
+                                'color': 'green',
+                                'timestamp': datetime.now().isoformat()
+                            }
                 
-                # Verificar posiciones como indicador de conexión activa
-                positions = mt5_manager.get_positions() if mt5_manager else []
-                if positions and len(positions) > 0:
+                # Verificar si hay conexión activa (aunque sin balance específico)
+                if mt5_manager and mt5_manager.is_connected():
                     return {
                         'status': 'connected',
-                        'message': f'MT5 Trading Active - {len(positions)} positions',
+                        'message': 'MT5 Connected - System Active',
                         'color': 'green',
                         'timestamp': datetime.now().isoformat()
                     }
@@ -253,15 +260,18 @@ class MT5HealthDashboardIntegration:
         # Verificar si hay datos reales de trading usando MT5DataManager
         try:
             import sys
-            sys.path.append('../01-CORE')
-            from utils.mt5_data_manager import get_mt5_manager
+            sys.path.append(str(project_root / '01-CORE'))
+            from data_management.mt5_data_manager import get_mt5_manager
             
             mt5_manager = get_mt5_manager()
             if mt5_manager and mt5_manager.is_connected():
-                positions = mt5_manager.get_positions()
-                account_info = mt5_manager.get_account_info()
+                connection_status = mt5_manager.get_connection_status()
                 
-                if positions and len(positions) > 0 and account_info:
+                if connection_status and connection_status.get('connected'):
+                    balance = connection_status.get('balance', 0.0)
+                    equity = connection_status.get('equity', 0.0)
+                    account = connection_status.get('account', 'N/A')
+                    
                     return {
                         'mt5_health': {
                             'status': {
@@ -271,13 +281,13 @@ class MT5HealthDashboardIntegration:
                                 'response_time_ms': 85
                             },
                             'key_metrics': {
-                                'balance': account_info.balance,
-                                'server': account_info.server or 'FTMO Global Markets',
+                                'balance': balance,
+                                'server': connection_status.get('server', 'FTMO Global Markets'),
                                 'alerts': 0,
                                 'last_check': datetime.now().strftime('%H:%M:%S')
                             },
                             'trends': {'performance': 'stable', 'availability': 'excellent'},
-                            'recommendations': ['Trading activo detectado', 'Sistema operando correctamente']
+                            'recommendations': ['Sistema MT5 operando correctamente', f'Cuenta: {account}']
                         },
                         'integration_status': 'connected',
                         'timestamp': datetime.now().isoformat()

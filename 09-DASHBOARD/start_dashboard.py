@@ -647,7 +647,6 @@ class StartDashboard:
         
         # Mantener dashboard activo con simulación de monitoreo
         try:
-            import time
             counter = 0
             while True:
                 counter += 1

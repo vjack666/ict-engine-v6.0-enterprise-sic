@@ -81,41 +81,97 @@ class RealICTDataCollector:
         self.last_positions_count = 0
         self.positions_cache = {}
         
+        # Real Market Bridge para datos MT5
+        self.real_bridge = None
+        
         # Símbolos y timeframes
         self.symbols = config.get('data', {}).get('symbols', ['EURUSD', 'GBPUSD', 'USDJPY'])
         self.timeframes = config.get('data', {}).get('timeframes', ['H1', 'H4', 'D1'])
         
         print(f"🚀 [RealDataCollector] Inicializando sistema ICT Engine simplificado...")
         self._initialize_basic_components()
-        self._initialize_mt5_monitor()
+        self._initialize_real_bridge()
         
-    def _initialize_mt5_monitor(self):
-        """Inicializar monitoreo MT5 en tiempo real"""
+    def _initialize_real_bridge(self):
+        """Inicializar RealMarketBridge para datos MT5"""
         try:
-            import MetaTrader5 as mt5
-            if mt5.initialize():
+            # Importar path relativo correcto
+            import sys
+            from pathlib import Path
+            
+            # Añadir path del core dashboard
+            dashboard_core_path = Path(__file__).parent.parent / "core"
+            sys.path.insert(0, str(dashboard_core_path))
+            
+            # Import con try-catch para evitar errores de Pylance
+            try:
+                from real_market_bridge import RealMarketBridge  # type: ignore
+            except ImportError:
+                print("⚠️ [Bridge] RealMarketBridge no encontrado en core/")
+                self.mt5_connected = False
+                self.real_bridge = None
+                return
+            
+            self.real_bridge = RealMarketBridge(self.config)
+            
+            # Conectar componentes del bridge
+            if self.real_bridge.connect_real_components():
                 self.mt5_connected = True
-                self.mt5 = mt5
-                print("✅ [MT5] Conexión establecida para monitoreo en tiempo real")
+                print("✅ [MT5] RealMarketBridge conectado para monitoreo en tiempo real")
                 
-                # Verificar posiciones iniciales
-                initial_positions = mt5.positions_get()
-                if initial_positions:
-                    print(f"📊 [MT5] {len(initial_positions)} posiciones detectadas inicialmente")
-                    self.last_positions_count = len(initial_positions)
+                # Verificar posiciones iniciales usando el bridge
+                initial_positions = self.real_bridge.get_live_positions_data()
+                if initial_positions and initial_positions.get('total_positions', 0) > 0:
+                    print(f"📊 [MT5] {initial_positions['total_positions']} posiciones detectadas inicialmente")
+                    self.last_positions_count = initial_positions['total_positions']
                 else:
                     print("📊 [MT5] Sin posiciones abiertas inicialmente")
                     
             else:
-                print("⚠️ [MT5] No se pudo conectar para monitoreo")
+                print("⚠️ [MT5] RealMarketBridge no se pudo conectar")
                 self.mt5_connected = False
                 
-        except ImportError:
-            print("⚠️ [MT5] MetaTrader5 module no disponible")
+        except ImportError as e:
+            print(f"⚠️ [MT5] RealMarketBridge no disponible: {e}")
             self.mt5_connected = False
+            self.real_bridge = None
         except Exception as e:
-            print(f"❌ [MT5] Error inicializando monitor: {e}")
+            print(f"❌ [MT5] Error inicializando RealMarketBridge: {e}")
             self.mt5_connected = False
+            self.real_bridge = None
+        
+    def _initialize_mt5_monitor(self):
+        """Inicializar monitoreo MT5 en tiempo real usando MT5DataManager"""
+        try:
+            # Usar MT5DataManager del sistema ICT Engine
+            from data_management.mt5_data_manager import MT5DataManager
+            self.mt5_manager = MT5DataManager()
+            
+            if self.mt5_manager.connect():
+                self.mt5_connected = True
+                print("✅ [MT5] MT5DataManager conectado para monitoreo en tiempo real")
+                
+                # Verificar estado de conexión
+                connection_status = self.mt5_manager.get_connection_status()
+                if connection_status and connection_status.get('connected'):
+                    print(f"📊 [MT5] Cuenta: {connection_status.get('account', 'N/A')}")
+                    print(f"📊 [MT5] Balance: ${connection_status.get('balance', 0.0):.2f}")
+                else:
+                    print("📊 [MT5] Estado de conexión no disponible")
+                    
+            else:
+                print("⚠️ [MT5] MT5DataManager no se pudo conectar")
+                self.mt5_connected = False
+                self.mt5_manager = None
+                
+        except ImportError as e:
+            print(f"⚠️ [MT5] MT5DataManager no disponible: {e}")
+            self.mt5_connected = False
+            self.mt5_manager = None
+        except Exception as e:
+            print(f"❌ [MT5] Error inicializando MT5DataManager: {e}")
+            self.mt5_connected = False
+            self.mt5_manager = None
         
     def _initialize_basic_components(self):
         """Inicializar componentes básicos sin ImportCenter"""
@@ -136,67 +192,53 @@ class RealICTDataCollector:
             traceback.print_exc()
     
     def get_live_positions_data(self):
-        """Obtener datos de posiciones en tiempo real desde MT5"""
-        if not self.mt5_connected:
+        """Obtener datos de posiciones en tiempo real usando RealMarketBridge"""
+        if not self.mt5_connected or not self.real_bridge:
             return {
                 'total_positions': 0,
                 'total_pnl': 0.0,
                 'positions': [],
-                'status': 'MT5_DISCONNECTED'
+                'status': 'MT5_DISCONNECTED',
+                'last_update': datetime.now().strftime("%H:%M:%S.%f")[:-3]
             }
             
         try:
-            # Obtener posiciones actuales
-            positions = self.mt5.positions_get()
+            # Usar RealMarketBridge para obtener posiciones
+            positions_data = self.real_bridge.get_live_positions_data()
             
-            if positions is None:
-                positions = []
-            
-            positions_data = {
-                'total_positions': len(positions),
-                'total_pnl': 0.0,
-                'positions': [],
-                'status': 'ACTIVE',
-                'last_update': datetime.now().strftime("%H:%M:%S.%f")[:-3]  # Con milisegundos
-            }
-            
-            # Procesar cada posición
-            for pos in positions:
-                position_info = {
-                    'ticket': pos.ticket,
-                    'symbol': pos.symbol,
-                    'type': 'BUY' if pos.type == 0 else 'SELL',
-                    'volume': pos.volume,
-                    'open_price': pos.price_open,
-                    'current_price': pos.price_current,
-                    'profit': pos.profit,
-                    'pips': self._calculate_pips(pos),
-                    'open_time': datetime.fromtimestamp(pos.time).strftime("%H:%M:%S"),
-                    'comment': pos.comment if hasattr(pos, 'comment') else '',
-                    'swap': pos.swap if hasattr(pos, 'swap') else 0.0,
-                    'commission': pos.commission if hasattr(pos, 'commission') else 0.0
+            # Verificar y procesar resultado
+            if positions_data and isinstance(positions_data, dict):
+                # Detectar cambios en posiciones
+                current_count = positions_data.get('total_positions', 0)
+                if current_count != self.last_positions_count:
+                    if current_count > self.last_positions_count:
+                        print(f"🔵 [LIVE] Nueva posición detectada! Total: {current_count}")
+                    elif current_count < self.last_positions_count:
+                        print(f"🔴 [LIVE] Posición cerrada! Total: {current_count}")
+                    self.last_positions_count = current_count
+                
+                # Asegurar que tiene timestamp
+                if 'last_update' not in positions_data:
+                    positions_data['last_update'] = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                
+                return positions_data
+            else:
+                return {
+                    'total_positions': 0,
+                    'total_pnl': 0.0,
+                    'positions': [],
+                    'status': 'BRIDGE_ERROR',
+                    'last_update': datetime.now().strftime("%H:%M:%S.%f")[:-3]
                 }
-                positions_data['positions'].append(position_info)
-                positions_data['total_pnl'] += pos.profit
-            
-            # Detectar cambios en posiciones
-            current_count = len(positions)
-            if current_count != self.last_positions_count:
-                if current_count > self.last_positions_count:
-                    print(f"🔵 [LIVE] Nueva posición detectada! Total: {current_count}")
-                elif current_count < self.last_positions_count:
-                    print(f"🔴 [LIVE] Posición cerrada! Total: {current_count}")
-                self.last_positions_count = current_count
-            
-            return positions_data
             
         except Exception as e:
-            print(f"❌ Error obteniendo posiciones live: {e}")
+            print(f"❌ Error obteniendo posiciones via bridge: {e}")
             return {
                 'total_positions': 0,
                 'total_pnl': 0.0,
                 'positions': [],
-                'status': f'ERROR: {str(e)}'
+                'status': f'ERROR: {str(e)}',
+                'last_update': datetime.now().strftime("%H:%M:%S.%f")[:-3]
             }
     
     def _calculate_pips(self, position):

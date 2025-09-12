@@ -1,100 +1,148 @@
 /* 🎨 ICT ENGINE v6.0 ENTERPRISE - DASHBOARD CSS ENHANCED */
 
+/* Variables CSS para mejor mantenimiento */
+:root {
+    --primary-gradient: linear-gradient(135deg, #1a1a2e, #16213e);
+    --accent-gradient: linear-gradient(90deg, #00d2ff, #3a7bd5);
+    --success-color: #00ff88;
+    --danger-color: #ff4757;
+    --warning-color: #ffa502;
+    --gold-color: #ffd700;
+    --primary-blue: #3a7bd5;
+    --cyan: #00d2ff;
+    --orange: #ff6b35;
+    
+    --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.2);
+    --shadow-medium: 0 4px 6px rgba(0, 0, 0, 0.3);
+    --shadow-glow: 0 0 10px rgba(58, 123, 213, 0.3);
+    --border-radius: 5px;
+    --border-radius-large: 10px;
+    --padding-small: 0.5rem;
+    --padding-medium: 1rem;
+    --padding-large: 2rem;
+    
+    --transition-fast: all 0.2s ease;
+    --transition-smooth: all 0.3s ease-in-out;
+}
+
+/* Utilidades globales */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.text-glow {
+    text-shadow: 0 0 10px currentColor;
+}
+
+.hover-lift {
+    transition: var(--transition-smooth);
+}
+
+.hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow);
+}
+
 /* Panel principal mejorado */
 .dashboard-main {
-    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    background: var(--primary-gradient);
     color: #ffffff;
-    padding: 2;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    padding: var(--padding-large);
+    border-radius: var(--border-radius-large);
+    box-shadow: var(--shadow-medium);
 }
 
 /* Headers con mejor contraste */
 .section-header {
-    background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+    background: var(--accent-gradient);
     color: white;
     text-align: center;
-    padding: 1;
-    border-radius: 5px;
+    padding: var(--padding-medium);
+    border-radius: var(--border-radius);
     font-weight: bold;
-    margin-bottom: 1;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    margin-bottom: var(--padding-medium);
+    box-shadow: var(--shadow-light);
 }
 
 /* Status indicators mejorados */
 .status-connected {
-    color: #00ff88;
+    color: var(--success-color);
     font-weight: bold;
     background: rgba(0, 255, 136, 0.1);
-    padding: 0 1;
-    border-radius: 3px;
+    padding: 0 var(--padding-medium);
+    border-radius: var(--border-radius);
+    transition: var(--transition-fast);
 }
 
 .status-disconnected {
-    color: #ff4757;
+    color: var(--danger-color);
     font-weight: bold;
     background: rgba(255, 71, 87, 0.1);
-    padding: 0 1;
-    border-radius: 3px;
+    padding: 0 var(--padding-medium);
+    border-radius: var(--border-radius);
+    transition: var(--transition-fast);
 }
 
 /* Datos de mercado con colores */
 .market-data-row {
     background: rgba(255, 255, 255, 0.05);
-    margin: 0 0 1 0;
-    padding: 1;
-    border-radius: 5px;
-    border-left: 3px solid #3a7bd5;
+    margin: 0 0 var(--padding-medium) 0;
+    padding: var(--padding-medium);
+    border-radius: var(--border-radius);
+    border-left: 3px solid var(--primary-blue);
 }
 
-.market-symbol-up {
-    color: #00ff88;
+/* Market symbols - usando clases comunes */
+.market-symbol-up,
+.pnl-positive,
+.trading-active,
+.bullish-signal {
+    color: var(--success-color);
     font-weight: bold;
 }
 
-.market-symbol-down {
-    color: #ff4757;
+.market-symbol-down,
+.pnl-negative,
+.bearish-signal {
+    color: var(--danger-color);
     font-weight: bold;
 }
 
-.market-symbol-neutral {
-    color: #ffa502;
+.market-symbol-neutral,
+.pnl-neutral {
+    color: var(--warning-color);
     font-weight: bold;
 }
 
-/* P&L con colores dinámicos */
+/* P&L con backgrounds */
 .pnl-positive {
-    color: #00ff88;
-    font-weight: bold;
     background: rgba(0, 255, 136, 0.1);
 }
 
 .pnl-negative {
-    color: #ff4757;
-    font-weight: bold;
     background: rgba(255, 71, 87, 0.1);
-}
-
-.pnl-neutral {
-    color: #ffa502;
-    font-weight: bold;
 }
 
 /* Posiciones activas */
 .position-active {
     background: linear-gradient(90deg, rgba(0, 255, 136, 0.1), rgba(58, 123, 213, 0.1));
     border: 1px solid #00ff88;
-    padding: 1;
+    padding: 1rem;
     border-radius: 5px;
-    margin: 0 0 1 0;
+    margin: 0 0 1rem 0;
 }
 
 /* Métricas de performance */
 .performance-metric {
     display: inline-block;
     background: rgba(255, 255, 255, 0.1);
-    padding: 1 2;
-    margin: 0 1 1 0;
+    padding: 1rem 2rem;
+    margin: 0 1rem 1rem 0;
     border-radius: 5px;
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
@@ -102,20 +150,22 @@
 /* Alertas y warnings */
 .alert-warning {
     background: rgba(255, 165, 2, 0.2);
-    border: 1px solid #ffa502;
-    color: #ffa502;
-    padding: 1;
-    border-radius: 5px;
-    margin: 1 0;
+    border: 1px solid var(--warning-color);
+    color: var(--warning-color);
+    padding: var(--padding-medium);
+    border-radius: var(--border-radius);
+    margin: var(--padding-medium) 0;
+    transition: var(--transition-fast);
 }
 
 .alert-success {
     background: rgba(0, 255, 136, 0.2);
-    border: 1px solid #00ff88;
-    color: #00ff88;
-    padding: 1;
-    border-radius: 5px;
-    margin: 1 0;
+    border: 1px solid var(--success-color);
+    color: var(--success-color);
+    padding: var(--padding-medium);
+    border-radius: var(--border-radius);
+    margin: var(--padding-medium) 0;
+    transition: var(--transition-fast);
 }
 
 /* Animaciones sutiles */
@@ -125,57 +175,85 @@
 
 /* ICT Signals enhanced */
 .fvg-count {
-    color: #00d2ff;
-    text-style: bold;
+    color: var(--cyan);
+    font-weight: bold;
     background: rgba(0, 210, 255, 0.1);
-    padding: 0 1;
-    border-radius: 3px;
+    padding: var(--padding-small) var(--padding-medium);
+    border-radius: var(--border-radius);
+    transition: var(--transition-fast);
 }
 
 .ob-count {
-    color: #ff6b35;
-    text-style: bold;
+    color: var(--orange);
+    font-weight: bold;
     background: rgba(255, 107, 53, 0.1);
-    padding: 0 1;
-    border-radius: 3px;
+    padding: var(--padding-small) var(--padding-medium);
+    border-radius: var(--border-radius);
+    transition: var(--transition-fast);
 }
 
+/* Trading signals */
 .bullish-signal {
-    color: #00ff88;
-    text-style: bold;
+    color: var(--success-color);
+    font-weight: bold;
+    text-shadow: 0 0 5px currentColor;
 }
 
 .bearish-signal {
-    color: #ff4757;
-    text-style: bold;
+    color: var(--danger-color);
+    font-weight: bold;
+    text-shadow: 0 0 5px currentColor;
 }
 
 /* Trading status enhanced */
 .trading-active {
-    color: #00ff88;
-    text-style: bold;
+    color: var(--success-color);
+    font-weight: bold;
     animation: pulse 2s infinite;
+    text-shadow: 0 0 10px currentColor;
 }
 
 /* Balance display */
 .balance-display {
-    color: #ffd700;
-    text-style: bold;
+    color: var(--gold-color);
+    font-weight: bold;
     font-size: 1.2em;
+    text-shadow: 0 0 8px currentColor;
 }
 
-/* Connection status colors */
+/* Connection status colors optimized */
 .connection-excellent {
-    color: #00ff88;
+    color: var(--success-color);
     background: rgba(0, 255, 136, 0.1);
+    padding: var(--padding-small) var(--padding-medium);
+    border-radius: var(--border-radius);
+    transition: var(--transition-fast);
 }
 
 .connection-good {
-    color: #ffa502;
+    color: var(--warning-color);
     background: rgba(255, 165, 2, 0.1);
+    padding: var(--padding-small) var(--padding-medium);
+    border-radius: var(--border-radius);
+    transition: var(--transition-fast);
 }
 
 .connection-poor {
-    color: #ff4757;
+    color: var(--danger-color);
     background: rgba(255, 71, 87, 0.1);
+    padding: var(--padding-small) var(--padding-medium);
+    border-radius: var(--border-radius);
+    transition: var(--transition-fast);
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+    .dashboard-main {
+        padding: var(--padding-medium);
+    }
+    
+    .performance-metric {
+        display: block;
+        margin: var(--padding-small) 0;
+    }
 }
