@@ -400,6 +400,7 @@ class ICTEnterpriseManager:
 
 def main():
     """Función principal del sistema ICT Engine v6.0 Enterprise"""
+    manager = None
     try:
         print("🚀 [MAIN] ICT Engine v6.0 Enterprise - Sistema de Trading Real")
         print("🚀 [MAIN] =" * 60)
@@ -425,7 +426,7 @@ def main():
     except KeyboardInterrupt:
         print("\n🚀 [MAIN] ⚠️ Interrupción por teclado detectada")
         print("🚀 [MAIN] 🛑 Cerrando sistema...")
-        if 'manager' in locals():
+        if manager is not None:
             manager.shutdown()
         sys.exit(0)
     except Exception as e:

@@ -1210,18 +1210,19 @@ class FractalAnalyzerEnterprise:
         Returns:
             Diccionario con análisis de confluencia
         """
-        try:
-            confluence_analysis = {
-                'has_confluence': False,
-                'confluence_type': 'NONE',
-                'distance_to_eq': float('inf'),
-                'distance_to_high': float('inf'),
-                'distance_to_low': float('inf'),
-                'fractal_grade': 'NONE',
-                'confidence': 0.0,
-                'memory_enhanced': False
-            }
-            
+        # Inicializar análisis por defecto para evitar variables no definidas
+        confluence_analysis = {
+            'has_confluence': False,
+            'confluence_type': 'NONE',
+            'distance_to_eq': float('inf'),
+            'distance_to_high': float('inf'),
+            'distance_to_low': float('inf'),
+            'fractal_grade': 'NONE',
+            'confidence': 0.0,
+            'memory_enhanced': False
+        }
+        
+        try:            
             if not self.current_fractal or not self.current_fractal.valid:
                 return confluence_analysis
             

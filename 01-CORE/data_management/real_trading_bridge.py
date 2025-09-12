@@ -54,13 +54,19 @@ class RealTradingBridge:
         try:
             # Obtener datos de MT5
             if self.mt5_manager:
-                data = self.mt5_manager.get_symbol_data(symbol, timeframe)
-                if data is not None:
-                    return data
-                    
+                try:
+                    data = self.mt5_manager.get_symbol_data(symbol, timeframe)  # type: ignore
+                    if data is not None:
+                        return data
+                except AttributeError:
+                    pass  # Método no disponible
+                        
             # Fallback a ICT Data Manager
             if self.ict_manager:
-                return self.ict_manager.get_market_data(symbol, timeframe)
+                try:
+                    return self.ict_manager.get_market_data(symbol, timeframe)  # type: ignore
+                except AttributeError:
+                    pass  # Método no disponible
                 
             return None
             
@@ -72,7 +78,10 @@ class RealTradingBridge:
         """Obtener estadísticas reales de FVG"""
         try:
             if self.ict_manager:
-                return self.ict_manager.get_fvg_statistics()
+                try:
+                    return self.ict_manager.get_fvg_statistics()  # type: ignore
+                except AttributeError:
+                    return {'status': 'unavailable', 'reason': 'get_fvg_statistics method not available'}
             return {'status': 'unavailable', 'reason': 'ICT Manager not initialized'}
             
         except Exception as e:

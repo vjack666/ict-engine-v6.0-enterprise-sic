@@ -15,13 +15,16 @@ __version__ = "6.0.0-enterprise"
 __author__ = "ICT Engine v6.1.0 Enterprise Team"
 
 # Exports principales del módulo core
-__all__ = [
-    'data_management',
-    'trading_engine',
-    'risk_management',
-    'analytics',
-    'analysis'  # ⚡ Agregado para dashboard
-]
+# __all__ temporalmente comentado hasta que se configuren los imports apropiados
+# __all__ = [
+#     'data_management',
+#     'trading',
+#     'risk_management', 
+#     'analysis',
+#     'ict_engine',
+#     'smart_money_concepts',
+#     'utils'
+# ]
 
 # Información del módulo
 MODULE_INFO = {

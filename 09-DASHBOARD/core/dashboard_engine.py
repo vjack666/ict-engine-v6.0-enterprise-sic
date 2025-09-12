@@ -31,7 +31,7 @@ class DashboardState:
     error_count: int = 0
     update_count: int = 0
     active_alerts: List[Dict[str, Any]] = field(default_factory=list)
-    performance_metrics: Dict[str, float] = field(default_factory=dict)
+    performance_metrics: Dict[str, Any] = field(default_factory=dict)
 
 class DashboardEngine:
     """🎯 Motor principal del dashboard"""
@@ -156,13 +156,12 @@ class DashboardEngine:
         """Actualizar métricas de rendimiento"""
         current_time = time.time()
         
-        self.state.performance_metrics.update({
-            'uptime_seconds': current_time - self.performance_start_time,
-            'updates_per_minute': self.state.update_count / max(1, (current_time - self.performance_start_time) / 60),
-            'error_rate': self.state.error_count / max(1, self.state.update_count),
-            'memory_usage_mb': self._get_memory_usage(),
-            'last_update_timestamp': self.state.last_update.isoformat() if self.state.last_update else None
-        })
+        # Actualizar métricas de rendimiento individualmente para evitar errores de tipo
+        self.state.performance_metrics['uptime_seconds'] = current_time - self.performance_start_time
+        self.state.performance_metrics['updates_per_minute'] = self.state.update_count / max(1, (current_time - self.performance_start_time) / 60)
+        self.state.performance_metrics['error_rate'] = self.state.error_count / max(1, self.state.update_count)
+        self.state.performance_metrics['memory_usage_mb'] = self._get_memory_usage()
+        self.state.performance_metrics['last_update_timestamp'] = self.state.last_update.isoformat() if self.state.last_update else None
         
         # Agregar a historial
         self.performance_history.append({

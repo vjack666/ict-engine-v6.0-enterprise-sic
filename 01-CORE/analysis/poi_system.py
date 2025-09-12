@@ -41,7 +41,7 @@ from typing import Any
 
 try:
     from ..data_management.advanced_candle_downloader import get_advanced_candle_downloader
-    from .pattern_detector import get_pattern_detector, PatternType
+    from .pattern_detector import get_pattern_detector, PatternType as PatternDetectorType
     from .market_structure_analyzer import get_market_structure_analyzer
     print("[INFO] Componentes POI System cargados exitosamente")
 except ImportError as e:

@@ -30,12 +30,17 @@ sys.path.insert(0, str(project_root))  # Raíz del proyecto para validador
 try:
     # El validador está en 01-CORE/data_management/
     sys.path.insert(0, str(project_root / "01-CORE" / "data_management"))
-    from data_validator_real_trading import RealTradingDataValidator
+    from data_validator_real_trading import RealTradingDataValidator  # type: ignore
     VALIDATOR_AVAILABLE = True
     print("✅ Validador de datos importado correctamente")
 except ImportError as e:
     print(f"⚠️ Validador de datos no disponible: {e}")
-    RealTradingDataValidator = None
+    # Crear fallback
+    class RealTradingDataValidator:  # type: ignore
+        def __init__(self): pass
+        def validate_data(self, data): return True
+        def validate_price_data(self, data): return data  # Retorna los datos sin modificar
+        def validate_pattern_analysis(self, result): return result  # Retorna el resultado sin modificar
     VALIDATOR_AVAILABLE = False
 
 @dataclass

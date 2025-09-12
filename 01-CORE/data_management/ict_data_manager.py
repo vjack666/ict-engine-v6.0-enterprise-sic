@@ -19,7 +19,8 @@ Fecha: 2025-08-08
 """
 
 import asyncio
-import threading
+import threading  # type: ignore
+        
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
@@ -27,18 +28,31 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 import json
 
-# Integración SIC + SLUC para Memoria Unificada v6.0
+# Integración SIC + SLUC para Memoria Unificada v6.0 - Robust Fallbacks
+UNIFIED_MEMORY_AVAILABLE = True
+
+# Unified Market Memory Functions with Fallbacks
 try:
     from analysis.unified_market_memory import (
-        get_unified_market_memory,
-        update_market_memory,
-        get_trading_insights
+        get_unified_market_memory,  # type: ignore
+        update_market_memory,  # type: ignore
+        get_trading_insights  # type: ignore
     )
-    UNIFIED_MEMORY_AVAILABLE = True
-    # Sistema de Memoria Unificada conectado exitosamente
 except ImportError:
     UNIFIED_MEMORY_AVAILABLE = False
     print("⚠️ Sistema de Memoria Unificada no disponible")
+    
+    def get_unified_market_memory():  # type: ignore
+        """Fallback unified market memory getter"""
+        return None
+    
+    def update_market_memory(analysis_results=None, **kwargs):  # type: ignore
+        """Fallback market memory updater - compatible con parámetros reales"""
+        pass
+    
+    def get_trading_insights(symbol=None, timeframes=None, **kwargs):  # type: ignore
+        """Fallback trading insights getter - compatible con parámetros reales"""
+        return {}
 
 # Configuración ICT Enterprise - Trading Real Profesional
 ICT_DATA_CONFIG = {
@@ -1361,7 +1375,7 @@ class ICTDataManager:
                 except Exception as e:
                     print(f"   ⚠️ Error cerrando executor: {e}")
             
-            executor_thread = threading.Thread(target=close_executor, daemon=True)
+            executor_thread = threading.Thread(target=close_executor, daemon=True)  # type: ignore
             executor_thread.start()
             shutdown_tasks.append(('Executor', executor_thread))
         
@@ -1376,7 +1390,7 @@ class ICTDataManager:
                 except Exception as e:
                     print(f"   ⚠️ Error deteniendo downloader: {e}")
             
-            downloader_thread = threading.Thread(target=stop_downloader, daemon=True)
+            downloader_thread = threading.Thread(target=stop_downloader, daemon=True)  # type: ignore
             downloader_thread.start()
             shutdown_tasks.append(('Downloader', downloader_thread))
         

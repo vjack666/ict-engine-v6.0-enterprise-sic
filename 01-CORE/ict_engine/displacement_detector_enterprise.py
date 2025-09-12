@@ -33,14 +33,46 @@ except ImportError:
 
 try:
     from ..smart_trading_logger import log_trading_decision_smart_v6  # type: ignore
-    from ..analysis.unified_memory_system import UnifiedMemorySystem
-    from ..analysis.market_structure_analyzer import MarketStructureAnalyzer as MarketStructureAnalyzerV6
-    from ..data_management.advanced_candle_downloader import AdvancedCandleDownloader
+    from ..analysis.unified_memory_system import UnifiedMemorySystem  # type: ignore
+    from ..analysis.market_structure_analyzer import MarketStructureAnalyzer as MarketStructureAnalyzerV6  # type: ignore
+    from ..data_management.advanced_candle_downloader import AdvancedCandleDownloader  # type: ignore
 except ImportError:
     # Fallback logging para desarrollo
-    def log_trading_decision_smart_v6(event_type, data, level="INFO", force_important=False, symbol="EURUSD") -> bool:
+    def log_trading_decision_smart_v6(event_type, data, level="INFO", force_important=False, symbol="EURUSD") -> bool:  # type: ignore
         print(f"📈 {event_type} {symbol}: {data}")
         return True
+    
+    # Fallback classes
+    class UnifiedMemorySystem:  # type: ignore
+        """Fallback UnifiedMemorySystem"""
+        def __init__(self):
+            pass
+        def store_displacement(self, *args, **kwargs):
+            pass
+        def get_historical_performance(self, *args, **kwargs):
+            return {"success_rate": 0.5, "avg_pips": 0}
+        def update_memory(self, *args, **kwargs):
+            pass
+        def get_historical_insight(self, *args, **kwargs):  # type: ignore
+            return {"performance": "no_data", "success_rate": 0.5}
+    
+    class MarketStructureAnalyzerV6:  # type: ignore  
+        """Fallback MarketStructureAnalyzerV6"""
+        def __init__(self):
+            pass
+        def analyze_structure(self, *args, **kwargs):
+            return {"trend": "SIDEWAYS", "strength": 0.5}
+        def get_structure_breaks(self, *args, **kwargs):
+            return []
+    
+    class AdvancedCandleDownloader:  # type: ignore
+        """Fallback AdvancedCandleDownloader"""
+        def __init__(self):
+            pass
+        def get_candles(self, *args, **kwargs):
+            return None
+        def download_timeframe_data(self, *args, **kwargs):
+            return None
 
 @dataclass
 class DisplacementSignal:

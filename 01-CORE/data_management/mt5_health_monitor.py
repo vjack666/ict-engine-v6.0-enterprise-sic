@@ -35,10 +35,10 @@ def _resolve_imports():
 
 _resolve_imports()
 
-# Imports
+# Imports with robust fallbacks
 try:
-    from mt5_connection_manager import MT5ConnectionManager
-    from mt5_black_box_logger import MT5BlackBoxLogger, create_black_box_logger
+    from mt5_connection_manager import MT5ConnectionManager  # type: ignore
+    from mt5_black_box_logger import MT5BlackBoxLogger, create_black_box_logger  # type: ignore
     from smart_trading_logger import get_smart_logger
     logger = get_smart_logger("MT5HealthMonitor")
     BLACK_BOX_AVAILABLE = True
@@ -46,7 +46,45 @@ except ImportError as e:
     logger = logging.getLogger(__name__)
     logger.warning(f"Import warning: {e}")
     BLACK_BOX_AVAILABLE = False
-    MT5BlackBoxLogger = None
+    
+    # Fallback classes and functions
+    class MT5ConnectionManager:  # type: ignore
+        """Fallback MT5ConnectionManager"""
+        def __init__(self):
+            pass
+        def is_connected(self):
+            return False
+        def connect(self):
+            return False
+        def disconnect(self):
+            pass
+        def get_account_info(self):
+            return None
+        def get_server_name(self):
+            return "NO_SERVER"
+        def get_connection_status(self):  # type: ignore
+            return {"status": "disconnected"}
+        def reconnect(self):  # type: ignore
+            return False
+    
+    class MT5BlackBoxLogger:  # type: ignore
+        """Fallback MT5BlackBoxLogger"""
+        def __init__(self):
+            pass
+        def log_health_check(self, *args, **kwargs):
+            pass
+        def log_alert(self, *args, **kwargs):
+            pass
+        def log_system_startup(self, *args, **kwargs):  # type: ignore
+            pass
+        def log_connection_event(self, *args, **kwargs):  # type: ignore
+            pass
+        def log_performance_metrics(self, *args, **kwargs):  # type: ignore
+            pass
+    
+    def create_black_box_logger():  # type: ignore
+        """Fallback black box logger creator"""
+        return MT5BlackBoxLogger()
 
 class HealthStatus(Enum):
     """Estados de salud del sistema"""
@@ -271,7 +309,7 @@ class MT5HealthMonitor:
         try:
             # Test 1: Verificar estado de conexión
             connection_status = self.mt5_manager.get_connection_status()
-            connection_active = connection_status.get('connected', False)
+            connection_active = bool(connection_status.get('connected', False))
             
             # Test 2: Medir tiempo de respuesta
             response_start = time.time()

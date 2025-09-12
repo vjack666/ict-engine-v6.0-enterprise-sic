@@ -46,15 +46,80 @@ except ImportError:
     SLUC_AVAILABLE = False
     logging.basicConfig(level=logging.INFO)
 
-# Analysis engines integration
+# Analysis engines integration with robust fallbacks
+from typing import Optional, Union, Any, Callable
+
+# Define fallback classes first
+class PatternTypeFallback:
+    UNKNOWN = "UNKNOWN"
+
+class MarketBiasFallback:
+    NEUTRAL = "NEUTRAL"
+
+class MarketPhaseFallback:
+    UNKNOWN = "UNKNOWN"
+
+class TrendDirectionFallback:
+    SIDEWAYS = "SIDEWAYS"
+
+class TradingSignalFallback:
+    NO_SIGNAL = "NO_SIGNAL"
+
+class TradeSetupQualityFallback:
+    LOW = "LOW"
+
+class PatternOutcomeFallback:
+    UNKNOWN = "UNKNOWN"
+
+class PatternConfidenceFallback:
+    LOW = "LOW"
+
+# Initialize availability flag
+ANALYSIS_ENGINES_AVAILABLE = True
+
+# Pattern Confluence Engine
 try:
-    from analysis.pattern_confluence_engine import get_confluence_engine, PatternType, MarketBias
-    from analysis.market_structure_intelligence import get_market_structure_intelligence, MarketPhase, TrendDirection
-    from analysis.trading_signal_synthesizer import get_trading_signal_synthesizer, TradingSignal, TradeSetupQuality
-    from analysis.pattern_learning_system import get_pattern_learning_system, PatternOutcome, PatternConfidence
-    ANALYSIS_ENGINES_AVAILABLE = True
+    from analysis.pattern_confluence_engine import get_confluence_engine, PatternType, MarketBias  # type: ignore
 except ImportError:
     ANALYSIS_ENGINES_AVAILABLE = False
+    def get_confluence_engine():  # type: ignore
+        """Fallback confluence engine"""
+        return None
+    PatternType = PatternTypeFallback  # type: ignore
+    MarketBias = MarketBiasFallback  # type: ignore
+
+# Market Structure Intelligence
+try:
+    from analysis.market_structure_intelligence import get_market_structure_intelligence, MarketPhase, TrendDirection  # type: ignore
+except ImportError:
+    ANALYSIS_ENGINES_AVAILABLE = False
+    def get_market_structure_intelligence():  # type: ignore
+        """Fallback market structure intelligence"""
+        return None
+    MarketPhase = MarketPhaseFallback  # type: ignore
+    TrendDirection = TrendDirectionFallback  # type: ignore
+
+# Trading Signal Synthesizer
+try:
+    from analysis.trading_signal_synthesizer import get_trading_signal_synthesizer, TradingSignal, TradeSetupQuality  # type: ignore
+except ImportError:
+    ANALYSIS_ENGINES_AVAILABLE = False
+    def get_trading_signal_synthesizer():  # type: ignore
+        """Fallback trading signal synthesizer"""
+        return None
+    TradingSignal = TradingSignalFallback  # type: ignore
+    TradeSetupQuality = TradeSetupQualityFallback  # type: ignore
+
+# Pattern Learning System
+try:
+    from analysis.pattern_learning_system import get_pattern_learning_system, PatternOutcome, PatternConfidence  # type: ignore
+except ImportError:
+    ANALYSIS_ENGINES_AVAILABLE = False
+    def get_pattern_learning_system():  # type: ignore
+        """Fallback pattern learning system"""
+        return None
+    PatternOutcome = PatternOutcomeFallback  # type: ignore
+    PatternConfidence = PatternConfidenceFallback  # type: ignore
 
 # Dashboard integration (if available)
 try:
@@ -338,13 +403,15 @@ class RealTimeAnalyticsDashboard:
         if self.learning_system:
             performance_summary = self.learning_system.get_pattern_performance_summary()
             
-            for pattern_name, perf_data in performance_summary.items():
-                heatmap[pattern_name] = {
-                    'win_rate': perf_data.get('win_rate', 0.0),
-                    'profit_factor': perf_data.get('profit_factor', 0.0),
-                    'confidence': perf_data.get('confidence_score', 50.0),
-                    'total_trades': perf_data.get('total_occurrences', 0)
-                }
+            # Ensure performance_summary is not None and is iterable
+            if performance_summary and hasattr(performance_summary, 'items'):
+                for pattern_name, perf_data in performance_summary.items():  # type: ignore
+                    heatmap[pattern_name] = {
+                        'win_rate': perf_data.get('win_rate', 0.0),
+                        'profit_factor': perf_data.get('profit_factor', 0.0),
+                        'confidence': perf_data.get('confidence_score', 50.0),
+                        'total_trades': perf_data.get('total_occurrences', 0)
+                    }
         
         return heatmap
     

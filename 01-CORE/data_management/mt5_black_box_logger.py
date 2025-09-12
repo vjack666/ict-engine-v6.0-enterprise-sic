@@ -110,8 +110,8 @@ class MT5BlackBoxLogger:
             metrics_data: Datos de métricas del health check
         """
         with self._lock:
+            timestamp = datetime.now()  # Definir timestamp antes del try
             try:
-                timestamp = datetime.now()
                 date_str = timestamp.strftime('%Y-%m-%d')
                 
                 # Preparar datos para logging
@@ -148,8 +148,8 @@ class MT5BlackBoxLogger:
             severity: Severidad del evento
         """
         with self._lock:
+            timestamp = datetime.now()  # Definir timestamp antes del try
             try:
-                timestamp = datetime.now()
                 date_str = timestamp.strftime('%Y-%m-%d')
                 
                 alert_entry = {
@@ -188,8 +188,8 @@ class MT5BlackBoxLogger:
             system_metrics: Métricas del sistema (CPU, memoria, etc.)
         """
         with self._lock:
+            timestamp = datetime.now()  # Definir timestamp antes del try
             try:
-                timestamp = datetime.now()
                 date_str = timestamp.strftime('%Y-%m-%d')
                 hour_str = timestamp.strftime('%H')
                 
@@ -226,8 +226,8 @@ class MT5BlackBoxLogger:
             connection_data: Datos de la conexión
         """
         with self._lock:
+            timestamp = datetime.now()  # Definir timestamp antes del try
             try:
-                timestamp = datetime.now()
                 date_str = timestamp.strftime('%Y-%m-%d')
                 
                 conn_entry = {
@@ -257,8 +257,8 @@ class MT5BlackBoxLogger:
     def log_system_startup(self, startup_data: Dict[str, Any]) -> None:
         """Registrar inicio del sistema de monitoring"""
         with self._lock:
+            timestamp = datetime.now()  # Definir timestamp antes del try
             try:
-                timestamp = datetime.now()
                 date_str = timestamp.strftime('%Y-%m-%d')
                 
                 startup_entry = {
@@ -280,8 +280,8 @@ class MT5BlackBoxLogger:
     def log_system_shutdown(self, shutdown_data: Dict[str, Any]) -> None:
         """Registrar cierre del sistema de monitoring"""
         with self._lock:
+            timestamp = datetime.now()  # Definir timestamp antes del try
             try:
-                timestamp = datetime.now()
                 date_str = timestamp.strftime('%Y-%m-%d')
                 
                 # Agregar estadísticas finales

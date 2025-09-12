@@ -1004,6 +1004,8 @@ def log_trading_decision_smart_v6(event_type: str, data: Dict[str, Any],
         
     except Exception as e:
         # En caso de error en logging, usar print como fallback
+        import time
+        timestamp = time.strftime('%H:%M:%S')
         print(f"[{timestamp}] ERROR - logging_error: {e}")
         return False
 

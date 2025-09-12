@@ -67,10 +67,21 @@ except Exception:
 
 # Importar MT5 Health Monitor para integración
 try:
-    from ..data_management.mt5_health_monitor import MT5HealthMonitor, HealthStatus
+    from ..data_management.mt5_health_monitor import MT5HealthMonitor, HealthStatus  # type: ignore
     MT5_HEALTH_AVAILABLE = True
 except ImportError:
     MT5_HEALTH_AVAILABLE = False
+    # Crear una clase dummy para fallback
+    class MT5HealthMonitor:  # type: ignore
+        def __init__(self): pass
+        def get_health_status(self): return None
+        def get_health_summary(self): return {'status': 'unknown', 'latency': 0}
+    
+    class HealthStatus:  # type: ignore
+        GOOD = "good"
+        WARNING = "warning"
+        ERROR = "error"
+    
     log_warning("MT5 Health Monitor not available, operating without health integration")
 
 class OrderBlockType(Enum):

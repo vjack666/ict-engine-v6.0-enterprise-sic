@@ -74,18 +74,43 @@ except Exception:
 
 # Importar MT5 Health Monitor para integración
 try:
-    from ..data_management.mt5_health_monitor import MT5HealthMonitor, HealthStatus
+    from ..data_management.mt5_health_monitor import MT5HealthMonitor, HealthStatus  # type: ignore
     MT5_HEALTH_AVAILABLE = True
 except ImportError:
     MT5_HEALTH_AVAILABLE = False
+    # Crear fallbacks
+    class MT5HealthMonitor:  # type: ignore
+        def __init__(self): pass
+        def get_health_status(self): return None
+        def get_health_summary(self): return {'status': 'unknown', 'latency': 0}
+    
+    class HealthStatus:  # type: ignore
+        GOOD = "good"
+        WARNING = "warning"
+        ERROR = "error"
+    
     log_warning("MT5 Health Monitor not available, operating without health integration")
 
 # Importar Order Blocks mejorados
 try:
-    from .order_blocks import EnhancedOrderBlockDetector, EnhancedOrderBlock, OrderBlockQuality
+    from .order_blocks import EnhancedOrderBlockDetector, EnhancedOrderBlock, OrderBlockQuality  # type: ignore
     ORDER_BLOCKS_AVAILABLE = True
 except ImportError:
     ORDER_BLOCKS_AVAILABLE = False
+    # Crear fallbacks
+    class EnhancedOrderBlockDetector:  # type: ignore
+        def __init__(self, config): pass
+        def detect_order_blocks(self, data): return []
+        def detect_enhanced_order_blocks(self, data, current_price=None, symbol=None, timeframe=None): return []
+    
+    class EnhancedOrderBlock:  # type: ignore
+        def __init__(self): pass
+    
+    class OrderBlockQuality:  # type: ignore
+        PREMIUM = "premium"
+        HIGH = "high"
+        MEDIUM = "medium"
+    
     log_warning("Enhanced Order Blocks not available")
 
 class SmartMoneySignalType(Enum):

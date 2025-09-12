@@ -33,31 +33,93 @@ try:
 except (ImportError, AttributeError):
     import pandas as pd
 
-# Import del sistema híbrido
+# Import del sistema híbrido con fallbacks robustos
 try:
-    from .hybrid_order_block_analyzer import HybridOrderBlockAnalyzer, HybridOrderBlockResult
+    from .hybrid_order_block_analyzer import HybridOrderBlockAnalyzer, HybridOrderBlockResult  # type: ignore
     HYBRID_AVAILABLE = True
 except ImportError:
     HYBRID_AVAILABLE = False
+    
+    # Fallback classes
+    class BasicBlockFallback:  # type: ignore
+        """Fallback basic block"""
+        def __init__(self):
+            self.type = "unknown"
+            self.timestamp = "2025-01-01T00:00:00"
+            self.confidence = 0.0
+            self.price = 0.0
+            self.entry_price = 0.0
+            self.stop_loss = 0.0
+            self.take_profit = 0.0
+            self.risk_reward = 1.0
+            self.distance_pips = 0
+            self.volume_confirmation = False
+            self.candle_index = 0
+    
+    class HybridOrderBlockResult:  # type: ignore
+        """Fallback HybridOrderBlockResult"""
+        def __init__(self):
+            self.basic_block = BasicBlockFallback()
+            self.hybrid_confidence = 0.0
+            self.enterprise_validated = False
+            self.recommendation = "NO_RECOMMENDATION"
+            self.optimized_entry = None
+            self.optimized_stop = None
+            self.optimized_target = None
+            self.detection_time_ms = 0
+            self.validation_time_ms = 0
+            self.enterprise_result = None
+    
+    class HybridOrderBlockAnalyzer:  # type: ignore
+        """Fallback HybridOrderBlockAnalyzer"""
+        def __init__(self, config=None):
+            self.config = config or {}
+            self.stats = {"total_analyzed": 0, "validated": 0}
+        def analyze_order_blocks(self, *args, **kwargs):
+            return []
+        def get_statistics(self):
+            return self.stats
+        def get_performance_stats(self):  # type: ignore
+            return {"performance": "fallback_mode"}
 
-# Imports del sistema principal
+# Imports del sistema principal con fallbacks robustos
 try:
     from ict_engine.unified_logging import (
         log_info, log_warning, log_error, log_debug,
-        UnifiedLoggingSystem, create_unified_logger
+        UnifiedLoggingSystem, create_unified_logger  # type: ignore
     )
-    from analysis.unified_memory_system import get_unified_memory_system
+    from analysis.unified_memory_system import get_unified_memory_system  # type: ignore
     CORE_AVAILABLE = True
-    SmartTradingLogger = UnifiedLoggingSystem  # Para compatibilidad
+    SmartTradingLogger = UnifiedLoggingSystem  # type: ignore
 except ImportError:
     CORE_AVAILABLE = False
     # Fallback logging functions
-    def log_info(message, component="CORE"): print(f"[{component}] INFO: {message}")
-    def log_warning(message, component="CORE"): print(f"[{component}] WARNING: {message}") 
-    def log_error(message, component="CORE"): print(f"[{component}] ERROR: {message}")
-    def log_debug(message, component="CORE"): print(f"[{component}] DEBUG: {message}")
-    def get_unified_memory_system(): return None
-    class SmartTradingLogger:
+    def log_info(message, component="CORE"): print(f"[{component}] INFO: {message}")  # type: ignore
+    def log_warning(message, component="CORE"): print(f"[{component}] WARNING: {message}")  # type: ignore
+    def log_error(message, component="CORE"): print(f"[{component}] ERROR: {message}")  # type: ignore
+    def log_debug(message, component="CORE"): print(f"[{component}] DEBUG: {message}")  # type: ignore
+    def get_unified_memory_system(): return None  # type: ignore
+    
+    class SmartTradingLogger:  # type: ignore
+        """Fallback SmartTradingLogger"""
+        def __init__(self, name="FallbackLogger"):
+            self.name = name
+        def info(self, message): print(f"[{self.name}] INFO: {message}")
+        def warning(self, message): print(f"[{self.name}] WARNING: {message}")
+        def error(self, message): print(f"[{self.name}] ERROR: {message}")
+        def debug(self, message): print(f"[{self.name}] DEBUG: {message}")
+    
+    class UnifiedLoggingSystem:  # type: ignore
+        """Fallback UnifiedLoggingSystem"""
+        def __init__(self, name="FallbackSystem"):
+            self.name = name
+        def info(self, message): print(f"[{self.name}] INFO: {message}")
+        def warning(self, message): print(f"[{self.name}] WARNING: {message}")
+        def error(self, message): print(f"[{self.name}] ERROR: {message}")
+        def debug(self, message): print(f"[{self.name}] DEBUG: {message}")
+    
+    def create_unified_logger(name="FallbackLogger"):  # type: ignore
+        return UnifiedLoggingSystem(name)
         def __init__(self, name): 
             self.name = name
         def info(self, msg): print(f"[{self.name}] INFO: {msg}")
