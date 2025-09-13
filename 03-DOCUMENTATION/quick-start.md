@@ -200,7 +200,7 @@ print(f'Status: {manager.initialize()}')
 netstat -an | findstr :8050
 
 # Cambiar puerto si ocupado
-python 09-DASHBOARD/dashboard.py --port 8051
+python main.py --web-dashboard --port 8051
 ```
 
 #### **Error: "No signals generating"**

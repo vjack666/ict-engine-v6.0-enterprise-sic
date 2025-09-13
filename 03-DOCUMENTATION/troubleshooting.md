@@ -85,7 +85,7 @@ print('Dashboard class: OK')
 #### **Soluciones:**
 ```bash
 # Solución 1: Cambiar puerto (90% efectivo)
-python 09-DASHBOARD/dashboard.py --port 8051
+python main.py --web-dashboard --port 8051
 
 # Solución 2: Limpiar cache navegador
 # Ctrl+Shift+Del en navegador

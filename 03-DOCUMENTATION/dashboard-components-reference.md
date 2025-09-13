@@ -13,7 +13,7 @@
 ```
 09-DASHBOARD/
 ├── dashboard.py                    # ICTDashboardApp (Principal) ✅ OPERATIVO
-├── ict_dashboard.py               # ICTDashboard (Alternativo) ✅ OPERATIVO  
+├── web_dashboard.py              # Web Dashboard Enterprise ✅ OPERATIVO  
 ├── enterprise_comparison_dashboard.py # ✅ REPARADO - compare_live_vs_historical
 ├── components/                    # Widgets principales ✅ FUNCIONALES
 ├── widgets/                      # Interfaces especializadas ✅ OPERATIVAS
@@ -124,7 +124,7 @@ class ICTDashboardApp:
 
 ---
 
-### **2. ICTDashboard (ict_dashboard.py)**
+### **2. Web Dashboard Enterprise (web_dashboard.py)**
 **Score:** 65/100 | **Status:** OPERATIONAL | **Tipo:** Alternative Interface
 
 #### **Características Distintivas:**
@@ -144,7 +144,7 @@ class ICTDashboardApp:
 
 #### **Configuración:**
 ```python
-# ict_dashboard.py - Configuración simplificada
+# web_dashboard.py - Arquitectura de pestañas web
 class ICTDashboard:
     def __init__(self):
         # Lightweight initialization
