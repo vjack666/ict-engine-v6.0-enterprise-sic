@@ -1,0 +1,420 @@
+/*
+🎯 ORDER BLOCKS TAB STYLES v6.0 ENTERPRISE
+==========================================
+
+Estilos especializados para la pestaña Order Blocks.
+Diseño dark theme compatible con el dashboard principal.
+
+Autor: ICT Engine v6.0 Enterprise Team
+Fecha: 12 Septiembre 2025
+*/
+
+/* Main Order Blocks Tab Container */
+.order-blocks-tab {
+    background: #0e1117;
+    color: #ffffff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* Header Section */
+.tab-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding: 15px 20px;
+    background: linear-gradient(135deg, #1e2329 0%, #252832 100%);
+    border-radius: 12px;
+    border: 1px solid #3a3d45;
+}
+
+.tab-title {
+    color: #00ff88;
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+}
+
+.status-bar {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+}
+
+.status-label {
+    color: #8a8e96;
+    margin-right: 5px;
+}
+
+.status-value {
+    color: #00ff88;
+    font-weight: 600;
+    margin-right: 15px;
+}
+
+/* Controls Section */
+.controls-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #1e2329;
+    border-radius: 12px;
+    border: 1px solid #3a3d45;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-label {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.control-dropdown .Select-control {
+    background: #252832 !important;
+    border: 1px solid #404651 !important;
+    border-radius: 8px !important;
+    color: #ffffff !important;
+}
+
+.control-dropdown .Select-input > input {
+    color: #ffffff !important;
+}
+
+.control-dropdown .Select-value-label {
+    color: #ffffff !important;
+}
+
+.control-slider {
+    margin: 10px 0;
+}
+
+.control-slider .rc-slider-track {
+    background: #00ff88 !important;
+    height: 4px !important;
+}
+
+.control-slider .rc-slider-handle {
+    background: #00ff88 !important;
+    border: 2px solid #ffffff !important;
+    width: 16px !important;
+    height: 16px !important;
+    margin-top: -6px !important;
+}
+
+.refresh-button {
+    background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+    color: #000000;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.refresh-button:hover {
+    background: linear-gradient(135deg, #00cc6a 0%, #00aa55 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+}
+
+/* Metrics Grid */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.metric-card {
+    background: linear-gradient(135deg, #1e2329 0%, #252832 100%);
+    border: 1px solid #3a3d45;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.metric-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #00ff88, #00cc6a);
+}
+
+.metric-content h3 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 5px 0;
+    color: #ffffff;
+}
+
+.metric-total h3 { color: #00ff88; }
+.metric-bullish h3 { color: #00ff88; }
+.metric-bearish h3 { color: #ff4444; }
+.metric-confidence h3 { color: #ffaa00; }
+
+.metric-label {
+    color: #8a8e96;
+    font-size: 14px;
+    margin: 0;
+    font-weight: 500;
+}
+
+.metric-icon {
+    font-size: 32px;
+    opacity: 0.8;
+}
+
+.metric-icon.bullish {
+    color: #00ff88;
+}
+
+.metric-icon.bearish {
+    color: #ff4444;
+}
+
+/* Chart Section */
+.chart-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #1e2329;
+    border-radius: 12px;
+    border: 1px solid #3a3d45;
+}
+
+/* Table Section */
+.table-section {
+    background: #1e2329;
+    border-radius: 12px;
+    border: 1px solid #3a3d45;
+    padding: 20px;
+}
+
+.section-title {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 20px 0;
+    border-bottom: 2px solid #00ff88;
+    padding-bottom: 10px;
+}
+
+.blocks-table-content {
+    width: 100%;
+    border-collapse: collapse;
+    background: #252832;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table-header {
+    background: #2d313b;
+    color: #ffffff;
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #00ff88;
+    font-size: 14px;
+}
+
+.table-row {
+    transition: all 0.2s ease;
+}
+
+.table-row:hover {
+    background: #2d313b;
+}
+
+.table-row:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.table-cell {
+    padding: 10px 15px;
+    border-bottom: 1px solid #3a3d45;
+    font-size: 13px;
+    color: #ffffff;
+}
+
+.price-cell {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    color: #00ff88;
+}
+
+.confidence-cell {
+    font-weight: 600;
+    color: #ffaa00;
+}
+
+.volume-cell {
+    font-family: 'Courier New', monospace;
+    color: #8a8e96;
+}
+
+.range-cell {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #8a8e96;
+}
+
+.type-indicator {
+    font-size: 18px;
+    display: inline-block;
+}
+
+.type-indicator.bullish {
+    color: #00ff88;
+}
+
+.type-indicator.bearish {
+    color: #ff4444;
+}
+
+.no-data-message {
+    text-align: center;
+    color: #8a8e96;
+    font-size: 16px;
+    padding: 40px;
+    font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .controls-section {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .order-blocks-tab {
+        padding: 15px;
+    }
+    
+    .tab-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .controls-section {
+        grid-template-columns: 1fr;
+    }
+    
+    .tab-title {
+        font-size: 20px;
+    }
+}
+
+/* Plotly Chart Customizations */
+.js-plotly-plot .plotly .modebar {
+    background: rgba(30, 35, 41, 0.9) !important;
+}
+
+.js-plotly-plot .plotly .modebar-btn {
+    color: #8a8e96 !important;
+}
+
+.js-plotly-plot .plotly .modebar-btn:hover {
+    color: #00ff88 !important;
+    background: rgba(0, 255, 136, 0.1) !important;
+}
+
+/* Loading States */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(14, 17, 23, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 12px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #3a3d45;
+    border-top: 3px solid #00ff88;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Success/Error States */
+.success-indicator {
+    color: #00ff88;
+    background: rgba(0, 255, 136, 0.1);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.error-indicator {
+    color: #ff4444;
+    background: rgba(255, 68, 68, 0.1);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Animation Classes */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-up {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}

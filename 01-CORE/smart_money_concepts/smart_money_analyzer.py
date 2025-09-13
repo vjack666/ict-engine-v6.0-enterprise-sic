@@ -4199,7 +4199,26 @@ class SmartMoneyAnalyzer:
         Returns:
             List[Dict]: Lista de Order Blocks detectados con datos reales
         """
+        # Initialize logging variable at method start
+        ob_logger = None
+        
         try:
+            # 🎯 CAJA NEGRA - Initialize Order Blocks logging
+            try:
+                import sys
+                import os
+                # Add current directory to path if not present
+                current_dir = os.path.dirname(os.path.dirname(__file__))
+                if current_dir not in sys.path:
+                    sys.path.insert(0, current_dir)
+                    
+                from order_blocks_logging.order_blocks_black_box import OrderBlocksBlackBox
+                ob_logger = OrderBlocksBlackBox()
+                self.logger.info(f"📦 Order Blocks BlackBox logging initialized")
+            except ImportError as ie:
+                self.logger.warning(f"OrderBlocksBlackBox not available: {ie}, proceeding without specialized logging")
+                ob_logger = None
+            
             self.logger.info(f"📦 Iniciando detección Order Blocks para {symbol} en {timeframe}")
             
             # 1. OBTENER DATOS REALES (NO MOCK)
@@ -4241,11 +4260,33 @@ class SmartMoneyAnalyzer:
                 data['low'] = np.minimum(data['low'], np.minimum(data['open'], data['close']))
             
             # 2. USAR MÓDULO EXISTENTE (NO CREAR NUEVO)
+            detection_start_time = time.time()
             try:
                 from analysis.poi_detector_adapted import detectar_order_blocks
                 
                 # Detectar Order Blocks usando módulo real
                 order_blocks_detected = detectar_order_blocks(data, timeframe)
+                execution_time = (time.time() - detection_start_time) * 1000  # Convert to ms
+                
+                # 🎯 CAJA NEGRA - Log detection results
+                if ob_logger:
+                    input_data = {
+                        'symbol': symbol,
+                        'timeframe': timeframe,
+                        'data_rows': len(data),
+                        'price_range': {
+                            'high': float(data['high'].max()),
+                            'low': float(data['low'].min()),
+                            'close': float(data['close'].iloc[-1])
+                        }
+                    }
+                    output_data = {
+                        'order_blocks': order_blocks_detected,
+                        'total_blocks': len(order_blocks_detected) if order_blocks_detected else 0,
+                        'detector_module': 'poi_detector_adapted'
+                    }
+                    ob_logger.log_detection(symbol, timeframe, input_data, 
+                                          output_data, execution_time)
                 
             except Exception as e:
                 self.logger.error(f"Error llamando detectar_order_blocks: {e}")
@@ -4265,8 +4306,19 @@ class SmartMoneyAnalyzer:
                     }
                     self.unified_memory.update_market_memory(pattern_data, symbol)
                     self.logger.info(f"✅ Order Blocks almacenados en UnifiedMemory: {len(order_blocks_detected)}")
+                    
+                    # 🎯 CAJA NEGRA - Log memory integration
+                    if ob_logger:
+                        historical_data = {'unified_memory_integration': True}
+                        comparison_result = {'memory_stored': True, 'blocks_count': len(order_blocks_detected)}
+                        ob_logger.log_validation(symbol, timeframe, pattern_data, 
+                                               historical_data, comparison_result)
+                        
                 except Exception as e:
                     self.logger.warning(f"Error storing OB memory: {e}")
+                    if ob_logger:
+                        ob_logger.log_error("UnifiedMemorySystem", "store_order_blocks", e, 
+                                          {'symbol': symbol, 'timeframe': timeframe})
             
             # 4. FORMATEAR RESULTADO SEGÚN ESTÁNDAR SMARTMONEY
             formatted_obs = []
@@ -4286,10 +4338,31 @@ class SmartMoneyAnalyzer:
                 }
                 formatted_obs.append(formatted_ob)
             
+            # 🎯 CAJA NEGRA - Log final results
+            if ob_logger:
+                final_data = {
+                    'formatted_blocks': len(formatted_obs),
+                    'total_execution_time_ms': (time.time() - detection_start_time) * 1000,
+                    'success': True,
+                    'blocks_summary': [{'type': ob['type'], 'confidence': ob['confidence']} for ob in formatted_obs[:5]],
+                    'symbol': symbol, 
+                    'timeframe': timeframe
+                }
+                ob_logger.log_dashboard_update("SmartMoneyAnalyzer", "order_blocks_detected", 
+                                             final_data, success=True)
+            
             self.logger.info(f"✅ Order Blocks Detection completado: {len(formatted_obs)} OBs detectados")
             return formatted_obs
             
         except Exception as e:
+            # 🎯 CAJA NEGRA - Log error
+            try:
+                if ob_logger:
+                    ob_logger.log_error("SmartMoneyAnalyzer", "find_order_blocks", e, 
+                                      {'symbol': symbol, 'timeframe': timeframe})
+            except:
+                pass  # Avoid errors in error handling
+            
             self.logger.error(f"Error en find_order_blocks: {e}")
             return []
 

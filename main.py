@@ -117,6 +117,7 @@ class ICTEnterpriseManager:
         self.real_components_loaded = False
         self.data_collector = None
         self.dashboard_process = None
+        self.web_dashboard_process = None
         
         # Setup inicial
         self._setup_directories()
@@ -307,38 +308,151 @@ class ICTEnterpriseManager:
             import traceback
             traceback.print_exc()
     
+    def run_web_dashboard_with_real_data(self):
+        """Iniciar Web Dashboard con análisis real en navegador"""
+        self.logger.info("🌐 INICIANDO WEB DASHBOARD CON ANÁLISIS REAL...")
+        print("\n[WEB] 🌐 INICIANDO WEB DASHBOARD CON ANÁLISIS REAL...")
+        print("=" * 60)
+        
+        try:
+            # Asegurar que los componentes están inicializados
+            if not self.real_components_loaded:
+                self.logger.info("Inicializando componentes reales para web dashboard")
+                print("[INFO] Inicializando componentes reales...")
+                self.initialize_real_components()
+            
+            # Verificar estado del data collector
+            print("[WEB] Verificando sistema de análisis real...")
+            
+            if hasattr(self, 'data_collector') and self.data_collector:
+                print("[OK] ✓ Sistema de análisis real disponible")
+                print("    - Order Blocks detection: ACTIVO")
+                print("    - Smart Money Concepts: ACTIVO")
+                print("    - Logging en tiempo real: ACTIVO")
+            else:
+                print("[WARN] Sistema básico - Iniciando con datos simulados")
+            
+            # Cargar el web dashboard
+            web_dashboard_script = DASHBOARD_PATH / "start_web_dashboard.py"
+            
+            if web_dashboard_script.exists():
+                self.logger.info(f"Ejecutando web dashboard desde: {web_dashboard_script}")
+                print("[WEB] 🚀 Iniciando servidor web dashboard...")
+                
+                # Configurar variables de entorno
+                env = os.environ.copy()
+                env['PYTHONPATH'] = os.pathsep.join([
+                    str(SYSTEM_ROOT),
+                    str(CORE_PATH),
+                    str(DASHBOARD_PATH)
+                ])
+                env['ICT_WEB_DASHBOARD_MODE'] = 'real_analysis'
+                
+                print("[WEB] 📊 Configurando servidor web...")
+                print("[WEB] 🌐 URL: http://127.0.0.1:8050")
+                print("[WEB] 💡 El dashboard se abrirá automáticamente en tu navegador")
+                print("[WEB] 🔄 Order Blocks actualizándose cada 500ms")
+                print("[WEB] ⚠️  Presiona Ctrl+C para detener el servidor")
+                
+                # Usar Popen para control del proceso web
+                self.web_dashboard_process = subprocess.Popen(
+                    [sys.executable, str(web_dashboard_script)], 
+                    cwd=str(DASHBOARD_PATH),
+                    env=env,
+                    text=True,
+                    bufsize=1,
+                    universal_newlines=True
+                )
+                
+                print(f"[WEB] 📊 Servidor web iniciado con PID: {self.web_dashboard_process.pid}")
+                print("[WEB] 🎯 Accede a: http://127.0.0.1:8050 en tu navegador")
+                print("[WEB] 💰 Order Blocks Tab disponible con datos en tiempo real")
+                
+                try:
+                    # Esperar a que termine el proceso web
+                    result_code = self.web_dashboard_process.wait()
+                    
+                except KeyboardInterrupt:
+                    print("\n[WEB] ⚠️ Interrupción detectada - cerrando servidor web...")
+                    try:
+                        self.web_dashboard_process.terminate()
+                        self.web_dashboard_process.wait(timeout=5)
+                        result_code = 0
+                    except subprocess.TimeoutExpired:
+                        print("[WEB] 🔧 Forzando cierre del servidor...")
+                        self.web_dashboard_process.kill()
+                        self.web_dashboard_process.wait()
+                        result_code = -1
+                
+                print(f"[WEB] ✅ Servidor web cerrado con código: {result_code}")
+                
+                if result_code == 0:
+                    print("\n[OK] ✅ WEB DASHBOARD CERRADO EXITOSAMENTE")
+                    print("[INFO] 🔄 Regresando al menú principal...")
+                    print("="*60)
+                    print("[SUCCESS] 🏁 SESIÓN WEB DASHBOARD COMPLETADA")
+                    print("   ✅ Servidor web cerrado correctamente")
+                    print("   🔄 Control devuelto al menú principal")
+                    print("   🟢 Sistema listo para nueva operación")
+                    print("="*60)
+                    print("\n[PRODUCCIÓN] 🚀 Menú principal se mostrará en 3 segundos...")
+                    time.sleep(3)
+                else:
+                    print(f"\n[WARN] ⚠️ Servidor web finalizó con código: {result_code}")
+                    print("[INFO] 🔄 Regresando al menú principal...")
+                    time.sleep(2)
+                    
+            else:
+                print("[X] No se encontró start_web_dashboard.py")
+                print(f"[TOOL] Verificar ruta: {web_dashboard_script}")
+                
+        except KeyboardInterrupt:
+            print("\n[WEB] ⚠️ Servidor web cerrado por el usuario")
+        except Exception as e:
+            self.logger.error(f"Error ejecutando web dashboard: {e}")
+            print(f"[X] Error ejecutando web dashboard: {e}")
+            import traceback
+            traceback.print_exc()
+
     def main_menu(self):
-        """Menú principal simplificado para producción enterprise"""
+        """Menú principal con opciones de Web Dashboard y Dashboard Terminal"""
         while True:
-            print("\n" + "="*60)
+            print("\n" + "="*70)
             print("ICT ENGINE v6.0 ENTERPRISE - TRADING REAL")
-            print("="*60)
-            print("1. [DASHBOARD] Iniciar Sistema Enterprise")
-            print("2. [X] Salir")
-            print("="*60)
+            print("="*70)
+            print("1. 🌐 [WEB DASHBOARD] Análisis Real - Navegador Web")
+            print("2. 🖥️  [DASHBOARD TERMINAL] Dashboard Convencional")
+            print("3. ❌ [SALIR] Cerrar Sistema")
+            print("="*70)
+            print("💡 Opción 1: Dashboard web moderno con Order Blocks en tiempo real")
+            print("💡 Opción 2: Dashboard tradicional en ventana de terminal")
+            print("="*70)
             
             try:
-                choice = input("\n[TARGET] Selecciona una opción (1-2): ").strip()
+                choice = input("\n[TARGET] Selecciona una opción (1-3): ").strip()
                 
                 if choice == "1":
+                    print("\n🌐 [WEB DASHBOARD] Iniciando dashboard web con análisis real...")
+                    self.run_web_dashboard_with_real_data()
+                    
+                elif choice == "2":
                     if not self.real_components_loaded:
                         print("\n[INFO] Inicializando componentes reales...")
                         self.initialize_real_components()
                     
-                    print("\n[INFO] 🚀 Iniciando sistema enterprise con datos reales...")
+                    print("\n🖥️ [DASHBOARD TERMINAL] Iniciando dashboard convencional...")
                     print("[INFO] 📊 Componentes reales configurados y listos")
                     print("[INFO] ⚡ Cargando interfaz enterprise...")
                     
                     time.sleep(1.5)
-                    # Usar subprocess por defecto ya que es más estable
                     self.run_dashboard_with_real_data()
                     
-                elif choice == "2":
+                elif choice == "3":
                     print("\n[EXIT] Cerrando sistema de trading...")
                     break
                     
                 else:
-                    print("[X] Opción no válida. Usa 1-2.")
+                    print("[X] Opción no válida. Usa 1-3.")
                     continue
                     
             except KeyboardInterrupt:
@@ -373,6 +487,15 @@ class ICTEnterpriseManager:
                 except:
                     if self.dashboard_process.poll() is None:
                         self.dashboard_process.kill()
+            
+            # Cerrar web dashboard process si existe
+            if self.web_dashboard_process:
+                try:
+                    self.web_dashboard_process.terminate()
+                    self.web_dashboard_process.wait(timeout=2)
+                except:
+                    if self.web_dashboard_process.poll() is None:
+                        self.web_dashboard_process.kill()
             
             # Cerrar componentes críticos
             if hasattr(self, 'data_collector') and self.data_collector:
