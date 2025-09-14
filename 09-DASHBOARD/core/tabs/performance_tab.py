@@ -14,28 +14,84 @@ Dependencias: dash, plotly, pandas (para formateo opcional)
 """
 from __future__ import annotations
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 import json
 import time
+from typing import Callable, TYPE_CHECKING, Any as _Any
 
-try:
-    from dash import html, dcc, Input, Output
-    import plotly.graph_objects as go
-    DASH_OK = True
-except Exception:
+try:  # Intento real
+    from dash import html, dcc, Input, Output  # type: ignore
+    import plotly.graph_objects as go  # type: ignore
+    DASH_OK: bool = True
+except Exception:  # Fallback de tipos sin ejecutar Dash (sin dependencias externas)
     DASH_OK = False
-    html = dcc = Input = Output = None  # type: ignore
-    go = None  # type: ignore
+
+    # --------- Tipos mínimos para que Pylance no marque None attributes ---------
+    class _HtmlNamespace:
+        def Div(self, *children: _Any, **props: _Any) -> dict:  # mimic dash.html.Div
+            return {"type": "Div", "children": list(children), "props": props}
+        def H2(self, *children: _Any, **props: _Any) -> dict:
+            return {"type": "H2", "children": list(children), "props": props}
+
+    class _DccNamespace:
+        def Interval(self, *_, **props: _Any) -> dict:
+            return {"type": "Interval", "props": props}
+        def Graph(self, *_, **props: _Any) -> dict:
+            return {"type": "Graph", "props": props}
+
+    class _Figure:
+        def __init__(self):
+            self.layout = {}
+            self.data = []
+        def update_layout(self, **_):
+            return None
+        def update_xaxes(self, **_):
+            return None
+        def update_yaxes(self, **_):
+            return None
+        def add_trace(self, *_ , **__):
+            return None
+
+    class _Scatter:  # placeholders compatibles
+        def __init__(self, *_, **__):
+            pass
+    class _Bar:
+        def __init__(self, *_, **__):
+            pass
+
+    class _GoNamespace:
+        Figure = _Figure
+        Scatter = _Scatter
+        Bar = _Bar
+
+    # Input/Output placeholders para no romper decoradores ni tipado
+    class _CallbackIO:
+        def __init__(self, *args: _Any, **kwargs: _Any):
+            self.args = args
+            self.kwargs = kwargs
+
+    def Input(*args: _Any, **kwargs: _Any) -> _CallbackIO:  # type: ignore
+        return _CallbackIO(*args, **kwargs)
+    def Output(*args: _Any, **kwargs: _Any) -> _CallbackIO:  # type: ignore
+        return _CallbackIO(*args, **kwargs)
+
+    html = _HtmlNamespace()  # type: ignore
+    dcc = _DccNamespace()  # type: ignore
+    go = _GoNamespace()  # type: ignore
 
 
 class PerformanceTab:
     def __init__(self, app, metrics_dir: Optional[str], refresh_interval: int = 1000):
-        if not DASH_OK:
-            raise ImportError("Dash no disponible para PerformanceTab")
+        """Inicializa PerformanceTab.
+
+        Si Dash no está disponible, permite construcción y create_layout() retornará
+        estructura stub para que el resto del sistema no falle en importación.
+        """
         self.app = app
         self.metrics_dir = Path(metrics_dir) if metrics_dir else None
         self.refresh_interval = refresh_interval
-        self._register_callbacks()
+        if DASH_OK and app is not None:
+            self._register_callbacks()
 
     # ------------- Helpers de lectura -----------------
     def _read_json(self, file_name: str) -> Dict[str, Any]:
@@ -58,18 +114,30 @@ class PerformanceTab:
 
     # ------------- Layout -----------------
     def create_layout(self):
-        return html.Div([
-            dcc.Interval(id='perf-metrics-interval', interval=self.refresh_interval, n_intervals=0),
-            html.Div([
-                html.H2("📈 Performance Metrics", className="perf-title"),
-                html.Div(id='perf-kpis', className='perf-kpis'),
-                html.Div([
-                    dcc.Graph(id='perf-latency-chart', figure=self._empty_latency_fig(), className='perf-chart'),
-                    dcc.Graph(id='perf-orders-chart', figure=self._empty_orders_fig(), className='perf-chart')
-                ], className='perf-charts-row'),
-                html.Div(id='perf-updated', className='perf-updated')
-            ], className='perf-container')
-        ], className='perf-wrapper')
+        if not DASH_OK:
+            # Retorna estructura liviana consumible por dashboards que hagan introspección
+            return {"error": "Dash not available", "component": "PerformanceTab", "refresh_ms": self.refresh_interval}
+        return html.Div(
+            [
+                dcc.Interval(id='perf-metrics-interval', interval=self.refresh_interval, n_intervals=0),
+                html.Div(
+                    [
+                        html.H2("📈 Performance Metrics", className="perf-title"),
+                        html.Div(id='perf-kpis', className='perf-kpis'),
+                        html.Div(
+                            [
+                                dcc.Graph(id='perf-latency-chart', figure=self._empty_latency_fig(), className='perf-chart'),
+                                dcc.Graph(id='perf-orders-chart', figure=self._empty_orders_fig(), className='perf-chart')
+                            ],
+                            className='perf-charts-row'
+                        ),
+                        html.Div(id='perf-updated', className='perf-updated')
+                    ],
+                    className='perf-container'
+                )
+            ],
+            className='perf-wrapper'
+        )
 
     # ------------- Figures base -------------
     def _empty_latency_fig(self):
@@ -88,7 +156,9 @@ class PerformanceTab:
 
     # ------------- Callbacks -------------
     def _register_callbacks(self):
-        @self.app.callback(
+        if not DASH_OK:
+            return  # No registra callbacks en modo stub
+        @self.app.callback(  # type: ignore[attr-defined]
             [Output('perf-kpis', 'children'),
              Output('perf-latency-chart', 'figure'),
              Output('perf-orders-chart', 'figure'),
@@ -100,7 +170,6 @@ class PerformanceTab:
             summary = self._read_summary()
             history = summary.get('history', []) if summary else []
 
-            # KPIs
             kpi_children = self._render_kpis(live, summary)
             latency_fig = self._build_latency_fig(history)
             orders_fig = self._build_orders_fig(history)
@@ -134,7 +203,7 @@ class PerformanceTab:
             box('P95/P99', f"{pct.get('p95',0):.0f}/{pct.get('p99',0):.0f} ms")
         ], className='kpis-grid')
 
-    def _build_latency_fig(self, history: list[dict]):
+    def _build_latency_fig(self, history: List[Dict[str, Any]]):
         fig = self._empty_latency_fig()
         if not history:
             return fig
@@ -143,7 +212,7 @@ class PerformanceTab:
         fig.add_trace(go.Scatter(x=x, y=lat, mode='lines+markers', name='Avg Lat'))
         return fig
 
-    def _build_orders_fig(self, history: list[dict]):
+    def _build_orders_fig(self, history: List[Dict[str, Any]]):
         fig = self._empty_orders_fig()
         if not history:
             return fig

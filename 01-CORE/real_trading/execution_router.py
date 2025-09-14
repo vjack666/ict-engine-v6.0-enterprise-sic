@@ -20,19 +20,27 @@ import threading
 import time
 import json
 import os
+try:
+    from .slippage_tracker import SlippageTracker
+except Exception:
+    SlippageTracker = None
+try:
+    from .market_data_validator import MarketDataValidator
+except Exception:
+    MarketDataValidator = None
 
 try:
-    from protocols.logging_central_protocols import create_safe_logger, LogLevel  # type: ignore
+    from protocols.logging_central_protocols import create_safe_logger, LogLevel
     _LOGLEVEL_AVAILABLE = True
 except ImportError:  # fallback mínimo
-    from smart_trading_logger import enviar_senal_log as _compat_log  # type: ignore
+    from smart_trading_logger import enviar_senal_log as _compat_log
     _LOGLEVEL_AVAILABLE = False
     class _MiniLogger:  # pragma: no cover - fallback simple
         def info(self,m,c): _compat_log("INFO",m,c)
         def warning(self,m,c): _compat_log("WARNING",m,c)
         def error(self,m,c): _compat_log("ERROR",m,c)
         def debug(self,m,c): _compat_log("DEBUG",m,c)
-    def create_safe_logger(component_name: str, **_): return _MiniLogger()  # type: ignore
+    def create_safe_logger(component_name: str, **_): return _MiniLogger()
     class LogLevel:  # fallback enum-like
         INFO = "INFO"
 
@@ -136,8 +144,41 @@ class ExecutionRouter:
             }
         }
         self._load_cumulative()
+        # slippage tracker opcional
+        self.slippage_tracker: Optional['SlippageTracker'] = None
+        try:
+            if SlippageTracker and self.config.metrics_dir:
+                self.slippage_tracker = SlippageTracker(persist_dir=self.config.metrics_dir)
+        except Exception:
+            self.slippage_tracker = None
+        # market data validator opcional (hook con TTL simple)
+        self._md_validator: Optional['MarketDataValidator'] = None
+        self._md_validator_ttl_sec = 5.0
+        self._md_last_check_ts: float = 0.0
+        self._md_last_ok: bool = True
+        self._md_last_reason: Optional[str] = None
+        if MarketDataValidator:
+            try:
+                self._md_validator = MarketDataValidator()
+            except Exception:
+                self._md_validator = None
         # hooks personalizables (callables que retornan (bool_ok, reason|None))
         self.pre_order_hooks: list[Callable[[str, str, float, Optional[float]], tuple[bool, Optional[str]]]] = []
+        # Integración modular nueva (audit + recorder)
+        self._metrics_recorder = None
+        self._audit_logger = None
+        try:
+            if self.config.metrics_dir:
+                from .execution_metrics import ExecutionMetricsRecorder, ExecutionMetricsConfig
+                cfg = ExecutionMetricsConfig(metrics_dir=self.config.metrics_dir, history_limit=self.config.metrics_history_limit)
+                self._metrics_recorder = ExecutionMetricsRecorder(cfg)
+        except Exception:
+            self._metrics_recorder = None
+        try:
+            from .execution_audit_logger import ExecutionAuditLogger
+            self._audit_logger = ExecutionAuditLogger()
+        except Exception:
+            self._audit_logger = None
 
     def _pre_checks(self, symbol: str, volume: float, action: str, price: Optional[float]) -> Optional[str]:
         if self.health_monitor and not self.health_monitor.is_system_healthy():
@@ -158,6 +199,27 @@ class ExecutionRouter:
                     return reason or 'hook_blocked'
             except Exception as e:  # no bloquear por excepción de hook
                 self.logger.error(f"Hook exception ignorada: {e}", "EXECUTION")
+        # market data validation (si disponible) con caché TTL para reducir coste
+        if self._md_validator:
+            now_ts = time.time()
+            if (now_ts - self._md_last_check_ts) > self._md_validator_ttl_sec:
+                self._md_last_check_ts = now_ts
+                try:
+                    # Se asume existencia de un proveedor global de velas reciente si está declarado
+                    candles_provider = globals().get('get_recent_candles')  # tipo flexible
+                    if callable(candles_provider):
+                        candles = candles_provider()
+                        ok, issues = self._md_validator.validate_candles(candles)
+                        self._md_last_ok = ok
+                        self._md_last_reason = None if ok else (issues[0] if issues else 'market_data_invalid')
+                    else:
+                        self._md_last_ok = True  # no bloquear si no hay proveedor
+                        self._md_last_reason = None
+                except Exception:
+                    self._md_last_ok = True
+                    self._md_last_reason = None
+            if not self._md_last_ok:
+                return self._md_last_reason or 'market_data_invalid'
         return None
 
     def place_order(self, symbol: str, action: str, volume: float, price: Optional[float] = None,
@@ -186,6 +248,29 @@ class ExecutionRouter:
                         self.logger.info(f"Order executed via {'primary' if idx == 0 else 'backup'} ticket={ticket}", "EXECUTION")
                         self._metrics['orders_total'] += 1
                         self._metrics['orders_ok'] += 1
+                        if self.slippage_tracker:
+                            try:
+                                exp_px = price if price is not None else result.get('expected_price')
+                                exec_px = result.get('executed_price') or result.get('fill_price') or price
+                                if exp_px is not None and exec_px is not None:
+                                    self.slippage_tracker.record(symbol, float(exp_px), float(exec_px))
+                            except Exception:
+                                pass
+                        if self._metrics_recorder:
+                            try:
+                                self._metrics_recorder.record_order(True, self.latency_monitor.get_current_latency_ms() if self.latency_monitor else 0.0)
+                            except Exception:
+                                pass
+                        if self._audit_logger:
+                            try:
+                                self._audit_logger.log_event(
+                                    event_type="ORDER_OK",
+                                    order_id=str(ticket), symbol=symbol, status="OK",
+                                    latency_ms=(self.latency_monitor.get_current_latency_ms() if self.latency_monitor else None),
+                                    extra={'action': action, 'volume': volume}
+                                )
+                            except Exception:
+                                pass
                         now = time.time()
                         if self.latency_monitor:
                             try:
@@ -200,10 +285,44 @@ class ExecutionRouter:
                                                placed_at=datetime.utcnow(), extra=result)
                     last_error = result.get('error', 'unknown_error')
                     self.logger.warning(f"Executor returned failure: {last_error}", "EXECUTION")
+                    if self._metrics_recorder:
+                        try:
+                            self._metrics_recorder.record_order(False, self.latency_monitor.get_current_latency_ms() if self.latency_monitor else 0.0)
+                        except Exception:
+                            pass
+                    if self.slippage_tracker:
+                        try:
+                            self.slippage_tracker.persist_snapshot()
+                        except Exception:
+                            pass
+                    if self._audit_logger:
+                        try:
+                            self._audit_logger.log_event(
+                                event_type="ORDER_FAIL",
+                                order_id=str(result.get('ticket','')), symbol=symbol, status="FAIL",
+                                latency_ms=(self.latency_monitor.get_current_latency_ms() if self.latency_monitor else None),
+                                extra={'error': last_error, 'action': action}
+                            )
+                        except Exception:
+                            pass
                 except Exception as e:  # ejecución robusta
                     last_error = f"exception:{e}"
                     self.logger.error(f"Execution exception attempt {attempt+1}: {e}", "EXECUTION")
                     self.breaker.record_failure()
+                    if self._metrics_recorder:
+                        try:
+                            self._metrics_recorder.record_order(False, 0.0)
+                        except Exception:
+                            pass
+                    if self._audit_logger:
+                        try:
+                            self._audit_logger.log_event(
+                                event_type="ORDER_EXCEPTION",
+                                order_id=None, symbol=symbol, status="EXCEPTION",
+                                latency_ms=None, extra={'exc': str(e)}
+                            )
+                        except Exception:
+                            pass
             if attempt < self.config.max_retries:
                 time.sleep(self.config.retry_delay_seconds)
         # fracaso total
@@ -211,6 +330,19 @@ class ExecutionRouter:
             self.breaker.record_failure()
         self._metrics['orders_total'] += 1
         self._metrics['orders_failed'] += 1
+        if self._metrics_recorder:
+            try:
+                self._metrics_recorder.maybe_persist()
+            except Exception:
+                pass
+        if self._audit_logger:
+            try:
+                self._audit_logger.log_event(
+                    event_type="ORDER_FINAL_FAIL", order_id=None, symbol=symbol, status="FINAL_FAIL",
+                    latency_ms=None, extra={'last_error': last_error, 'action': action}
+                )
+            except Exception:
+                pass
         now = time.time()
         if (now - self._metrics['last_log_ts']) > 30:
             self._emit_metrics(now)
@@ -307,6 +439,12 @@ class ExecutionRouter:
             'latency_samples_count': len(lat_list),
             'latency_percentiles': percentiles
         }
+        if self.slippage_tracker:
+            try:
+                stats = self.slippage_tracker.current_stats()
+                data['slippage'] = stats
+            except Exception:
+                pass
         try:
             with open(lf, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
@@ -360,6 +498,11 @@ class ExecutionRouter:
             'latency_percentiles': latency_percentiles,
             'history': self._metrics['history'][-50:],  # recorte
         }
+        if self.slippage_tracker:
+            try:
+                summary['slippage'] = self.slippage_tracker.current_stats()
+            except Exception:
+                pass
         try:
             with open(sf, 'w', encoding='utf-8') as f:
                 json.dump(summary, f, ensure_ascii=False, indent=2)
@@ -382,6 +525,16 @@ class ExecutionRouter:
             pass
         # asegurar summary final
         self._persist_summary()
+        if self._metrics_recorder:
+            try:
+                self._metrics_recorder.persist_cumulative()
+            except Exception:
+                pass
+        if self._audit_logger:
+            try:
+                self._audit_logger.log_event(event_type="SHUTDOWN", status="OK")
+            except Exception:
+                pass
 
 __all__ = [
     'ExecutionRouter', 'ExecutionRouterConfig', 'ExecutionResult'

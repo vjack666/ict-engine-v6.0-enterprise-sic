@@ -17,15 +17,15 @@ from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 
 try:
-    from protocols.logging_central_protocols import create_safe_logger  # type: ignore
+    from protocols.logging_central_protocols import create_safe_logger
 except ImportError:  # fallback
-    from smart_trading_logger import enviar_senal_log as _compat_log  # type: ignore
+    from smart_trading_logger import enviar_senal_log as _compat_log
     class _MiniLogger:
         def info(self,m,c): _compat_log("INFO",m,c)
         def warning(self,m,c): _compat_log("WARNING",m,c)
         def error(self,m,c): _compat_log("ERROR",m,c)
         def debug(self,m,c): _compat_log("DEBUG",m,c)
-    def create_safe_logger(component_name: str, **_): return _MiniLogger()  # type: ignore
+    def create_safe_logger(component_name: str, **_): return _MiniLogger()
 
 @dataclass
 class RiskGuardConfig:
