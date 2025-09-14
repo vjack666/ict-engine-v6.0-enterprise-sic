@@ -24,14 +24,19 @@ from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
 import random
 import os
+from ...protocols.logging_protocol import get_central_logger
 
-try:
-    from ..analyzers import (
-        create_smart_money_validator,
-        create_order_blocks_validator,
-        create_fvg_validator
-    )
-    ANALYZERS_AVAILABLE = True
+ANALYZERS_AVAILABLE = True
+create_smart_money_validator: Optional[Callable[[], Any]] = None
+create_order_blocks_validator: Optional[Callable[[], Any]] = None
+create_fvg_validator: Optional[Callable[[], Any]] = None
+try:  # Intento dinámico sin type: ignore
+    from .. import analyzers as _analyzers  # type: ignore
+    create_smart_money_validator = getattr(_analyzers, 'create_smart_money_validator', None)
+    create_order_blocks_validator = getattr(_analyzers, 'create_order_blocks_validator', None)
+    create_fvg_validator = getattr(_analyzers, 'create_fvg_validator', None)
+    if not all([create_smart_money_validator, create_order_blocks_validator, create_fvg_validator]):
+        ANALYZERS_AVAILABLE = False
 except Exception:
     ANALYZERS_AVAILABLE = False
 
@@ -58,17 +63,30 @@ class RealICTBacktestEngine:
     def __init__(self,
                  data_loader: Optional[Callable[[str, str, int], List[Dict[str, Any]]]] = None,
                  max_candles: int = 2000,
-                 central_logging: bool = True) -> None:
+                 central_logging: bool = True,
+                 logger_name: str = "RealICTBacktestEngine",
+                 persist_results: bool = True) -> None:
         self.data_loader = data_loader or self._default_data_loader
         self.max_candles = max_candles
         self.central_logging = central_logging
         self._log_prefix = "[REAL_BACKTEST_ENGINE]"
+        self.logger = get_central_logger(logger_name) if central_logging else None
+        self.persist_results = persist_results
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
     def run_backtest(self, symbol: str, timeframe: str, period: str = "short",
                      config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        seed = None
+        if config:
+            seed = config.get('seed')
+        if seed is not None:
+            try:
+                random.seed(int(seed))
+            except Exception:
+                if self.logger:
+                    self.logger.warning(f"{self._log_prefix} Invalid seed provided: {seed}")
         metrics = BacktestExecutionMetrics(symbol=symbol, timeframe=timeframe)
         results: Dict[str, Any] = {
             "symbol": symbol,
@@ -79,8 +97,11 @@ class RealICTBacktestEngine:
             "mode": "real" if ANALYZERS_AVAILABLE else "simulated"
         }
 
+        if self.logger:
+            self.logger.info(f"{self._log_prefix} Starting backtest symbol={symbol} tf={timeframe} period={period}")
         try:
             historical_data = self.data_loader(symbol, timeframe, self.max_candles)
+            self._validate_time_continuity(historical_data)
             metrics.total_candles_processed = len(historical_data)
 
             if ANALYZERS_AVAILABLE:
@@ -109,9 +130,23 @@ class RealICTBacktestEngine:
                 "mode": metrics.mode
             }
             results["completed_at"] = metrics.completed_at
+            if self.persist_results:
+                try:
+                    from .backtest_persistence import persist_backtest_result
+                    saved = persist_backtest_result(results)
+                    if self.logger and saved:
+                        self.logger.info(f"{self._log_prefix} Result persisted at {saved}")
+                except Exception as pe:
+                    if self.logger:
+                        self.logger.warning(f"{self._log_prefix} Persist failed: {pe}")
+            if self.logger:
+                self.logger.info(
+                    f"{self._log_prefix} Completed backtest symbol={symbol} candles={metrics.total_candles_processed} accuracy={metrics.accuracy_estimate:.3f}")
             return results
         except Exception as e:
             metrics.finalize()
+            if self.logger:
+                self.logger.error(f"{self._log_prefix} Backtest failed symbol={symbol}: {e}")
             return {
                 "error": str(e),
                 "summary": {
@@ -125,11 +160,23 @@ class RealICTBacktestEngine:
     # Helpers
     # ------------------------------------------------------------------
     def _build_analyzers(self) -> Dict[str, Any]:
-        return {
-            "smart_money": create_smart_money_validator(),
-            "order_blocks": create_order_blocks_validator(),
-            "fvg": create_fvg_validator(),
-        }
+        result: Dict[str, Any] = {}
+        if create_smart_money_validator:
+            try:
+                result["smart_money"] = create_smart_money_validator()
+            except Exception as e:
+                result["smart_money"] = {"error": str(e), "status": "failed_init"}
+        if create_order_blocks_validator:
+            try:
+                result["order_blocks"] = create_order_blocks_validator()
+            except Exception as e:
+                result["order_blocks"] = {"error": str(e), "status": "failed_init"}
+        if create_fvg_validator:
+            try:
+                result["fvg"] = create_fvg_validator()
+            except Exception as e:
+                result["fvg"] = {"error": str(e), "status": "failed_init"}
+        return result
 
     def _simulated_analyzer_block(self) -> Dict[str, Any]:
         base = random.uniform(0.82, 0.94)
@@ -145,6 +192,20 @@ class RealICTBacktestEngine:
             return sum(accs) / len(accs) if accs else random.uniform(0.8, 0.9)
         except Exception:
             return random.uniform(0.8, 0.9)
+
+    def _validate_time_continuity(self, data: List[Dict[str, Any]]) -> None:
+        if not data or len(data) < 3:
+            return
+        gaps = 0
+        last_ts = data[0].get('timestamp')
+        for row in data[1:]:
+            ts = row.get('timestamp')
+            if isinstance(ts, datetime) and isinstance(last_ts, datetime):
+                if (ts - last_ts).total_seconds() <= 0:
+                    gaps += 1
+            last_ts = ts
+        if gaps > 0 and self.logger:
+            self.logger.warning(f"{self._log_prefix} Detected {gaps} non-forward timestamp steps (possible data anomalies)")
 
     def _default_data_loader(self, symbol: str, timeframe: str, max_candles: int) -> List[Dict[str, Any]]:
         # Placeholder: en producción, cargar de data/cache o proveedor externo
