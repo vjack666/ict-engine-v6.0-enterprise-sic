@@ -296,10 +296,10 @@ class ValidationReportEngine:
             
             # Estadísticas generales
             accuracy_stats = {
-                'overall_accuracy': round(np.mean(all_accuracies), self.config['accuracy_precision']) if all_accuracies else 0.0,
+                'overall_accuracy': float(round(np.mean(all_accuracies), self.config['accuracy_precision'])) if all_accuracies else 0.0,
                 'min_accuracy': round(min(all_accuracies), self.config['accuracy_precision']) if all_accuracies else 0.0,
                 'max_accuracy': round(max(all_accuracies), self.config['accuracy_precision']) if all_accuracies else 0.0,
-                'accuracy_std': round(np.std(all_accuracies), self.config['accuracy_precision']) if len(all_accuracies) > 1 else 0.0,
+                'accuracy_std': float(round(np.std(all_accuracies), self.config['accuracy_precision'])) if len(all_accuracies) > 1 else 0.0,
                 'consistency_score': self._calculate_consistency_score(all_accuracies)
             }
             
@@ -312,7 +312,7 @@ class ValidationReportEngine:
             
             performance_stats = {
                 'total_validation_time': round(sum(all_durations), 2),
-                'average_analyzer_time': round(np.mean(all_durations), 2) if all_durations else 0.0,
+                'average_analyzer_time': float(round(np.mean(all_durations), 2)) if all_durations else 0.0,
                 'fastest_analyzer': min(all_durations) if all_durations else 0.0,
                 'slowest_analyzer': max(all_durations) if all_durations else 0.0,
                 'efficiency_score': self._calculate_efficiency_score(all_durations, all_accuracies)
@@ -777,15 +777,15 @@ class ValidationReportEngine:
         """Calcular score de consistencia"""
         if len(accuracies) < 2:
             return 1.0
-        return round(1.0 - (np.std(accuracies) / np.mean(accuracies)), 3)
+        return float(round(1.0 - (np.std(accuracies) / np.mean(accuracies)), 3))
     
     def _calculate_efficiency_score(self, durations: List[float], accuracies: List[float]) -> float:
         """Calcular score de eficiencia (accuracy/tiempo)"""
         if not durations or not accuracies:
             return 0.0
-        avg_accuracy = np.mean(accuracies)
-        avg_duration = np.mean(durations)
-        return round(avg_accuracy / avg_duration if avg_duration > 0 else 0.0, 3)
+        avg_accuracy = float(np.mean(accuracies))
+        avg_duration = float(np.mean(durations))
+        return float(round(avg_accuracy / avg_duration if avg_duration > 0 else 0.0, 3))
     
     def _calculate_data_consistency(self, data_points: Dict) -> float:
         """Calcular consistencia de datos"""
@@ -870,8 +870,8 @@ class ValidationReportEngine:
             return {}
         
         return {
-            'max_gap': round(max(accuracies) - min(accuracies), 3),
-            'avg_gap': round(np.std(accuracies), 3)
+            'max_gap': float(round(max(accuracies) - min(accuracies), 3)),
+            'avg_gap': float(round(np.std(accuracies), 3))
         }
     
     def _analyze_consistency(self, analyzer_comparison: Dict) -> Dict[str, Any]:

@@ -75,7 +75,7 @@ success, result = test_component("MT5DataManager", test_mt5_pipeline)
 print_section("3. PATTERN DETECTION ENGINE")
 
 def test_pattern_detection():
-    from ict_engine.ict_pattern_detector import ICTPatternDetector
+    from ict_engine.pattern_detector import ICTPatternDetector
     detector = ICTPatternDetector()
     
     # Verificar integración con memoria

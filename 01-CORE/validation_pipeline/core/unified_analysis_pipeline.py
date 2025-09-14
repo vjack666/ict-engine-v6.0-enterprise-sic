@@ -32,24 +32,58 @@ try:
     from core.dashboard_engine import DashboardEngine
     
     # 🏦 MT5 Central System
-    from utils.mt5_data_manager import get_mt5_manager, MT5DataManager
+    from data_management.mt5_data_manager import get_mt5_manager, MT5DataManager
     
     # 💰 Smart Money & Pattern Detection
     from smart_money_concepts.smart_money_analyzer import SmartMoneyAnalyzer
     from ict_engine.pattern_detector import ICTPatternDetector
     from poi_system import POISystem
     
-    # 🧠 Memory & Core Systems
-    from data_management.unified_memory_system import UnifiedMemorySystem
+    # 🧠 Memory & Core Systems  
+    from analysis.unified_memory_system import UnifiedMemorySystem
     
     # 📝 Logging Central (SLUC)
     from smart_trading_logger import SmartTradingLogger
+    
+    # Indicadores de importación exitosa
+    _IMPORTS_SUCCESS = {
+        'RealDataCollector': True,
+        'DashboardEngine': True, 
+        'get_mt5_manager': True,
+        'SmartMoneyAnalyzer': True,
+        'ICTPatternDetector': True,
+        'POISystem': True,
+        'UnifiedMemorySystem': True,
+        'SmartTradingLogger': True
+    }
     
     print("✅ [PIPELINE] Todos los módulos centrales importados correctamente")
     
 except ImportError as e:
     print(f"⚠️ [PIPELINE] Error importando módulos: {e}")
-    print("🔧 [PIPELINE] Continuando con imports alternativos...")
+    
+    # Fallbacks seguros con None para detectar problemas
+    RealDataCollector = None
+    DashboardEngine = None
+    get_mt5_manager = None
+    SmartMoneyAnalyzer = None
+    ICTPatternDetector = None
+    POISystem = None
+    UnifiedMemorySystem = None
+    SmartTradingLogger = None
+    
+    _IMPORTS_SUCCESS = {
+        'RealDataCollector': False,
+        'DashboardEngine': False,
+        'get_mt5_manager': False,
+        'SmartMoneyAnalyzer': False,
+        'ICTPatternDetector': False,
+        'POISystem': False,
+        'UnifiedMemorySystem': False,
+        'SmartTradingLogger': False
+    }
+    
+    print("🔧 [PIPELINE] Usando fallbacks de seguridad...")
 
 
 class UnifiedAnalysisPipeline:
@@ -73,11 +107,27 @@ class UnifiedAnalysisPipeline:
         Inicializar pipeline con componentes centrales del sistema
         """
         self.config = config or self._default_config()
-        self.logger = SmartTradingLogger()
+        
+        # Inicializar logger con fallback seguro
+        try:
+            from smart_trading_logger import SmartTradingLogger
+            self.logger = SmartTradingLogger()
+        except ImportError:
+            # Fallback logging
+            class FallbackLogger:
+                def info(self, message, **kwargs):
+                    print(f"[INFO] {message}")
+                def error(self, message, **kwargs):
+                    print(f"[ERROR] {message}")
+                def warning(self, message, **kwargs):
+                    print(f"[WARNING] {message}")
+                def debug(self, message, **kwargs):
+                    print(f"[DEBUG] {message}")
+            self.logger = FallbackLogger()
         
         # Log inicio
-        self.logger.log("INFO", "🚀 Inicializando UnifiedAnalysisPipeline", 
-                       module="validation_pipeline", category="system")
+        self.logger.info("🚀 Inicializando UnifiedAnalysisPipeline", 
+                       component="validation_pipeline")
         
         # Inicializar componentes centrales
         self._initialize_core_components()
@@ -92,8 +142,8 @@ class UnifiedAnalysisPipeline:
             'comparisons': []
         }
         
-        self.logger.log("INFO", "✅ UnifiedAnalysisPipeline inicializado correctamente", 
-                       module="validation_pipeline", category="system")
+        self.logger.info("✅ UnifiedAnalysisPipeline inicializado correctamente", 
+                       component="validation_pipeline")
     
     def _default_config(self) -> Dict:
         """Configuración por defecto del pipeline"""
@@ -117,19 +167,31 @@ class UnifiedAnalysisPipeline:
         """
         try:
             # 🏦 MT5 Manager Central
-            self.mt5_manager = get_mt5_manager()
-            self.logger.log("INFO", "✅ MT5DataManager inicializado", 
-                           module="validation_pipeline", category="mt5")
+            if _IMPORTS_SUCCESS['get_mt5_manager'] and get_mt5_manager:
+                self.mt5_manager = get_mt5_manager()
+                self.logger.info("✅ MT5DataManager inicializado", 
+                               component="validation_pipeline")
+            else:
+                self.logger.warning("⚠️ MT5Manager no disponible", 
+                                  component="validation_pipeline")
+                self.mt5_manager = None
             
             # 🧠 Memory System Central
-            self.memory_system = UnifiedMemorySystem()
-            self.logger.log("INFO", "✅ UnifiedMemorySystem inicializado", 
-                           module="validation_pipeline", category="memory")
+            if _IMPORTS_SUCCESS['UnifiedMemorySystem'] and UnifiedMemorySystem:
+                self.memory_system = UnifiedMemorySystem()
+                self.logger.info( "✅ UnifiedMemorySystem inicializado", 
+                               component="validation_pipeline")
+            else:
+                self.logger.warning("⚠️ UnifiedMemorySystem no disponible", 
+                                  component="validation_pipeline")
+                self.memory_system = None
             
         except Exception as e:
-            self.logger.log("ERROR", f"❌ Error inicializando componentes centrales: {e}", 
-                           module="validation_pipeline", category="system")
-            raise
+            self.logger.error( f"❌ Error inicializando componentes centrales: {e}", 
+                           component="validation_pipeline")
+            # No hacer raise para que el sistema continúe
+            self.mt5_manager = None
+            self.memory_system = None
     
     def _initialize_dashboard_components(self):
         """
@@ -138,23 +200,34 @@ class UnifiedAnalysisPipeline:
         """
         try:
             # 📊 Dashboard Data Collector (MISMO que funciona)
-            self.data_collector = RealDataCollector()
-            self.dashboard_engine = DashboardEngine()
+            if _IMPORTS_SUCCESS['RealDataCollector'] and RealDataCollector:
+                self.data_collector = RealDataCollector(config={})
+            else:
+                self.logger.warning("⚠️ RealDataCollector no disponible", 
+                                  component="validation_pipeline") 
+                self.data_collector = None
+                
+            if _IMPORTS_SUCCESS['DashboardEngine'] and DashboardEngine:
+                self.dashboard_engine = DashboardEngine(config={})
+            else:
+                self.logger.warning("⚠️ DashboardEngine no disponible", 
+                                  component="validation_pipeline")
+                self.dashboard_engine = None
             
-            self.logger.log("INFO", "✅ Dashboard components inicializados", 
-                           module="validation_pipeline", category="dashboard")
+            self.logger.info( "✅ Dashboard components inicializados", 
+                           component="validation_pipeline")
             
             # Acceso directo a componentes dashboard
-            if hasattr(self.data_collector, 'components'):
+            if self.data_collector and hasattr(self.data_collector, 'components'):
                 self.smart_money_dashboard = self.data_collector.components.get('smart_money')
                 self.pattern_detector_dashboard = getattr(self.data_collector, 'pattern_detector', None)
                 
-                self.logger.log("INFO", f"✅ Dashboard components accesibles: {list(self.data_collector.components.keys())}", 
-                               module="validation_pipeline", category="dashboard")
+                self.logger.info( f"✅ Dashboard components accesibles: {list(self.data_collector.components.keys())}", 
+                               component="validation_pipeline")
             
         except Exception as e:
-            self.logger.log("ERROR", f"❌ Error inicializando dashboard components: {e}", 
-                           module="validation_pipeline", category="dashboard")
+            self.logger.error( f"❌ Error inicializando dashboard components: {e}", 
+                           component="validation_pipeline")
             # Continuar sin dashboard components
             self.data_collector = None
             self.dashboard_engine = None
@@ -166,51 +239,71 @@ class UnifiedAnalysisPipeline:
         """
         try:
             # 💰 Smart Money Analyzer (MISMO que dashboard)
-            if self.smart_money_dashboard:
+            if hasattr(self, 'smart_money_dashboard') and self.smart_money_dashboard:
                 self.smart_money_historical = self.smart_money_dashboard
-            else:
+            elif _IMPORTS_SUCCESS['SmartMoneyAnalyzer'] and SmartMoneyAnalyzer:
                 self.smart_money_historical = SmartMoneyAnalyzer()
+            else:
+                self.logger.warning("⚠️ SmartMoneyAnalyzer no disponible", 
+                                  component="validation_pipeline")
+                self.smart_money_historical = None
             
             # 🎯 Pattern Detector (MISMO que dashboard)  
-            if self.pattern_detector_dashboard:
+            if hasattr(self, 'pattern_detector_dashboard') and self.pattern_detector_dashboard:
                 self.pattern_detector_historical = self.pattern_detector_dashboard
-            else:
+            elif _IMPORTS_SUCCESS['ICTPatternDetector'] and ICTPatternDetector:
                 self.pattern_detector_historical = ICTPatternDetector()
+            else:
+                self.logger.warning("⚠️ ICTPatternDetector no disponible", 
+                                  component="validation_pipeline")
+                self.pattern_detector_historical = None
             
             # 📍 POI System
-            self.poi_system = POISystem()
+            if _IMPORTS_SUCCESS['POISystem'] and POISystem:
+                self.poi_system = POISystem()
+            else:
+                self.logger.warning("⚠️ POISystem no disponible", 
+                              component="validation_pipeline")
+                self.poi_system = None
             
-            self.logger.log("INFO", "✅ Analysis components inicializados", 
-                           module="validation_pipeline", category="analysis")
+            self.logger.info( "✅ Analysis components inicializados", 
+                           component="validation_pipeline")
             
         except Exception as e:
-            self.logger.log("ERROR", f"❌ Error inicializando analysis components: {e}", 
-                           module="validation_pipeline", category="analysis")
-            raise
+            self.logger.error( f"❌ Error inicializando analysis components: {e}", 
+                           component="validation_pipeline")
+            # Establecer fallbacks seguros
+            self.smart_money_historical = None
+            self.pattern_detector_historical = None  
+            self.poi_system = None
     
     def analyze_live(self, symbol: str, timeframe: str, candles: int = 100) -> Dict[str, Any]:
         """
         📈 Análisis en tiempo real
         USA EXACTAMENTE los mismos componentes que el dashboard
         """
-        self.logger.log("INFO", f"🔄 Iniciando análisis LIVE: {symbol} {timeframe}", 
-                       module="validation_pipeline", category="live_analysis")
+        self.logger.info( f"🔄 Iniciando análisis LIVE: {symbol} {timeframe}", 
+                       component="validation_pipeline")
         
         try:
             # Obtener datos en tiempo real (MISMO método que dashboard)
             if self.data_collector and hasattr(self.data_collector, 'get_real_market_data'):
                 market_data = self.data_collector.get_real_market_data(symbol, timeframe, candles)
-            else:
+            elif self.mt5_manager and hasattr(self.mt5_manager, 'get_historical_data'):
                 # Fallback directo a MT5
                 market_data = self.mt5_manager.get_historical_data(
                     symbol=symbol,
                     timeframe=timeframe,
                     count=candles
                 )
+            else:
+                self.logger.error("❌ No hay fuente de datos disponible", 
+                                component="validation_pipeline")
+                return self._empty_analysis_result('live', symbol, timeframe)
             
             if market_data is None or len(market_data) == 0:
-                self.logger.log("WARNING", f"⚠️ No hay datos para {symbol} {timeframe}", 
-                               module="validation_pipeline", category="live_analysis")
+                self.logger.warning( f"⚠️ No hay datos para {symbol} {timeframe}", 
+                               component="validation_pipeline")
                 return self._empty_analysis_result('live', symbol, timeframe)
             
             # Análisis usando componentes dashboard
@@ -226,14 +319,14 @@ class UnifiedAnalysisPipeline:
                 'results': live_results
             })
             
-            self.logger.log("INFO", f"✅ Análisis LIVE completado: {symbol} {timeframe}", 
-                           module="validation_pipeline", category="live_analysis")
+            self.logger.info( f"✅ Análisis LIVE completado: {symbol} {timeframe}", 
+                           component="validation_pipeline")
             
             return live_results
             
         except Exception as e:
-            self.logger.log("ERROR", f"❌ Error en análisis LIVE: {e}", 
-                           module="validation_pipeline", category="live_analysis")
+            self.logger.error( f"❌ Error en análisis LIVE: {e}", 
+                           component="validation_pipeline")
             return self._empty_analysis_result('live', symbol, timeframe, error=str(e))
     
     def analyze_historical(self, symbol: str, timeframe: str, 
@@ -242,21 +335,25 @@ class UnifiedAnalysisPipeline:
         📊 Análisis histórico
         USA EXACTAMENTE los mismos componentes que el análisis live
         """
-        self.logger.log("INFO", f"🔄 Iniciando análisis HISTÓRICO: {symbol} {timeframe} ({start_date} - {end_date})", 
-                       module="validation_pipeline", category="historical_analysis")
+        self.logger.info( f"🔄 Iniciando análisis HISTÓRICO: {symbol} {timeframe} ({start_date} - {end_date})", 
+                       component="validation_pipeline")
         
         try:
             # Obtener datos históricos (MISMO MT5Manager que live)
-            historical_data = self.mt5_manager.get_historical_data(
-                symbol=symbol,
-                timeframe=timeframe,
-                start_date=start_date,
-                end_date=end_date
-            )
+            if self.mt5_manager and hasattr(self.mt5_manager, 'get_historical_data'):
+                historical_data = self.mt5_manager.get_historical_data(
+                    symbol=symbol,
+                    timeframe=timeframe,
+                    count=1000  # Parámetro estándar en lugar de fechas específicas
+                )
+            else:
+                self.logger.error("❌ MT5Manager no disponible para datos históricos", 
+                                component="validation_pipeline")
+                return self._empty_analysis_result('historical', symbol, timeframe)
             
             if historical_data is None or len(historical_data) == 0:
-                self.logger.log("WARNING", f"⚠️ No hay datos históricos para {symbol} {timeframe}", 
-                               module="validation_pipeline", category="historical_analysis")
+                self.logger.warning( f"⚠️ No hay datos históricos para {symbol} {timeframe}", 
+                               component="validation_pipeline")
                 return self._empty_analysis_result('historical', symbol, timeframe)
             
             # Análisis usando MISMOS componentes que live
@@ -273,14 +370,14 @@ class UnifiedAnalysisPipeline:
                 'results': historical_results
             })
             
-            self.logger.log("INFO", f"✅ Análisis HISTÓRICO completado: {symbol} {timeframe}", 
-                           module="validation_pipeline", category="historical_analysis")
+            self.logger.info( f"✅ Análisis HISTÓRICO completado: {symbol} {timeframe}", 
+                           component="validation_pipeline")
             
             return historical_results
             
         except Exception as e:
-            self.logger.log("ERROR", f"❌ Error en análisis HISTÓRICO: {e}", 
-                           module="validation_pipeline", category="historical_analysis")
+            self.logger.error( f"❌ Error en análisis HISTÓRICO: {e}", 
+                           component="validation_pipeline")
             return self._empty_analysis_result('historical', symbol, timeframe, error=str(e))
     
     def _unified_analysis(self, market_data: Any, symbol: str, timeframe: str, mode: str) -> Dict[str, Any]:
@@ -313,23 +410,30 @@ class UnifiedAnalysisPipeline:
         
         try:
             # 💰 SMART MONEY ANALYSIS (MISMO componente que dashboard)
-            if self.smart_money_dashboard or self.smart_money_historical:
-                analyzer = self.smart_money_dashboard or self.smart_money_historical
+            analyzer = None  # Inicializar analyzer
+            
+            if self.smart_money_dashboard:
+                analyzer = self.smart_money_dashboard
+            elif self.smart_money_historical:
+                analyzer = self.smart_money_historical
                 
+            if analyzer and hasattr(analyzer, 'detect_stop_hunts'):
                 # Stop Hunts (MISMO método que dashboard)
                 stop_hunts = analyzer.detect_stop_hunts(df)
                 results['smart_money']['stop_hunts'] = {
                     'count': len(stop_hunts) if isinstance(stop_hunts, list) else 0,
                     'data': stop_hunts
                 }
-                
+            
+            if analyzer and hasattr(analyzer, 'analyze_killzones'):
                 # Kill Zones (MISMO método que dashboard)
-                killzones = analyzer.analyze_killzones(symbol)
+                killzones = analyzer.analyze_killzones(df)
                 results['smart_money']['killzones'] = {
                     'active_zones': len(killzones.get('optimal_zones', [])) if isinstance(killzones, dict) else 0,
                     'data': killzones
                 }
-                
+            
+            if analyzer and hasattr(analyzer, 'find_breaker_blocks'):
                 # Breaker Blocks (MISMO método que dashboard)
                 breakers = analyzer.find_breaker_blocks(df)
                 results['smart_money']['breaker_blocks'] = {
@@ -338,22 +442,22 @@ class UnifiedAnalysisPipeline:
                 }
             
             # 📦 ORDER BLOCKS ANALYSIS (MISMO componente que dashboard)
-            if hasattr(analyzer, 'find_order_blocks'):
-                order_blocks = analyzer.find_order_blocks(df)
+            if analyzer and hasattr(analyzer, 'find_order_blocks'):
+                order_blocks = analyzer.find_order_blocks(symbol)
                 results['order_blocks'] = {
-                    'total_blocks': len(order_blocks.get('order_blocks', [])) if isinstance(order_blocks, dict) else 0,
-                    'bullish_blocks': len([ob for ob in order_blocks.get('order_blocks', []) if ob.get('type') == 'bullish']),
-                    'bearish_blocks': len([ob for ob in order_blocks.get('order_blocks', []) if ob.get('type') == 'bearish']),
+                    'total_blocks': len(order_blocks) if isinstance(order_blocks, list) else 0,
+                    'bullish_blocks': len([ob for ob in order_blocks if isinstance(ob, dict) and ob.get('type') == 'bullish']),
+                    'bearish_blocks': len([ob for ob in order_blocks if isinstance(ob, dict) and ob.get('type') == 'bearish']),
                     'data': order_blocks
                 }
             
             # 💎 FVG ANALYSIS (MISMO componente que dashboard)
-            if hasattr(analyzer, 'detect_fvg'):
-                fvg_analysis = analyzer.detect_fvg(df)
+            if analyzer and hasattr(analyzer, 'detect_fvg'):
+                fvg_analysis = analyzer.detect_fvg(symbol)
                 results['fvg'] = {
-                    'total_fvgs': len(fvg_analysis.get('fvgs', [])) if isinstance(fvg_analysis, dict) else 0,
-                    'bullish_fvgs': len([fvg for fvg in fvg_analysis.get('fvgs', []) if fvg.get('direction') == 'bullish']),
-                    'bearish_fvgs': len([fvg for fvg in fvg_analysis.get('fvgs', []) if fvg.get('direction') == 'bearish']),
+                    'total_fvgs': len(fvg_analysis) if isinstance(fvg_analysis, list) else 0,
+                    'bullish_fvgs': len([fvg for fvg in fvg_analysis if isinstance(fvg, dict) and fvg.get('direction') == 'bullish']),
+                    'bearish_fvgs': len([fvg for fvg in fvg_analysis if isinstance(fvg, dict) and fvg.get('direction') == 'bearish']),
                     'data': fvg_analysis
                 }
             
@@ -366,17 +470,17 @@ class UnifiedAnalysisPipeline:
                 'data_quality': 'REAL_MT5_DATA'
             }
             
-            self.logger.log("INFO", f"✅ Unified analysis completado ({mode}): {symbol} {timeframe} en {results['performance_metrics']['analysis_duration']:.2f}s", 
-                           module="validation_pipeline", category="analysis")
+            self.logger.info( f"✅ Unified analysis completado ({mode}): {symbol} {timeframe} en {results['performance_metrics']['analysis_duration']:.2f}s", 
+                           component="validation_pipeline")
             
         except Exception as e:
-            self.logger.log("ERROR", f"❌ Error en unified analysis: {e}", 
-                           module="validation_pipeline", category="analysis")
+            self.logger.error( f"❌ Error en unified analysis: {e}", 
+                           component="validation_pipeline")
             results['error'] = str(e)
         
         return results
     
-    def _empty_analysis_result(self, mode: str, symbol: str, timeframe: str, error: str = None) -> Dict[str, Any]:
+    def _empty_analysis_result(self, mode: str, symbol: str, timeframe: str, error: Optional[str] = None) -> Dict[str, Any]:
         """Resultado vacío para casos de error"""
         return {
             'mode': mode,
@@ -397,8 +501,8 @@ class UnifiedAnalysisPipeline:
         🔍 Comparar resultados entre análisis live y histórico
         Generar métricas de accuracy y correlación
         """
-        self.logger.log("INFO", "🔄 Iniciando comparación live vs historical", 
-                       module="validation_pipeline", category="comparison")
+        self.logger.info( "🔄 Iniciando comparación live vs historical", 
+                       component="validation_pipeline")
         
         comparison_start = datetime.now()
         
@@ -442,12 +546,12 @@ class UnifiedAnalysisPipeline:
             comparison_end = datetime.now()
             comparison['comparison_duration'] = (comparison_end - comparison_start).total_seconds()
             
-            self.logger.log("INFO", f"✅ Comparación completada en {comparison['comparison_duration']:.2f}s", 
-                           module="validation_pipeline", category="comparison")
+            self.logger.info( f"✅ Comparación completada en {comparison['comparison_duration']:.2f}s", 
+                           component="validation_pipeline")
             
         except Exception as e:
-            self.logger.log("ERROR", f"❌ Error en comparación: {e}", 
-                           module="validation_pipeline", category="comparison")
+            self.logger.error( f"❌ Error en comparación: {e}", 
+                           component="validation_pipeline")
             comparison['error'] = str(e)
         
         return comparison
@@ -563,11 +667,11 @@ class UnifiedAnalysisPipeline:
             return {'overall_accuracy': 0.0, 'categories_analyzed': 0}
         
         return {
-            'overall_accuracy': round(np.mean(accuracies), 3),
+            'overall_accuracy': float(round(np.mean(accuracies), 3)),
             'categories_analyzed': len(accuracies),
-            'min_accuracy': round(min(accuracies), 3),
-            'max_accuracy': round(max(accuracies), 3),
-            'accuracy_std': round(np.std(accuracies), 3)
+            'min_accuracy': float(round(min(accuracies), 3)),
+            'max_accuracy': float(round(max(accuracies), 3)),
+            'accuracy_std': float(round(np.std(accuracies), 3))
         }
     
     def get_pipeline_status(self) -> Dict[str, Any]:

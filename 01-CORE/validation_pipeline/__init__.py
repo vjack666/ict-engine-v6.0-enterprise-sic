@@ -45,9 +45,10 @@ try:
     from .core.unified_analysis_pipeline import UnifiedAnalysisPipeline, get_unified_pipeline
     from .engines.real_ict_backtest_engine import RealICTBacktestEngine, get_real_backtest_engine
     from .analyzers import (
-        SmartMoneyValidator, OrderBlocksValidator, FVGValidator,
-        get_smart_money_validator, get_order_blocks_validator, get_fvg_validator,
-        run_complete_validation, create_validation_suite, get_validation_status_summary
+        SmartMoneyValidatorEnterprise, OrderBlocksValidatorEnterprise, FVGValidatorEnterprise,
+        EnterpriseSignalValidator, create_smart_money_validator, create_order_blocks_validator,
+        create_fvg_validator, run_complete_validation, create_validation_suite, 
+        get_validation_status_summary
     )
     from .reports import (
         ValidationReportEngine, get_validation_report_engine,
@@ -357,13 +358,13 @@ if PIPELINE_FULLY_AVAILABLE:
         'RealICTBacktestEngine', 
         'get_real_backtest_engine',
         
-        # Analyzers
-        'SmartMoneyValidator',
-        'OrderBlocksValidator',
-        'FVGValidator',
-        'get_smart_money_validator',
-        'get_order_blocks_validator',
-        'get_fvg_validator',
+        # Analyzers Enterprise
+        'SmartMoneyValidatorEnterprise',
+        'OrderBlocksValidatorEnterprise', 
+        'FVGValidatorEnterprise',
+        'create_smart_money_validator',
+        'create_order_blocks_validator',
+        'create_fvg_validator',
         'run_complete_validation',
         'create_validation_suite',
         'get_validation_status_summary',

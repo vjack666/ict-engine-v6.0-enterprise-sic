@@ -9,72 +9,119 @@ Módulos Enterprise Reales:
 - SmartMoneyAnalyzer: find_order_blocks() método
 - ICTPatternDetector: Análisis de patrones  
 - UnifiedMemorySystem: Persistencia y caché
-- smart_trading_logger: enviar_senal_log función
+- SmartTradingLogger: Logging centralizado
 - MT5DataManager: Datos de mercado en tiempo real
 
 Usa SOLO métodos y clases que existen realmente en el sistema.
 """
 
-import sys
-import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 import pandas as pd
 import numpy as np
-from pathlib import Path
 
 # ==========================================
-# IMPORTS MÓDULOS ENTERPRISE REALES
+# IMPORTS MÓDULOS ENTERPRISE REALES - SISTEMA OPTIMIZADO
 # ==========================================
-try:
-    # Ruta base para imports
-    current_dir = Path(__file__).parent
-    base_path = current_dir.parent.parent  # 01-CORE
+# Imports absolutos sin type: ignore - sistema robusto de dependencias
+
+# Logger centralizado principal
+from smart_trading_logger import SmartTradingLogger
+
+# Dependencias enterprise con manejo granular de errores
+from typing import TYPE_CHECKING
+
+# Type-only imports para análisis estático
+if TYPE_CHECKING:
+    from smart_money_concepts.smart_money_analyzer import SmartMoneyAnalyzer
+    from ict_engine.pattern_detector import ICTPatternDetector
+    from analysis.unified_memory_system import UnifiedMemorySystem
+    from data_management.mt5_data_manager import MT5DataManager
+
+# Sistema de importación enterprise optimizado
+class EnterpriseOrderBlocksModuleLoader:
+    """🏗️ Cargador optimizado de módulos enterprise para Order Blocks"""
     
-    # SMART MONEY ANALYZER - find_order_blocks() método real
-    sys.path.append(str(base_path / "smart_money_concepts"))
-    from smart_money_analyzer import SmartMoneyAnalyzer
+    def __init__(self):
+        self.logger = SmartTradingLogger("order_blocks_validator_loader")
+        self.modules: Dict[str, Any] = {}
+        self.missing_dependencies: Dict[str, str] = {}
+        self.enterprise_available = False
+        
+        self._load_enterprise_modules()
     
-    # ICT PATTERN DETECTOR - Clase real ICTPatternDetector
-    sys.path.append(str(base_path / "ict_engine"))
-    from pattern_detector import ICTPatternDetector
-    
-    # UNIFIED MEMORY SYSTEM - Persistencia real
-    sys.path.append(str(base_path / "analysis"))
-    from unified_memory_system import UnifiedMemorySystem
-    
-    # LOGGING CENTRALIZADO - funciones reales disponibles
-    sys.path.append(str(base_path))
-    from smart_trading_logger import log_info, log_warning, log_error
-    
-    def enviar_senal_log(level: str, message: str, module: str, category: Optional[str] = None):
-        """Wrapper para usar las funciones reales de smart_trading_logger"""
-        if level.upper() == "INFO":
-            log_info(message, module)
-        elif level.upper() == "WARNING":
-            log_warning(message, module)
-        elif level.upper() == "ERROR":
-            log_error(message, module)
+    def _load_enterprise_modules(self) -> None:
+        """Cargar módulos enterprise con diagnóstico granular"""
+        module_specs = [
+            ("SmartMoneyAnalyzer", "smart_money_concepts.smart_money_analyzer", "SmartMoneyAnalyzer"),
+            ("ICTPatternDetector", "ict_engine.pattern_detector", "ICTPatternDetector"),
+            ("UnifiedMemorySystem", "analysis.unified_memory_system", "UnifiedMemorySystem"),
+            ("MT5DataManager", "data_management.mt5_data_manager", "MT5DataManager")
+        ]
+        
+        for name, module_path, class_name in module_specs:
+            try:
+                module = __import__(module_path, fromlist=[class_name])
+                self.modules[name] = getattr(module, class_name)
+                self.logger.debug(f"✅ {name} cargado desde {module_path}", "MODULE_LOADER")
+                
+            except ImportError as e:
+                self.missing_dependencies[name] = f"ImportError: {e}"
+                self.logger.error(f"❌ {name} no disponible: {e}", "MODULE_LOADER")
+                
+            except AttributeError as e:
+                self.missing_dependencies[name] = f"AttributeError: {e}"
+                self.logger.error(f"❌ {name} clase no encontrada: {e}", "MODULE_LOADER")
+                
+            except Exception as e:
+                self.missing_dependencies[name] = f"Error general: {e}"
+                self.logger.error(f"❌ {name} error inesperado: {e}", "MODULE_LOADER")
+        
+        # Validar estado enterprise
+        if self.missing_dependencies:
+            problem_report = " | ".join(f"{k}: {v}" for k, v in self.missing_dependencies.items())
+            self.logger.error(
+                f"❌ Dependencias críticas Order Blocks ausentes. No se permite fallback. {problem_report}", 
+                "ORDER_BLOCKS_VALIDATOR"
+            )
+            self.enterprise_available = False
         else:
-            log_info(message, module)
+            self.logger.info("✅ Módulos enterprise Order Blocks cargados correctamente", "ORDER_BLOCKS_VALIDATOR")
+            self.enterprise_available = True
     
-    # MT5 DATA MANAGER - Datos reales
-    sys.path.append(str(base_path / "data_management"))
-    from mt5_data_manager import MT5DataManager
+    def get_module(self, name: str) -> Any:
+        """Obtener módulo enterprise o lanzar excepción"""
+        if name not in self.modules:
+            raise RuntimeError(f"Módulo enterprise {name} no disponible: {self.missing_dependencies.get(name, 'desconocido')}")
+        return self.modules[name]
     
-    ENTERPRISE_MODULES_AVAILABLE = True
-    enviar_senal_log("INFO", "✅ Módulos enterprise reales cargados", 
-                    "order_blocks_validator", "system")
-    
-except ImportError as e:
-    ENTERPRISE_MODULES_AVAILABLE = False
-    
-    # Función stub para logging
-    def enviar_senal_log(level, message, module, category=None):
-        print(f"[{level}] [{module}] {message}")
-    
-    enviar_senal_log("WARNING", f"⚠️ Módulos enterprise no disponibles: {e}", 
-                    "order_blocks_validator", "system")
+    def is_enterprise_ready(self) -> bool:
+        """Verificar si todos los módulos enterprise están disponibles"""
+        return self.enterprise_available
+
+# Instancia global del loader
+_module_loader = EnterpriseOrderBlocksModuleLoader()
+
+# Variables globales para acceso directo
+ENTERPRISE_MODULES_AVAILABLE = _module_loader.is_enterprise_ready()
+logger = SmartTradingLogger("order_blocks_validator")
+
+# Acceso a módulos enterprise
+def get_smart_money_analyzer():
+    """Obtener SmartMoneyAnalyzer enterprise"""
+    return _module_loader.get_module("SmartMoneyAnalyzer")
+
+def get_ict_pattern_detector():
+    """Obtener ICTPatternDetector enterprise"""
+    return _module_loader.get_module("ICTPatternDetector")
+
+def get_unified_memory_system():
+    """Obtener UnifiedMemorySystem enterprise"""
+    return _module_loader.get_module("UnifiedMemorySystem")
+
+def get_mt5_data_manager():
+    """Obtener MT5DataManager enterprise"""
+    return _module_loader.get_module("MT5DataManager")
 
 
 class OrderBlocksValidatorEnterprise:
@@ -95,8 +142,7 @@ class OrderBlocksValidatorEnterprise:
         """Inicializar validador usando SOLO métodos reales"""
         self.config = config or self._default_config()
         
-        enviar_senal_log("INFO", "🚀 Inicializando OrderBlocksValidatorEnterprise", 
-                        "order_blocks_validator", "system")
+        logger.info("🚀 Inicializando OrderBlocksValidatorEnterprise", "order_blocks_validator")
         
         # Inicializar módulos enterprise reales
         self._initialize_real_modules()
@@ -110,8 +156,7 @@ class OrderBlocksValidatorEnterprise:
             'modules_status': self.modules_available.copy()
         }
         
-        enviar_senal_log("INFO", "✅ OrderBlocksValidatorEnterprise listo", 
-                        "order_blocks_validator", "system")
+        logger.info("✅ OrderBlocksValidatorEnterprise listo", "order_blocks_validator")
     
     def _default_config(self) -> Dict:
         """Configuración enterprise usando parámetros reales"""
@@ -136,56 +181,40 @@ class OrderBlocksValidatorEnterprise:
         }
     
     def _initialize_real_modules(self):
-        """Inicializar módulos enterprise usando clases reales"""
+        """Inicializar módulos enterprise usando sistema optimizado"""
         self.modules = {}
         self.modules_available = {}
         
+        if not ENTERPRISE_MODULES_AVAILABLE:
+            raise RuntimeError("Dependencias enterprise Order Blocks ausentes. Abortando inicialización.")
+
+        # Inicializaciones enterprise optimizadas
         try:
-            if ENTERPRISE_MODULES_AVAILABLE:
-                # SMART MONEY ANALYZER - Clase real
-                self.modules['smart_money'] = SmartMoneyAnalyzer()
-                self.modules_available['smart_money'] = True
-                enviar_senal_log("INFO", "✅ SmartMoneyAnalyzer inicializado", 
-                                "order_blocks_validator", "enterprise")
-                
-                # ICT PATTERN DETECTOR - Clase real
-                self.modules['pattern_detector'] = ICTPatternDetector()
-                self.modules_available['pattern_detector'] = True
-                enviar_senal_log("INFO", "✅ ICTPatternDetector inicializado", 
-                                "order_blocks_validator", "enterprise")
-                
-                # UNIFIED MEMORY SYSTEM - Clase real
-                self.modules['memory_system'] = UnifiedMemorySystem()
-                self.modules_available['memory_system'] = True
-                enviar_senal_log("INFO", "✅ UnifiedMemorySystem inicializado", 
-                                "order_blocks_validator", "enterprise")
-                
-                # MT5 DATA MANAGER - Clase real
-                self.modules['mt5_data'] = MT5DataManager()
-                self.modules_available['mt5_data'] = True
-                enviar_senal_log("INFO", "✅ MT5DataManager inicializado", 
-                                "order_blocks_validator", "enterprise")
-                
-                enviar_senal_log("INFO", "🎯 Todos los módulos enterprise inicializados", 
-                                "order_blocks_validator", "enterprise")
-                                
-            else:
-                self._initialize_fallback_modules()
-                
+            self.modules['smart_money'] = get_smart_money_analyzer()()
+            self.modules_available['smart_money'] = True
+            logger.info("✅ SmartMoneyAnalyzer inicializado", "order_blocks_validator")
+
+            self.modules['pattern_detector'] = get_ict_pattern_detector()()
+            self.modules_available['pattern_detector'] = True
+            logger.info("✅ ICTPatternDetector inicializado", "order_blocks_validator")
+
+            self.modules['memory_system'] = get_unified_memory_system()()
+            self.modules_available['memory_system'] = True
+            logger.info("✅ UnifiedMemorySystem inicializado", "order_blocks_validator")
+
+            self.modules['mt5_data'] = get_mt5_data_manager()()
+            self.modules_available['mt5_data'] = True
+            logger.info("✅ MT5DataManager inicializado", "order_blocks_validator")
+
+            logger.info("🎯 Todos los módulos Order Blocks enterprise inicializados", "order_blocks_validator")
+            
         except Exception as e:
-            enviar_senal_log("ERROR", f"❌ Error inicializando módulos: {e}", 
-                            "order_blocks_validator", "enterprise")
-            self._initialize_fallback_modules()
+            logger.error(f"❌ Error inicializando módulos Order Blocks: {e}", "order_blocks_validator")
+            raise RuntimeError(f"Fallo inicialización módulos enterprise: {e}") from e
     
     def _initialize_fallback_modules(self):
-        """Módulos fallback si enterprise no disponible"""
-        self.modules = {}
-        self.modules_available = {
-            'smart_money': False,
-            'pattern_detector': False, 
-            'memory_system': False,
-            'mt5_data': False
-        }
+        """Módulos fallback deshabilitados - se requieren todos los módulos enterprise"""
+        raise RuntimeError("Modo fallback deshabilitado: se requieren todos los módulos enterprise.")
     
     def validate_order_blocks_accuracy(self, symbol: str, timeframe: str, 
                                      validation_period: str = 'short') -> Dict[str, Any]:
@@ -194,8 +223,7 @@ class OrderBlocksValidatorEnterprise:
         """
         validation_id = f"ob_validation_{symbol}_{timeframe}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
-        enviar_senal_log("INFO", f"🔄 Validación Order Blocks: {validation_id}", 
-                        "order_blocks_validator", "validation")
+        logger.info(f"🔄 Validación Order Blocks: {validation_id}", "order_blocks_validator")
         
         validation_start = datetime.now()
         
@@ -231,15 +259,13 @@ class OrderBlocksValidatorEnterprise:
             if self.modules_available.get('memory_system', False):
                 self._save_validation_result(validation_id, validation_result)
             
-            enviar_senal_log("INFO", 
-                           f"✅ Validación completada: {accuracy_metrics.get('overall_accuracy', 0):.2%}", 
-                           "order_blocks_validator", "validation")
+            logger.info(f"✅ Validación Order Blocks completada: {accuracy_metrics.get('overall_accuracy', 0):.2%}", "order_blocks_validator")
             
             return validation_result
             
         except Exception as e:
-            error_msg = f"❌ Error en validación: {e}"
-            enviar_senal_log("ERROR", error_msg, "order_blocks_validator", "validation")
+            error_msg = f"❌ Error en validación Order Blocks: {e}"
+            logger.error(error_msg, "order_blocks_validator")
             
             validation_result['error'] = str(e)
             validation_result['success'] = False
@@ -249,59 +275,49 @@ class OrderBlocksValidatorEnterprise:
     def _execute_live_analysis(self, symbol: str, timeframe: str) -> Dict[str, Any]:
         """Ejecutar análisis live usando SmartMoneyAnalyzer.find_order_blocks()"""
         try:
-            if self.modules_available.get('smart_money', False):
-                # Usar método REAL find_order_blocks
-                order_blocks = self.modules['smart_money'].find_order_blocks(
-                    symbol=symbol, 
-                    timeframe=timeframe
-                )
-                
-                return {
-                    'success': True,
-                    'timestamp': datetime.now().isoformat(),
-                    'method_used': 'SmartMoneyAnalyzer.find_order_blocks',
-                    'symbol': symbol,
-                    'timeframe': timeframe,
-                    'order_blocks_count': len(order_blocks),
-                    'order_blocks_data': order_blocks,
-                    'analysis_type': 'live'
-                }
-            else:
-                return self._create_fallback_analysis(symbol, timeframe, 'live')
+            order_blocks = self.modules['smart_money'].find_order_blocks(
+                symbol=symbol, 
+                timeframe=timeframe
+            )
+            
+            return {
+                'success': True,
+                'timestamp': datetime.now().isoformat(),
+                'method_used': 'SmartMoneyAnalyzer.find_order_blocks',
+                'symbol': symbol,
+                'timeframe': timeframe,
+                'order_blocks_count': len(order_blocks),
+                'order_blocks_data': order_blocks,
+                'analysis_type': 'live'
+            }
                 
         except Exception as e:
-            enviar_senal_log("ERROR", f"❌ Error análisis live: {e}", 
-                            "order_blocks_validator", "analysis")
-            return self._create_fallback_analysis(symbol, timeframe, 'live', error=str(e))
+            logger.error(f"❌ Error análisis Order Blocks live: {e}", "order_blocks_validator")
+            raise RuntimeError(f"Análisis Order Blocks live falló: {e}") from e
     
     def _execute_historical_analysis(self, symbol: str, timeframe: str, period: str) -> Dict[str, Any]:
         """Ejecutar análisis histórico usando MISMOS métodos"""
         try:
-            if self.modules_available.get('smart_money', False):
-                # Usar MISMO método find_order_blocks para histórico
-                order_blocks = self.modules['smart_money'].find_order_blocks(
-                    symbol=symbol, 
-                    timeframe=timeframe
-                )
-                
-                return {
-                    'success': True,
-                    'timestamp': datetime.now().isoformat(),
-                    'method_used': 'SmartMoneyAnalyzer.find_order_blocks',
-                    'symbol': symbol,
-                    'timeframe': timeframe,
-                    'validation_period': period,
-                    'order_blocks_count': len(order_blocks),
-                    'order_blocks_data': order_blocks,
-                    'analysis_type': 'historical'
-                }
-            else:
-                return self._create_fallback_analysis(symbol, timeframe, 'historical')
+            order_blocks = self.modules['smart_money'].find_order_blocks(
+                symbol=symbol, 
+                timeframe=timeframe
+            )
+            
+            return {
+                'success': True,
+                'timestamp': datetime.now().isoformat(),
+                'method_used': 'SmartMoneyAnalyzer.find_order_blocks',
+                'symbol': symbol,
+                'timeframe': timeframe,
+                'validation_period': period,
+                'order_blocks_count': len(order_blocks),
+                'order_blocks_data': order_blocks,
+                'analysis_type': 'historical'
+            }
                 
         except Exception as e:
-            enviar_senal_log("ERROR", f"❌ Error análisis histórico: {e}", 
-                            "order_blocks_validator", "analysis")
-            return self._create_fallback_analysis(symbol, timeframe, 'historical', error=str(e))
+            logger.error(f"❌ Error análisis Order Blocks histórico: {e}", "order_blocks_validator")
+            raise RuntimeError(f"Análisis Order Blocks histórico falló: {e}") from e
     
     def _calculate_accuracy_metrics(self, live_analysis: Dict, historical_analysis: Dict) -> Dict[str, Any]:
         """Calcular métricas de accuracy comparando live vs historical"""
@@ -336,8 +352,7 @@ class OrderBlocksValidatorEnterprise:
             }
             
         except Exception as e:
-            enviar_senal_log("ERROR", f"❌ Error calculando accuracy: {e}", 
-                            "order_blocks_validator", "metrics")
+            logger.error(f"❌ Error calculando accuracy Order Blocks: {e}", "order_blocks_validator")
             return {
                 'overall_accuracy': 0.0,
                 'quality_level': 'error',
@@ -345,19 +360,8 @@ class OrderBlocksValidatorEnterprise:
             }
     
     def _create_fallback_analysis(self, symbol: str, timeframe: str, analysis_type: str, error: Optional[str] = None) -> Dict[str, Any]:
-        """Análisis fallback cuando módulos no disponibles"""
-        return {
-            'success': False,
-            'timestamp': datetime.now().isoformat(),
-            'method_used': 'fallback_simulation',
-            'symbol': symbol,
-            'timeframe': timeframe,
-            'analysis_type': analysis_type,
-            'order_blocks_count': 0,
-            'order_blocks_data': [],
-            'error': error,
-            'fallback_reason': 'enterprise_modules_not_available'
-        }
+        """Análisis fallback deshabilitado - dependencias enterprise requeridas"""
+        raise RuntimeError("Fallback analysis deshabilitado: dependencias enterprise requeridas")
     
     def _save_validation_result(self, validation_id: str, result: Dict[str, Any]):
         """Guardar resultado usando UnifiedMemorySystem si disponible"""
@@ -366,11 +370,9 @@ class OrderBlocksValidatorEnterprise:
             if hasattr(self.modules['memory_system'], 'store_data'):
                 self.modules['memory_system'].store_data(f"validation_{validation_id}", result)
             else:
-                enviar_senal_log("WARNING", "⚠️ UnifiedMemorySystem.store_data no disponible", 
-                                "order_blocks_validator", "storage")
+                logger.warning("⚠️ UnifiedMemorySystem.store_data no disponible", "order_blocks_validator")
         except Exception as e:
-            enviar_senal_log("ERROR", f"❌ Error guardando resultado: {e}", 
-                            "order_blocks_validator", "storage")
+            logger.error(f"❌ Error guardando resultado Order Blocks: {e}", "order_blocks_validator")
     
     def get_validator_status(self) -> Dict[str, Any]:
         """Obtener estado del validador"""

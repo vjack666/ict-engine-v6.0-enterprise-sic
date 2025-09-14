@@ -474,22 +474,7 @@ def get_smart_logger(name: str = "ICT_Engine", level: str = "INFO") -> SmartTrad
     
     return _smart_logger
 
-# Funciones de conveniencia
-def log_info(message: str, component: str = "CORE"):
-    """ℹ️ Log info rápido"""
-    get_smart_logger().info(message, component)
-
-def log_warning(message: str, component: str = "CORE"):
-    """⚠️ Log warning rápido"""
-    get_smart_logger().warning(message, component)
-
-def log_error(message: str, component: str = "CORE"):
-    """❌ Log error rápido"""
-    get_smart_logger().error(message, component)
-
-def log_debug(message: str, component: str = "CORE"):
-    """🔍 Log debug rápido"""
-    get_smart_logger().debug(message, component)
+# Funciones de conveniencia (ELIMINADAS - usar las funciones de compatibilidad al final del archivo)
 
 def show_log_optimization_summary():
     """📊 Mostrar resumen de optimización de logging"""
@@ -1430,3 +1415,45 @@ if __name__ == "__main__":
             self._message_timestamps[message_key] = current_time
         
         return True
+
+
+# ====================== FUNCIONES DE COMPATIBILIDAD ======================
+
+def enviar_senal_log(level: str, message: str, module: str, category: Optional[str] = None) -> None:
+    """🔔 Función de compatibilidad para enviar_senal_log"""
+    logger = SmartTradingLogger(module)
+    
+    if level.upper() == "INFO":
+        logger.info(message, category or module)
+    elif level.upper() == "WARNING":
+        logger.warning(message, category or module)
+    elif level.upper() == "ERROR":
+        logger.error(message, category or module)
+    elif level.upper() == "DEBUG":
+        logger.debug(message, category or module)
+    else:
+        logger.info(message, category or module)
+
+
+def log_info(message: str, component: str = "CORE") -> None:
+    """🔔 Función de compatibilidad log_info"""
+    logger = SmartTradingLogger(component)
+    logger.info(message, component)
+
+
+def log_warning(message: str, component: str = "CORE") -> None:
+    """🔔 Función de compatibilidad log_warning"""
+    logger = SmartTradingLogger(component)
+    logger.warning(message, component)
+
+
+def log_error(message: str, component: str = "CORE") -> None:
+    """🔔 Función de compatibilidad log_error"""
+    logger = SmartTradingLogger(component)
+    logger.error(message, component)
+
+
+def log_debug(message: str, component: str = "CORE") -> None:
+    """🔔 Función de compatibilidad log_debug"""
+    logger = SmartTradingLogger(component)
+    logger.debug(message, component)

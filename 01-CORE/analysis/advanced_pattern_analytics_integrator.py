@@ -27,19 +27,32 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 # Variables globales para evitar problemas de Pylance
+# Importar sistema de logging centralizado con fallbacks
 create_unified_logger_func = None
 SLUC_AVAILABLE = False
 
 try:
-    from ict_engine.unified_logging import (
-        log_info, log_warning, log_error, log_debug,
-        UnifiedLoggingSystem, create_unified_logger
-    )
-    create_unified_logger_func = create_unified_logger
+    # Importar directamente desde SmartTradingLogger para evitar problemas de firma
+    from smart_trading_logger import SmartTradingLogger
+    
+    # Crear instancia global del logger
+    _global_logger = SmartTradingLogger("INTEGRATOR")
+    
+    # Funciones de logging que usan la interfaz correcta
+    def log_info(message, component="CORE"): 
+        _global_logger.info(message, component)
+    def log_warning(message, component="CORE"): 
+        _global_logger.warning(message, component)
+    def log_error(message, component="CORE"): 
+        _global_logger.error(message, component)
+    def log_debug(message, component="CORE"): 
+        _global_logger.debug(message, component)
+    
     SLUC_AVAILABLE = True
+    
 except ImportError:
     logging.basicConfig(level=logging.INFO)
-    # Fallback logging functions
+    # Fallback logging functions - usando 'component' para consistencia con SmartTradingLogger
     def log_info(message, component="CORE"): logging.info(f"[{component}] {message}")
     def log_warning(message, component="CORE"): logging.warning(f"[{component}] {message}") 
     def log_error(message, component="CORE"): logging.error(f"[{component}] {message}")

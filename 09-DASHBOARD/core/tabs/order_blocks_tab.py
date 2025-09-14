@@ -26,19 +26,36 @@ import time
 
 # Dashboard framework imports
 try:
-    import dash
-    from dash import dcc, html, Input, Output, State, callback, ctx
-    import plotly.graph_objects as go
-    import plotly.express as px
-    from plotly.subplots import make_subplots
-    import pandas as pd
-    DASH_AVAILABLE = True
-except ImportError:
-    print("⚠️ Dash not available - OrderBlocksTab will use fallback mode")
-    DASH_AVAILABLE = False
-    dash = None
-    dcc = html = Input = Output = State = callback = ctx = None
+    # Use new dashboard core architecture
+    import sys
+    from pathlib import Path
+    
+    # Add dashboard core path
+    dashboard_core_path = Path(__file__).parent.parent
+    if str(dashboard_core_path) not in sys.path:
+        sys.path.insert(0, str(dashboard_core_path))
+    
+    from dashboard_core import get_dashboard_core, DashboardCore
+    from tab_coordinator import get_tab_coordinator, TabCoordinator, TabState
+    
+    # Get dashboard components through core
+    dashboard_core = get_dashboard_core()
+    html, dcc, Input, Output, State, callback = dashboard_core.get_components()
+    go, px, make_subplots = dashboard_core.get_plotting_components()
+    pd = dashboard_core.imports.pd
+    
+    DASHBOARD_AVAILABLE = dashboard_core.imports.dash_available
+    PLOTLY_AVAILABLE = dashboard_core.imports.plotly_available
+    
+    print("✅ Dashboard architecture loaded successfully")
+    
+except ImportError as e:
+    print(f"⚠️ Dashboard architecture not available: {e}")
+    DASHBOARD_AVAILABLE = False
+    PLOTLY_AVAILABLE = False
+    html = dcc = Input = Output = State = callback = None
     go = px = make_subplots = pd = None
+    dashboard_core = None
 
 # Core system imports with fallbacks
 try:
@@ -46,16 +63,17 @@ try:
     import os
     # Add paths for imports
     current_dir = Path(__file__).parent.parent.parent.parent / "01-CORE"
-    sys.path.insert(0, str(current_dir))
+    if str(current_dir) not in sys.path:
+        sys.path.insert(0, str(current_dir))
     
     from smart_money_concepts.smart_money_analyzer import SmartMoneyAnalyzer
-    from order_blocks_logging.order_blocks_black_box import OrderBlocksBlackBox
+    from smart_trading_logger import SmartTradingLogger
     CORE_AVAILABLE = True
 except ImportError as e:
     print(f"⚠️ Core systems not available: {e}")
     CORE_AVAILABLE = False
     SmartMoneyAnalyzer = None
-    OrderBlocksBlackBox = None
+    SmartTradingLogger = None
 
 
 class OrderBlocksTab:
@@ -71,12 +89,20 @@ class OrderBlocksTab:
         self.app = app
         self.refresh_interval = refresh_interval  # ms
         
+        # Dashboard integration
+        self.dashboard_core = dashboard_core
+        self.tab_coordinator = get_tab_coordinator() if dashboard_core else None
+        
         # Core components
-        if CORE_AVAILABLE:
+        if CORE_AVAILABLE and SmartMoneyAnalyzer:
             self.analyzer = SmartMoneyAnalyzer()
-            self.logger = OrderBlocksBlackBox()
         else:
             self.analyzer = None
+            
+        # Logger
+        if CORE_AVAILABLE and SmartTradingLogger:
+            self.logger = SmartTradingLogger("OrderBlocksTab")
+        else:
             self.logger = None
             
         # Data storage
@@ -102,7 +128,7 @@ class OrderBlocksTab:
         
         print(f"🎯 OrderBlocksTab initialized (refresh: {refresh_interval}ms)")
         
-    def create_layout(self) -> html.Div:
+    def create_layout(self) -> Any:
         """
         🎨 CREAR LAYOUT PRINCIPAL
         ========================
@@ -110,11 +136,8 @@ class OrderBlocksTab:
         Returns:
             Layout principal de la pestaña Order Blocks
         """
-        if not DASH_AVAILABLE:
-            return html.Div([
-                html.H3("⚠️ Order Blocks Tab - Dash no disponible"),
-                html.P("Instalar dash y plotly para habilitar esta funcionalidad")
-            ])
+        if not DASHBOARD_AVAILABLE or not html:
+            return {"error": "Dashboard components not available", "message": "Install Dash to enable this functionality"}
             
         return html.Div([
             # Header Section

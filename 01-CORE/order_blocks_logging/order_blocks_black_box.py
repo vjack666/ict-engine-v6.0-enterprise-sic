@@ -35,7 +35,7 @@ class OrderBlocksBlackBox:
     Registra toda la actividad de detección, validación y dashboard
     """
     
-    def __init__(self, log_directory: str = None):
+    def __init__(self, log_directory: Optional[str] = None):
         self.log_directory = log_directory or self._get_default_log_directory()
         self.session_id = self._generate_session_id()
         self.lock = threading.Lock()
@@ -175,7 +175,7 @@ class OrderBlocksBlackBox:
             self.session_metrics['total_validations'] += 1
     
     def log_dashboard_update(self, component: str, update_type: str, data: Dict[str, Any],
-                           success: bool = True, error_msg: str = None) -> None:
+                           success: bool = True, error_msg: Optional[str] = None) -> None:
         """
         Log de actualizaciones del dashboard
         
@@ -215,7 +215,7 @@ class OrderBlocksBlackBox:
             self.session_metrics['total_dashboard_updates'] += 1
     
     def log_error(self, component: str, action: str, error: Exception, 
-                  context: Dict[str, Any] = None) -> None:
+                  context: Optional[Dict[str, Any]] = None) -> None:
         """
         Log de errores críticos
         
@@ -321,12 +321,12 @@ def log_order_block_validation(symbol: str, timeframe: str, live_data: Dict[str,
     get_order_blocks_black_box().log_validation(symbol, timeframe, live_data, historical_data, comparison_result, execution_time_ms)
 
 def log_order_block_dashboard_update(component: str, update_type: str, data: Dict[str, Any],
-                                   success: bool = True, error_msg: str = None):
+                                   success: bool = True, error_msg: Optional[str] = None):
     """Función de conveniencia para log de dashboard"""
     get_order_blocks_black_box().log_dashboard_update(component, update_type, data, success, error_msg)
 
 def log_order_block_error(component: str, action: str, error: Exception, 
-                         context: Dict[str, Any] = None):
+                         context: Optional[Dict[str, Any]] = None):
     """Función de conveniencia para log de errores"""
     get_order_blocks_black_box().log_error(component, action, error, context)
 

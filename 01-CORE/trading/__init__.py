@@ -16,6 +16,38 @@ from .dashboard_integrator import (
 from .real_trading_logger import RealTradingLogger
 from .real_trading_system import RealTradingSystem
 
+# Nuevos módulos enterprise para cuenta real
+try:
+    from .execution_engine import ExecutionEngine, OrderRequest, OrderResult, OrderType as ExecutionOrderType
+    EXECUTION_ENGINE_AVAILABLE = True
+except ImportError:
+    ExecutionEngine = None
+    OrderRequest = None
+    OrderResult = None
+    ExecutionOrderType = None
+    EXECUTION_ENGINE_AVAILABLE = False
+
+try:
+    from .live_trading_engine import (
+        LiveTradingEngine, 
+        TradingSignal, 
+        SignalType,
+        TradingStatus,
+        LivePosition,
+        create_live_trading_engine,
+        create_trading_signal
+    )
+    LIVE_TRADING_ENGINE_AVAILABLE = True
+except ImportError:
+    LiveTradingEngine = None
+    TradingSignal = None
+    SignalType = None
+    TradingStatus = None
+    LivePosition = None
+    create_live_trading_engine = None
+    create_trading_signal = None
+    LIVE_TRADING_ENGINE_AVAILABLE = False
+
 __all__ = [
     # Core classes
     'RealTradingSystem',
@@ -24,14 +56,32 @@ __all__ = [
     'DashboardTradingIntegrator',
     'RealTradingLogger',
     
+    # Nuevos módulos enterprise
+    'ExecutionEngine',
+    'LiveTradingEngine',
+    
     # Data classes
     'TradingLimits',
     'TradeResult',
     'DashboardTradeSignal',
     'DashboardTradeStatus',
+    'OrderRequest',
+    'OrderResult',
+    'TradingSignal',
+    'LivePosition',
     
     # Enums
-    'OrderType'
+    'OrderType',
+    'SignalType',
+    'TradingStatus',
+    
+    # Factory functions
+    'create_live_trading_engine',
+    'create_trading_signal',
+    
+    # Flags de disponibilidad
+    'EXECUTION_ENGINE_AVAILABLE',
+    'LIVE_TRADING_ENGINE_AVAILABLE'
 ]
 
 # Version info

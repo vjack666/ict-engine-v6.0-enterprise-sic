@@ -20,6 +20,7 @@ Estado: FASE 2 - MEMORIA UNIFICADA
 
 import json
 import os
+import time
 import numpy as np
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List, Union, Tuple, TYPE_CHECKING
@@ -142,6 +143,16 @@ class UnifiedMemorySystem:
             'learning_enabled': self.memory_config.get('learning_enabled', True),
             'components_status': self._get_components_health_status()
         }
+        
+        # === INICIALIZAR COMPONENTES AUXILIARES ===
+        self.persistence_manager = MemoryPersistenceManager(self)
+        self.learning_engine = AdaptiveLearningEngine(self)
+        self.confidence_evaluator = TraderConfidenceEvaluator(self)
+        
+        # === CONFIGURAR INTEGRACIONES ===
+        self._setup_real_component_integration()
+        self._setup_cross_component_integration()
+        self._restore_real_persistent_memory()
         
         # === FINALIZACIÓN INICIALIZACIÓN ===
         self._finalize_initialization()
@@ -443,7 +454,8 @@ class UnifiedMemorySystem:
     def _restore_persistent_memory(self):
         """Restaura memoria persistente entre sesiones"""
         if self.memory_config.get('persistence_enabled', True):
-            self.persistence_manager.load_persistent_context("EURUSD")  # Default symbol
+            if hasattr(self, 'persistence_manager'):
+                self.persistence_manager.load_persistent_context("EURUSD")  # Default symbol
     
     # === MÉTODOS PÚBLICOS FASE 2 - TRADER REAL ===
     
@@ -1351,7 +1363,7 @@ class TraderConfidenceEvaluator:
             cutoff_date = datetime.now() - timedelta(days=lookback_days)
             
             # Buscar en memoria de patrones
-            for stored_pattern in self.unified_system.pattern_memory:
+            for stored_pattern in self.pattern_memory:
                 try:
                     pattern_timestamp = stored_pattern.get('timestamp', '')
                     if pattern_timestamp:
@@ -1383,7 +1395,7 @@ class TraderConfidenceEvaluator:
                 "query": f"type={pattern_type}, tf={timeframe}, symbol={symbol}",
                 "patterns_found": len(historical_data),
                 "lookback_days": lookback_days,
-                "total_memory_patterns": len(self.unified_system.pattern_memory)
+                "total_memory_patterns": len(self.pattern_memory)
             })
             
             return {
@@ -1428,7 +1440,7 @@ class TraderConfidenceEvaluator:
             }
             
             # Analizar patrones por sesión
-            for pattern in self.unified_system.pattern_memory:
+            for pattern in self.pattern_memory:
                 pattern_symbol = pattern.get('symbol', 'UNKNOWN')
                 pattern_timestamp = pattern.get('timestamp', '')
                 

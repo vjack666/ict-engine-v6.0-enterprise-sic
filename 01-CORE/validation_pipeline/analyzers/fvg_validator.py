@@ -15,66 +15,118 @@ Módulos Enterprise Reales:
 Usa SOLO métodos y clases que existen realmente en el sistema.
 """
 
-import sys
-import os
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional, Tuple
+from datetime import datetime
+from typing import Dict, List, Any, Optional
 import pandas as pd
 import numpy as np
-from pathlib import Path
 
 # ==========================================
-# IMPORTS MÓDULOS ENTERPRISE REALES
+# IMPORTS MÓDULOS ENTERPRISE REALES - SISTEMA OPTIMIZADO
 # ==========================================
-try:
-    # Ruta base para imports
-    current_dir = Path(__file__).parent
-    base_path = current_dir.parent.parent  # 01-CORE
+# Imports absolutos sin type: ignore - sistema robusto de dependencias
+
+# Logger centralizado principal
+from smart_trading_logger import SmartTradingLogger
+
+# Dependencias enterprise con manejo granular de errores
+from typing import TYPE_CHECKING
+
+# Type-only imports para análisis estático
+if TYPE_CHECKING:
+    from smart_money_concepts.smart_money_analyzer import SmartMoneyAnalyzer
+    from ict_engine.pattern_detector import ICTPatternDetector
+    from analysis.unified_memory_system import UnifiedMemorySystem
+    from data_management.mt5_data_manager import MT5DataManager
+
+# Sistema de importación enterprise optimizado
+class EnterpriseModuleLoader:
+    """🏗️ Cargador optimizado de módulos enterprise"""
     
-    # SMART MONEY ANALYZER - detect_fvg() método real
-    sys.path.append(str(base_path / "smart_money_concepts"))
-    from smart_money_analyzer import SmartMoneyAnalyzer
+    def __init__(self):
+        self.logger = SmartTradingLogger("fvg_validator_loader")
+        self.modules: Dict[str, Any] = {}
+        self.missing_dependencies: Dict[str, str] = {}
+        self.enterprise_available = False
+        
+        self._load_enterprise_modules()
     
-    # ICT PATTERN DETECTOR - Clase real ICTPatternDetector
-    sys.path.append(str(base_path / "ict_engine"))
-    from pattern_detector import ICTPatternDetector
-    
-    # UNIFIED MEMORY SYSTEM - Persistencia real
-    sys.path.append(str(base_path / "analysis"))
-    from unified_memory_system import UnifiedMemorySystem
-    
-    # LOGGING CENTRALIZADO - funciones reales disponibles
-    sys.path.append(str(base_path))
-    from smart_trading_logger import log_info, log_warning, log_error
-    
-    def enviar_senal_log(level: str, message: str, module: str, category: Optional[str] = None):
-        """Wrapper para usar las funciones reales de smart_trading_logger"""
-        if level.upper() == "INFO":
-            log_info(message, module)
-        elif level.upper() == "WARNING":
-            log_warning(message, module)
-        elif level.upper() == "ERROR":
-            log_error(message, module)
+    def _load_enterprise_modules(self) -> None:
+        """Cargar módulos enterprise con diagnóstico granular"""
+        module_specs = [
+            ("SmartMoneyAnalyzer", "smart_money_concepts.smart_money_analyzer", "SmartMoneyAnalyzer"),
+            ("ICTPatternDetector", "ict_engine.pattern_detector", "ICTPatternDetector"),
+            ("UnifiedMemorySystem", "analysis.unified_memory_system", "UnifiedMemorySystem"),
+            ("MT5DataManager", "data_management.mt5_data_manager", "MT5DataManager")
+        ]
+        
+        for name, module_path, class_name in module_specs:
+            try:
+                module = __import__(module_path, fromlist=[class_name])
+                self.modules[name] = getattr(module, class_name)
+                self.logger.debug(f"✅ {name} cargado desde {module_path}", "MODULE_LOADER")
+                
+            except ImportError as e:
+                self.missing_dependencies[name] = f"ImportError: {e}"
+                self.logger.error(f"❌ {name} no disponible: {e}", "MODULE_LOADER")
+                
+            except AttributeError as e:
+                self.missing_dependencies[name] = f"AttributeError: {e}"
+                self.logger.error(f"❌ {name} clase no encontrada: {e}", "MODULE_LOADER")
+                
+            except Exception as e:
+                self.missing_dependencies[name] = f"Error general: {e}"
+                self.logger.error(f"❌ {name} error inesperado: {e}", "MODULE_LOADER")
+        
+        # Validar estado enterprise
+        if self.missing_dependencies:
+            problem_report = " | ".join(f"{k}: {v}" for k, v in self.missing_dependencies.items())
+            self.logger.error(
+                f"❌ Dependencias críticas FVG ausentes. No se permite fallback. {problem_report}", 
+                "FVG_VALIDATOR"
+            )
+            self.enterprise_available = False
         else:
-            log_info(message, module)
+            self.logger.info("✅ Módulos enterprise FVG cargados correctamente", "FVG_VALIDATOR")
+            self.enterprise_available = True
     
-    # MT5 DATA MANAGER - Datos reales
-    sys.path.append(str(base_path / "data_management"))
-    from mt5_data_manager import MT5DataManager
+    def get_module(self, name: str) -> Any:
+        """Obtener módulo enterprise o lanzar excepción"""
+        if name not in self.modules:
+            raise RuntimeError(f"Módulo enterprise {name} no disponible: {self.missing_dependencies.get(name, 'desconocido')}")
+        return self.modules[name]
     
-    ENTERPRISE_MODULES_AVAILABLE = True
-    enviar_senal_log("INFO", "✅ Módulos enterprise FVG cargados", 
-                    "fvg_validator", "system")
-    
-except ImportError as e:
-    ENTERPRISE_MODULES_AVAILABLE = False
-    
-    # Función stub para logging
-    def enviar_senal_log(level, message, module, category=None):
-        print(f"[{level}] [{module}] {message}")
-    
-    enviar_senal_log("WARNING", f"⚠️ Módulos enterprise FVG no disponibles: {e}", 
-                    "fvg_validator", "system")
+    def is_enterprise_ready(self) -> bool:
+        """Verificar si todos los módulos enterprise están disponibles"""
+        return self.enterprise_available
+
+# Instancia global del loader
+_module_loader = EnterpriseModuleLoader()
+
+# Variables globales para acceso directo
+ENTERPRISE_MODULES_AVAILABLE = _module_loader.is_enterprise_ready()
+logger = SmartTradingLogger("fvg_validator")
+
+# Acceso a módulos enterprise
+def get_smart_money_analyzer():
+    """Obtener SmartMoneyAnalyzer enterprise"""
+    return _module_loader.get_module("SmartMoneyAnalyzer")
+
+def get_ict_pattern_detector():
+    """Obtener ICTPatternDetector enterprise"""
+    return _module_loader.get_module("ICTPatternDetector")
+
+def get_unified_memory_system():
+    """Obtener UnifiedMemorySystem enterprise"""
+    return _module_loader.get_module("UnifiedMemorySystem")
+
+def get_mt5_data_manager():
+    """Obtener MT5DataManager enterprise"""
+    return _module_loader.get_module("MT5DataManager")
+
+def enviar_senal_log(level: str, message: str, module: str, category: Optional[str] = None) -> None:
+    """🔔 Sistema de logging centralizado optimizado"""
+    log_method = getattr(logger, level.lower(), logger.info)
+    log_method(message, module)
 
 
 class FVGValidatorEnterprise:
@@ -136,56 +188,40 @@ class FVGValidatorEnterprise:
         }
     
     def _initialize_real_modules(self):
-        """Inicializar módulos enterprise usando clases reales"""
+        """Inicializar módulos enterprise usando sistema optimizado"""
         self.modules = {}
         self.modules_available = {}
         
+        if not ENTERPRISE_MODULES_AVAILABLE:
+            raise RuntimeError("Dependencias enterprise FVG ausentes. Abortando inicialización.")
+
+        # Inicializaciones enterprise optimizadas
         try:
-            if ENTERPRISE_MODULES_AVAILABLE:
-                # SMART MONEY ANALYZER - Clase real
-                self.modules['smart_money'] = SmartMoneyAnalyzer()
-                self.modules_available['smart_money'] = True
-                enviar_senal_log("INFO", "✅ SmartMoneyAnalyzer inicializado", 
-                                "fvg_validator", "enterprise")
-                
-                # ICT PATTERN DETECTOR - Clase real
-                self.modules['pattern_detector'] = ICTPatternDetector()
-                self.modules_available['pattern_detector'] = True
-                enviar_senal_log("INFO", "✅ ICTPatternDetector inicializado", 
-                                "fvg_validator", "enterprise")
-                
-                # UNIFIED MEMORY SYSTEM - Clase real
-                self.modules['memory_system'] = UnifiedMemorySystem()
-                self.modules_available['memory_system'] = True
-                enviar_senal_log("INFO", "✅ UnifiedMemorySystem inicializado", 
-                                "fvg_validator", "enterprise")
-                
-                # MT5 DATA MANAGER - Clase real
-                self.modules['mt5_data'] = MT5DataManager()
-                self.modules_available['mt5_data'] = True
-                enviar_senal_log("INFO", "✅ MT5DataManager inicializado", 
-                                "fvg_validator", "enterprise")
-                
-                enviar_senal_log("INFO", "🎯 Todos los módulos FVG enterprise inicializados", 
-                                "fvg_validator", "enterprise")
-                                
-            else:
-                self._initialize_fallback_modules()
-                
+            self.modules['smart_money'] = get_smart_money_analyzer()()
+            self.modules_available['smart_money'] = True
+            enviar_senal_log("INFO", "✅ SmartMoneyAnalyzer inicializado", "fvg_validator", "enterprise")
+
+            self.modules['pattern_detector'] = get_ict_pattern_detector()()
+            self.modules_available['pattern_detector'] = True
+            enviar_senal_log("INFO", "✅ ICTPatternDetector inicializado", "fvg_validator", "enterprise")
+
+            self.modules['memory_system'] = get_unified_memory_system()()
+            self.modules_available['memory_system'] = True
+            enviar_senal_log("INFO", "✅ UnifiedMemorySystem inicializado", "fvg_validator", "enterprise")
+
+            self.modules['mt5_data'] = get_mt5_data_manager()()
+            self.modules_available['mt5_data'] = True
+            enviar_senal_log("INFO", "✅ MT5DataManager inicializado", "fvg_validator", "enterprise")
+
+            enviar_senal_log("INFO", "🎯 Todos los módulos FVG enterprise inicializados", "fvg_validator", "enterprise")
+            
         except Exception as e:
-            enviar_senal_log("ERROR", f"❌ Error inicializando módulos FVG: {e}", 
-                            "fvg_validator", "enterprise")
-            self._initialize_fallback_modules()
+            enviar_senal_log("ERROR", f"❌ Error inicializando módulos FVG: {e}", "fvg_validator", "enterprise")
+            raise RuntimeError(f"Fallo inicialización módulos enterprise: {e}") from e
     
     def _initialize_fallback_modules(self):
         """Módulos fallback si enterprise no disponible"""
-        self.modules = {}
-        self.modules_available = {
-            'smart_money': False,
-            'pattern_detector': False, 
-            'memory_system': False,
-            'mt5_data': False
-        }
+        raise RuntimeError("Modo fallback deshabilitado: se requieren todos los módulos enterprise.")
     
     def validate_fvg_accuracy(self, symbol: str, timeframe: str, 
                              validation_period: str = 'short') -> Dict[str, Any]:
@@ -249,59 +285,51 @@ class FVGValidatorEnterprise:
     def _execute_live_analysis(self, symbol: str, timeframe: str) -> Dict[str, Any]:
         """Ejecutar análisis live usando SmartMoneyAnalyzer.detect_fvg()"""
         try:
-            if self.modules_available.get('smart_money', False):
-                # Usar método REAL detect_fvg
-                fvg_gaps = self.modules['smart_money'].detect_fvg(
-                    symbol=symbol, 
-                    timeframe=timeframe
-                )
-                
-                return {
-                    'success': True,
-                    'timestamp': datetime.now().isoformat(),
-                    'method_used': 'SmartMoneyAnalyzer.detect_fvg',
-                    'symbol': symbol,
-                    'timeframe': timeframe,
-                    'fvg_count': len(fvg_gaps),
-                    'fvg_data': fvg_gaps,
-                    'analysis_type': 'live'
-                }
-            else:
-                return self._create_fallback_analysis(symbol, timeframe, 'live')
+            fvg_gaps = self.modules['smart_money'].detect_fvg(
+                symbol=symbol,
+                timeframe=timeframe
+            )
+
+            return {
+                'success': True,
+                'timestamp': datetime.now().isoformat(),
+                'method_used': 'SmartMoneyAnalyzer.detect_fvg',
+                'symbol': symbol,
+                'timeframe': timeframe,
+                'fvg_count': len(fvg_gaps),
+                'fvg_data': fvg_gaps,
+                'analysis_type': 'live'
+            }
                 
         except Exception as e:
             enviar_senal_log("ERROR", f"❌ Error análisis FVG live: {e}", 
                             "fvg_validator", "analysis")
-            return self._create_fallback_analysis(symbol, timeframe, 'live', error=str(e))
+            raise RuntimeError(f"Análisis FVG live falló: {e}") from e
     
     def _execute_historical_analysis(self, symbol: str, timeframe: str, period: str) -> Dict[str, Any]:
         """Ejecutar análisis histórico usando MISMOS métodos"""
         try:
-            if self.modules_available.get('smart_money', False):
-                # Usar MISMO método detect_fvg para histórico
-                fvg_gaps = self.modules['smart_money'].detect_fvg(
-                    symbol=symbol, 
-                    timeframe=timeframe
-                )
-                
-                return {
-                    'success': True,
-                    'timestamp': datetime.now().isoformat(),
-                    'method_used': 'SmartMoneyAnalyzer.detect_fvg',
-                    'symbol': symbol,
-                    'timeframe': timeframe,
-                    'validation_period': period,
-                    'fvg_count': len(fvg_gaps),
-                    'fvg_data': fvg_gaps,
-                    'analysis_type': 'historical'
-                }
-            else:
-                return self._create_fallback_analysis(symbol, timeframe, 'historical')
+            fvg_gaps = self.modules['smart_money'].detect_fvg(
+                symbol=symbol,
+                timeframe=timeframe
+            )
+
+            return {
+                'success': True,
+                'timestamp': datetime.now().isoformat(),
+                'method_used': 'SmartMoneyAnalyzer.detect_fvg',
+                'symbol': symbol,
+                'timeframe': timeframe,
+                'validation_period': period,
+                'fvg_count': len(fvg_gaps),
+                'fvg_data': fvg_gaps,
+                'analysis_type': 'historical'
+            }
                 
         except Exception as e:
             enviar_senal_log("ERROR", f"❌ Error análisis FVG histórico: {e}", 
                             "fvg_validator", "analysis")
-            return self._create_fallback_analysis(symbol, timeframe, 'historical', error=str(e))
+            raise RuntimeError(f"Análisis FVG histórico falló: {e}") from e
     
     def _calculate_accuracy_metrics(self, live_analysis: Dict, historical_analysis: Dict) -> Dict[str, Any]:
         """Calcular métricas de accuracy comparando live vs historical"""
@@ -346,18 +374,7 @@ class FVGValidatorEnterprise:
     
     def _create_fallback_analysis(self, symbol: str, timeframe: str, analysis_type: str, error: Optional[str] = None) -> Dict[str, Any]:
         """Análisis fallback cuando módulos no disponibles"""
-        return {
-            'success': False,
-            'timestamp': datetime.now().isoformat(),
-            'method_used': 'fallback_simulation',
-            'symbol': symbol,
-            'timeframe': timeframe,
-            'analysis_type': analysis_type,
-            'fvg_count': 0,
-            'fvg_data': [],
-            'error': error,
-            'fallback_reason': 'enterprise_modules_not_available'
-        }
+        raise RuntimeError("Fallback analysis deshabilitado: dependencias enterprise requeridas")
     
     def _save_validation_result(self, validation_id: str, result: Dict[str, Any]):
         """Guardar resultado usando UnifiedMemorySystem si disponible"""

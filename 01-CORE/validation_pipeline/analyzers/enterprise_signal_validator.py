@@ -1,44 +1,143 @@
 """
 🔰 Enterprise Signal Validator - Central Validation System v6.0
+===============================================================
+
 Validador centralizado que integra todos los validadores empresariales
+optimizado para manejo de cuentas reales sin fallbacks.
+
 Autor: Sistema ICT Engine Enterprise SIC
-Fecha: 2025-01-12
+Fecha: Septiembre 13, 2025
 """
 
-import logging
 from datetime import datetime
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, TYPE_CHECKING
 import json
 import uuid
 
-try:
+# Logger centralizado
+from smart_trading_logger import SmartTradingLogger
+
+# Type-only imports para análisis estático
+if TYPE_CHECKING:
     from ..core.validation_engine import ValidationEngine
-except ImportError:
-    # Fallback para ValidationEngine básico
-    class ValidationEngine:
-        def __init__(self):
-            pass
+    from .smart_money_validator import SmartMoneyValidatorEnterprise
+    from .order_blocks_validator import OrderBlocksValidatorEnterprise
+    from .fvg_validator import FVGValidatorEnterprise
 
-from .smart_money_validator import SmartMoneyValidatorEnterprise
-from .order_blocks_validator import OrderBlocksValidatorEnterprise
-from .fvg_validator import FVGValidatorEnterprise
 
-# Import logging functions
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-from smart_trading_logger import log_info, log_warning, log_error
+class EnterpriseValidationModuleLoader:
+    """🏗️ Cargador optimizado de módulos de validación enterprise"""
+    
+    def __init__(self):
+        self.logger = SmartTradingLogger("enterprise_validation_loader")
+        self.modules: Dict[str, Any] = {}
+        self.missing_dependencies: Dict[str, str] = {}
+        self.enterprise_ready = False
+        
+        self._load_validation_modules()
+    
+    def _load_validation_modules(self) -> None:
+        """Cargar módulos de validación con diagnóstico granular"""
+        module_specs = [
+            ("ValidationEngine", "..core.validation_engine", "ValidationEngine"),
+            ("SmartMoneyValidator", ".smart_money_validator", "SmartMoneyValidatorEnterprise"),
+            ("OrderBlocksValidator", ".order_blocks_validator", "OrderBlocksValidatorEnterprise"), 
+            ("FVGValidator", ".fvg_validator", "FVGValidatorEnterprise")
+        ]
+        
+        for name, module_path, class_name in module_specs:
+            try:
+                if module_path.startswith('..'):
+                    # Import relativo hacia arriba
+                    from ..core.validation_engine import ValidationEngine
+                    if name == "ValidationEngine":
+                        self.modules[name] = ValidationEngine
+                        self.logger.debug(f"✅ {name} cargado (import relativo)", "MODULE_LOADER")
+                        continue
+                
+                if module_path.startswith('.'):
+                    # Import relativo en mismo nivel
+                    if name == "SmartMoneyValidator":
+                        from .smart_money_validator import SmartMoneyValidatorEnterprise
+                        self.modules[name] = SmartMoneyValidatorEnterprise
+                    elif name == "OrderBlocksValidator":
+                        from .order_blocks_validator import OrderBlocksValidatorEnterprise
+                        self.modules[name] = OrderBlocksValidatorEnterprise
+                    elif name == "FVGValidator":
+                        from .fvg_validator import FVGValidatorEnterprise
+                        self.modules[name] = FVGValidatorEnterprise
+                    
+                    self.logger.debug(f"✅ {name} cargado correctamente", "MODULE_LOADER")
+                    
+            except ImportError as e:
+                self.missing_dependencies[name] = f"ImportError: {e}"
+                self.logger.error(f"❌ {name} no disponible: {e}", "MODULE_LOADER")
+                
+            except AttributeError as e:
+                self.missing_dependencies[name] = f"AttributeError: {e}"
+                self.logger.error(f"❌ {name} clase no encontrada: {e}", "MODULE_LOADER")
+                
+            except Exception as e:
+                self.missing_dependencies[name] = f"Error general: {e}"
+                self.logger.error(f"❌ {name} error inesperado: {e}", "MODULE_LOADER")
+        
+        # Validar estado enterprise
+        if self.missing_dependencies:
+            problem_report = " | ".join(f"{k}: {v}" for k, v in self.missing_dependencies.items())
+            self.logger.error(
+                f"❌ Dependencias críticas de validación ausentes. {problem_report}", 
+                "ENTERPRISE_VALIDATOR"
+            )
+            self.enterprise_ready = False
+        else:
+            self.logger.info("✅ Módulos de validación enterprise cargados correctamente", "ENTERPRISE_VALIDATOR")
+            self.enterprise_ready = True
+    
+    def get_module(self, name: str) -> Any:
+        """Obtener módulo de validación o lanzar excepción"""
+        if name not in self.modules:
+            raise RuntimeError(f"Módulo de validación {name} no disponible: {self.missing_dependencies.get(name, 'desconocido')}")
+        return self.modules[name]
+    
+    def is_enterprise_ready(self) -> bool:
+        """Verificar si todos los módulos de validación están disponibles"""
+        return self.enterprise_ready
+
+# Instancia global del loader
+_validation_module_loader = EnterpriseValidationModuleLoader()
+
+# Variables globales optimizadas
+ENTERPRISE_VALIDATION_AVAILABLE = _validation_module_loader.is_enterprise_ready()
+logger = SmartTradingLogger("enterprise_signal_validator")
+
+# Funciones getter optimizadas
+def get_validation_engine():
+    """Obtener ValidationEngine enterprise"""
+    return _validation_module_loader.get_module("ValidationEngine")
+
+def get_smart_money_validator():
+    """Obtener SmartMoneyValidator enterprise"""
+    return _validation_module_loader.get_module("SmartMoneyValidator")
+
+def get_order_blocks_validator():
+    """Obtener OrderBlocksValidator enterprise"""
+    return _validation_module_loader.get_module("OrderBlocksValidator")
+
+def get_fvg_validator():
+    """Obtener FVGValidator enterprise"""
+    return _validation_module_loader.get_module("FVGValidator")
 
 
 class EnterpriseSignalValidator:
     """
     🔰 Validador centralizado que integra todos los validadores empresariales
     
-    Características principales:
-    - Integra SmartMoney, OrderBlocks y FVG validators
-    - Comparación unificada live vs historical
+    Características Enterprise:
+    - Sistema de validación multi-módulo sin fallbacks
+    - Comparación unificada live vs historical 
     - Métricas de accuracy cross-validator
-    - Pipeline centralizado para validaciones completas
+    - Pipeline optimizado para cuentas reales
+    - Logging centralizado integrado
     """
     
     def __init__(self, config: Optional[Dict] = None):
@@ -49,24 +148,28 @@ class EnterpriseSignalValidator:
             config: Configuración opcional del validador
         """
         self.config = config or {}
-        self.validation_id = None
+        self.validation_id: Optional[str] = None
+        self._last_validation_result: Optional[Dict[str, Any]] = None
         
-        # Inicializar validadores especializados
+        if not ENTERPRISE_VALIDATION_AVAILABLE:
+            raise RuntimeError("Dependencias de validación enterprise no disponibles. Sistema abortado.")
+        
+        # Inicializar validadores especializados con sistema optimizado
         try:
-            self.smart_money_validator = SmartMoneyValidatorEnterprise()
-            self.order_blocks_validator = OrderBlocksValidatorEnterprise()
-            self.fvg_validator = FVGValidatorEnterprise()
+            self.smart_money_validator = get_smart_money_validator()()
+            self.order_blocks_validator = get_order_blocks_validator()()
+            self.fvg_validator = get_fvg_validator()()
             
             # Inicializar motor de validación
-            self.validation_engine = ValidationEngine()
+            self.validation_engine = get_validation_engine()()
             
-            log_info("✅ EnterpriseSignalValidator inicializado exitosamente")
-            log_info(f"   Validadores cargados: SmartMoney, OrderBlocks, FVG")
-            log_info(f"   ValidationEngine: ✅ Operativo")
+            logger.info("✅ EnterpriseSignalValidator inicializado exitosamente", "ENTERPRISE_VALIDATOR")
+            logger.info("   Validadores cargados: SmartMoney, OrderBlocks, FVG", "ENTERPRISE_VALIDATOR")
+            logger.info("   ValidationEngine: ✅ Operativo", "ENTERPRISE_VALIDATOR")
             
         except Exception as e:
-            log_error(f"❌ Error inicializando EnterpriseSignalValidator: {str(e)}")
-            raise
+            logger.error(f"❌ Error inicializando EnterpriseSignalValidator: {e}", "ENTERPRISE_VALIDATOR")
+            raise RuntimeError(f"Fallo inicialización enterprise validator: {e}") from e
     
     def validate_all_signals(
         self, 
@@ -87,9 +190,9 @@ class EnterpriseSignalValidator:
         """
         self.validation_id = f"enterprise_validation_{symbol}_{timeframe}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
-        log_info(f"🔍 Iniciando validación empresarial completa")
-        log_info(f"   Symbol: {symbol} | Timeframe: {timeframe}")
-        log_info(f"   Validation ID: {self.validation_id}")
+        logger.info(f"🔍 Iniciando validación empresarial completa")
+        logger.info(f"   Symbol: {symbol} | Timeframe: {timeframe}")
+        logger.info(f"   Validation ID: {self.validation_id}")
         
         results = {
             'validation_id': self.validation_id,
@@ -104,21 +207,21 @@ class EnterpriseSignalValidator:
         
         try:
             # 1. Validación Smart Money
-            log_info("📊 Ejecutando validación Smart Money...")
+            logger.info("📊 Ejecutando validación Smart Money...")
             smart_money_result = self.smart_money_validator.validate_smart_money_accuracy(
                 symbol, timeframe
             )
             results['validators']['smart_money'] = smart_money_result
             
             # 2. Validación Order Blocks
-            log_info("🧱 Ejecutando validación Order Blocks...")
+            logger.info("🧱 Ejecutando validación Order Blocks...")
             order_blocks_result = self.order_blocks_validator.validate_order_blocks_accuracy(
                 symbol, timeframe
             )
             results['validators']['order_blocks'] = order_blocks_result
             
             # 3. Validación FVG
-            log_info("⚡ Ejecutando validación FVG...")
+            logger.info("⚡ Ejecutando validación FVG...")
             fvg_result = self.fvg_validator.validate_fvg_accuracy(
                 symbol, timeframe
             )
@@ -137,16 +240,16 @@ class EnterpriseSignalValidator:
             summary = self._generate_executive_summary(results)
             results['summary'] = summary
             
-            log_info("✅ Validación empresarial completada exitosamente")
-            log_info(f"   Smart Money signals: {unified_metrics.get('smart_money_count', 0)}")
-            log_info(f"   Order Blocks detected: {unified_metrics.get('order_blocks_count', 0)}")
-            log_info(f"   FVG detected: {unified_metrics.get('fvg_count', 0)}")
-            log_info(f"   Overall accuracy: {unified_metrics.get('overall_accuracy', 0):.2f}%")
+            logger.info("✅ Validación empresarial completada exitosamente")
+            logger.info(f"   Smart Money signals: {unified_metrics.get('smart_money_count', 0)}")
+            logger.info(f"   Order Blocks detected: {unified_metrics.get('order_blocks_count', 0)}")
+            logger.info(f"   FVG detected: {unified_metrics.get('fvg_count', 0)}")
+            logger.info(f"   Overall accuracy: {unified_metrics.get('overall_accuracy', 0):.2f}%")
             
             return results
             
         except Exception as e:
-            log_error(f"❌ Error en validación empresarial: {str(e)}")
+            logger.error(f"❌ Error en validación empresarial: {str(e)}")
             results['error'] = str(e)
             return results
     
@@ -213,10 +316,10 @@ class EnterpriseSignalValidator:
             if consistency_scores:
                 metrics['overall_consistency'] = sum(consistency_scores) / len(consistency_scores)
             
-            log_info(f"📊 Métricas unificadas calculadas: {metrics['total_signals']} señales totales")
+            logger.info(f"📊 Métricas unificadas calculadas: {metrics['total_signals']} señales totales")
             
         except Exception as e:
-            log_error(f"❌ Error calculando métricas unificadas: {str(e)}")
+            logger.error(f"❌ Error calculando métricas unificadas: {str(e)}")
             metrics['error'] = str(e)
         
         return metrics
@@ -252,11 +355,11 @@ class EnterpriseSignalValidator:
             # Detección de divergencias
             comparison['divergence_detection'] = self._detect_validator_divergences(validators_results)
             
-            log_info("🔄 Comparación cross-validator completada")
+            logger.info("🔄 Comparación cross-validator completada")
             
         except Exception as e:
-            log_error(f"❌ Error en comparación cross-validator: {str(e)}")
-            comparison['error'] = str(e)
+            logger.error(f"❌ Error en comparación cross-validator: {str(e)}", "ENTERPRISE_VALIDATOR")
+            comparison = {'error': str(e), 'success': False}
         
         return comparison
     
@@ -375,7 +478,7 @@ class EnterpriseSignalValidator:
                 summary['trading_readiness'] = False
             
         except Exception as e:
-            log_error(f"❌ Error generando resumen ejecutivo: {str(e)}")
+            logger.error(f"❌ Error generando resumen ejecutivo: {str(e)}")
             summary['error'] = str(e)
         
         return summary
@@ -390,7 +493,7 @@ class EnterpriseSignalValidator:
         Returns:
             String con reporte formateado
         """
-        if not hasattr(self, '_last_validation_result'):
+        if not self._last_validation_result:
             return "No hay resultados de validación disponibles"
         
         if format == 'json':
@@ -398,7 +501,7 @@ class EnterpriseSignalValidator:
         
         # Formato texto simplificado
         result = self._last_validation_result
-        summary = result.get('summary', {})
+        summary = result.get('summary', {}) if result else {}
         
         report = f"""
 🔰 ENTERPRISE SIGNAL VALIDATOR REPORT
