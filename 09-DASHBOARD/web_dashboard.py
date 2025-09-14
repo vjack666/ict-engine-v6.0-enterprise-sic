@@ -63,6 +63,16 @@ except ImportError as e:
     TABS_AVAILABLE = False
     OrderBlocksTab = create_order_blocks_tab = None
 
+# Performance tab (metrics)
+try:
+    from core.tabs.performance_tab import PerformanceTab, create_performance_tab  # type: ignore
+    PERFORMANCE_TAB_OK = True
+    print("✅ Performance Tab module loaded")
+except Exception as e:
+    PERFORMANCE_TAB_OK = False
+    print(f"⚠️ Performance Tab not available: {e}")
+    PerformanceTab = create_performance_tab = None  # type: ignore
+
 
 class ICTWebDashboard:
     """
@@ -129,6 +139,19 @@ class ICTWebDashboard:
                 print("✅ Order Blocks Tab initialized")
             except Exception as e:
                 print(f"⚠️ Failed to initialize Order Blocks Tab: {e}")
+
+        # Performance Tab
+        metrics_dir_guess = str(project_root / '04-DATA' / 'metrics')
+        if PERFORMANCE_TAB_OK:
+            try:
+                self.tabs['performance'] = create_performance_tab(
+                    app=self.app,
+                    metrics_dir=metrics_dir_guess,
+                    refresh_interval=self.config['refresh_interval']
+                )
+                print(f"✅ Performance Tab initialized (metrics_dir={metrics_dir_guess})")
+            except Exception as e:
+                print(f"⚠️ Failed to initialize Performance Tab: {e}")
         
         # Future tabs can be added here
         # self.tabs['fvg_analysis'] = create_fvg_tab(self.app)
@@ -230,8 +253,10 @@ class ICTWebDashboard:
                 return self._create_placeholder_tab("⚡ Live Trading", 
                     "Live trading interface coming soon...")
             elif active_tab == 'performance':
+                if 'performance' in self.tabs:
+                    return self.tabs['performance'].create_layout()
                 return self._create_placeholder_tab("📈 Performance", 
-                    "Performance metrics coming soon...")
+                    "Performance metrics module not available...")
             else:
                 return self._create_placeholder_tab("🚧 Under Construction", 
                     "This tab is being developed...")

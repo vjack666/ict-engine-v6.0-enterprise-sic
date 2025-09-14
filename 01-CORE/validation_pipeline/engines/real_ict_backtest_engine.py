@@ -24,7 +24,20 @@ from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
 import random
 import os
-from ...protocols.logging_protocol import get_central_logger
+try:
+    from protocols.logging_protocol import get_central_logger
+except ImportError:
+    # Fallback for different import contexts
+    try:
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+        from protocols.logging_protocol import get_central_logger
+    except ImportError:
+        # Final fallback - create a simple logger
+        def get_central_logger(logger_name: str = "Backtest", **kwargs) -> Any:
+            import logging
+            return logging.getLogger(logger_name)
 
 ANALYZERS_AVAILABLE = True
 create_smart_money_validator: Optional[Callable[[], Any]] = None

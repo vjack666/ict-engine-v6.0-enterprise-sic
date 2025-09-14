@@ -136,63 +136,35 @@ class DashImportManager:
         """🛡️ Crear fallbacks para Dash cuando no está disponible"""
         
         class MockHTML:
-            """Mock HTML components para fallback"""
-            
+            """Mock HTML components fallback: devuelve cadenas simples para ser válidas como children."""
             @staticmethod
-            def Div(children=None, **kwargs):
-                return {"type": "div", "children": children, "props": kwargs}
-                
+            def Div(children=None, **kwargs): return "<div>" + (str(children) if children is not None else "") + "</div>"
             @staticmethod
-            def H1(children=None, **kwargs):
-                return {"type": "h1", "children": children, "props": kwargs}
-                
+            def H1(children=None, **kwargs): return "<h1>" + (str(children) if children is not None else "") + "</h1>"
             @staticmethod
-            def H2(children=None, **kwargs):
-                return {"type": "h2", "children": children, "props": kwargs}
-                
+            def H2(children=None, **kwargs): return "<h2>" + (str(children) if children is not None else "") + "</h2>"
             @staticmethod
-            def H3(children=None, **kwargs):
-                return {"type": "h3", "children": children, "props": kwargs}
-                
+            def H3(children=None, **kwargs): return "<h3>" + (str(children) if children is not None else "") + "</h3>"
             @staticmethod
-            def P(children=None, **kwargs):
-                return {"type": "p", "children": children, "props": kwargs}
-                
+            def P(children=None, **kwargs): return "<p>" + (str(children) if children is not None else "") + "</p>"
             @staticmethod
-            def Button(children=None, **kwargs):
-                return {"type": "button", "children": children, "props": kwargs}
-                
+            def Button(children=None, **kwargs): return "<button>" + (str(children) if children is not None else "") + "</button>"
             @staticmethod
-            def Span(children=None, **kwargs):
-                return {"type": "span", "children": children, "props": kwargs}
-                
+            def Span(children=None, **kwargs): return "<span>" + (str(children) if children is not None else "") + "</span>"
             @staticmethod
-            def Table(children=None, **kwargs):
-                return {"type": "table", "children": children, "props": kwargs}
-                
+            def Table(children=None, **kwargs): return "<table>" + (str(children) if children is not None else "") + "</table>"
             @staticmethod
-            def Thead(children=None, **kwargs):
-                return {"type": "thead", "children": children, "props": kwargs}
-                
+            def Thead(children=None, **kwargs): return "<thead>" + (str(children) if children is not None else "") + "</thead>"
             @staticmethod
-            def Tbody(children=None, **kwargs):
-                return {"type": "tbody", "children": children, "props": kwargs}
-                
+            def Tbody(children=None, **kwargs): return "<tbody>" + (str(children) if children is not None else "") + "</tbody>"
             @staticmethod
-            def Tr(children=None, **kwargs):
-                return {"type": "tr", "children": children, "props": kwargs}
-                
+            def Tr(children=None, **kwargs): return "<tr>" + (str(children) if children is not None else "") + "</tr>"
             @staticmethod
-            def Th(children=None, **kwargs):
-                return {"type": "th", "children": children, "props": kwargs}
-                
+            def Th(children=None, **kwargs): return "<th>" + (str(children) if children is not None else "") + "</th>"
             @staticmethod
-            def Td(children=None, **kwargs):
-                return {"type": "td", "children": children, "props": kwargs}
-                
+            def Td(children=None, **kwargs): return "<td>" + (str(children) if children is not None else "") + "</td>"
             @staticmethod
-            def Label(children=None, **kwargs):
-                return {"type": "label", "children": children, "props": kwargs}
+            def Label(children=None, **kwargs): return "<label>" + (str(children) if children is not None else "") + "</label>"
         
         class MockDCC:
             """Mock Core Components para fallback"""
@@ -489,27 +461,31 @@ class DashboardUtilities:
     @staticmethod
     def create_metric_card(title: str, value: str, icon: str = "📊",
                           color: str = "primary", 
-                          imports: Optional[DashImportManager] = None) -> Union[Dict[str, Any], Any]:
+                          imports: Optional[DashImportManager] = None) -> Any:
         """🎴 Crear card de métrica estandarizada"""
         if not imports or not imports.html:
-            return {"error": "HTML components not available"}
-        
-        return imports.html.Div([
-            imports.html.Div([
-                imports.html.Div([
-                    imports.html.H3(value, className="metric-value"),
-                    imports.html.P(title, className="metric-label")
-                ], className="metric-content"),
+            return "HTML components not available"
+        inner = imports.html.Div(
+            (
+                imports.html.Div(
+                    (
+                        imports.html.H3(value, className="metric-value"),
+                        imports.html.P(title, className="metric-label")
+                    ),
+                    className="metric-content"
+                ),
                 imports.html.Div(icon, className=f"metric-icon {color}")
-            ], className="metric-card-inner")
-        ], className=f"metric-card metric-{color}")
+            ),
+            className="metric-card-inner"
+        )
+        return imports.html.Div((inner,), className=f"metric-card metric-{color}")
     
     @staticmethod
     def create_status_indicator(status: str, text: str = "", 
-                              imports: Optional[DashImportManager] = None) -> Union[Dict[str, Any], Any]:
+                              imports: Optional[DashImportManager] = None) -> Any:
         """🚥 Crear indicador de estado"""
         if not imports or not imports.html:
-            return {"error": "HTML components not available"}
+            return "HTML components not available"
         
         status_colors = {
             "success": "🟢",
@@ -522,22 +498,27 @@ class DashboardUtilities:
         icon = status_colors.get(status, "⚪")
         display_text = text or status.title()
         
-        return imports.html.Span([
-            imports.html.Span(icon, className="status-icon"),
-            imports.html.Span(display_text, className="status-text")
-        ], className=f"status-indicator status-{status}")
+        return imports.html.Span(
+            (
+                imports.html.Span(icon, className="status-icon"),
+                imports.html.Span(display_text, className="status-text")
+            ),
+            className=f"status-indicator status-{status}"
+        )
     
     @staticmethod
     def create_loading_placeholder(message: str = "Loading...", 
-                                 imports: Optional[DashImportManager] = None) -> Union[Dict[str, Any], Any]:
+                                 imports: Optional[DashImportManager] = None) -> Any:
         """⏳ Crear placeholder de carga"""
         if not imports or not imports.html:
-            return {"error": "HTML components not available"}
-        
-        return imports.html.Div([
-            imports.html.Div("⏳", className="loading-spinner"),
-            imports.html.P(message, className="loading-message")
-        ], className="loading-placeholder")
+            return "HTML components not available"
+        return imports.html.Div(
+            (
+                imports.html.Div("⏳", className="loading-spinner"),
+                imports.html.P(message, className="loading-message")
+            ),
+            className="loading-placeholder"
+        )
 
 
 class DashboardCore:
@@ -607,30 +588,30 @@ class DashboardCore:
                           title: str = "ICT Engine v6.0 Enterprise") -> Any:
         """🏗️ Crear layout base del dashboard"""
         if not self.imports.html:
-            return {"error": "HTML components not available"}
+            return "HTML components not available"
         
         theme_colors = self.theme_manager.get_colors()
         
         # Default children if none provided
         if children is None:
-            children = [{"type": "div", "children": "Initializing dashboard..."}]
+            children = [self.imports.html.Div("Initializing dashboard...")]
         
-        return self.imports.html.Div([
-            # Header  
-            {"type": "div", "children": [title], "className": "dashboard-header"},
-            
-            # Content
-            {"type": "div", "children": children, "className": "dashboard-content"},
-            
-            # Footer
-            {"type": "div", "children": [f"ICT Engine v6.0 Enterprise - {datetime.now().strftime('%Y')}"], 
-             "className": "dashboard-footer"}
-            
-        ], className="dashboard-container", style={
-            "backgroundColor": theme_colors["background"],
-            "color": theme_colors["text_primary"],
-            "fontFamily": self.theme_manager.get_theme()["fonts"]["primary"]
-        })
+        header = self.imports.html.Div(title, className="dashboard-header")
+        # Ensure children is a sequence acceptable by Dash: list/tuple of Components or strings
+        normalized_children = children if isinstance(children, (list, tuple)) else [children]
+        content = self.imports.html.Div(normalized_children, className="dashboard-content")
+        footer = self.imports.html.Div(
+            f"ICT Engine v6.0 Enterprise - {datetime.now().strftime('%Y')}",
+            className="dashboard-footer"
+        )
+        return self.imports.html.Div(
+            [header, content, footer],
+            className="dashboard-container", style={
+                "backgroundColor": theme_colors["background"],
+                "color": theme_colors["text_primary"],
+                "fontFamily": self.theme_manager.get_theme()["fonts"]["primary"]
+            }
+        )
 
 
 # Global instance for easy access
@@ -643,47 +624,78 @@ def get_dashboard_core(theme: str = "dark_professional") -> DashboardCore:
     if _dashboard_core is None:
         _dashboard_core = DashboardCore(theme)
         
+        # Initialize TabCoordinator integration after core is ready
+        try:
+            from tab_coordinator import initialize_tab_coordinator_integration
+            success = initialize_tab_coordinator_integration(dashboard_core=_dashboard_core)
+            if success and _dashboard_core.logger:
+                _dashboard_core.logger.info("TabCoordinator integration completed", "dashboard_init")
+        except ImportError:
+            print("⚠️ TabCoordinator not available for integration")
+        except Exception as e:
+            print(f"⚠️ Error initializing TabCoordinator integration: {e}")
+        
     return _dashboard_core
 
 
-# Testing and validation functions
-def test_dashboard_core():
-    """🧪 Test function para validar DashboardCore"""
-    print("🧪 Testing Dashboard Core...")
-    
+def initialize_dashboard_production():
+    """🏭 Inicializar DashboardCore para producción"""
     try:
-        # Test initialization
-        core = DashboardCore()
-        print("✅ Dashboard Core initialized")
+        # Obtener instancia global
+        core = get_dashboard_core()
         
-        # Test component access
-        html, dcc, Input, Output, State, callback = core.get_components()
-        print(f"✅ Components accessed: html={html is not None}, dcc={dcc is not None}")
+        # Registrar con logging si está disponible
+        if core.logger:
+            core.logger.info("Dashboard Core initialized for production", "production_init")
         
-        # Test theme management
-        theme_config = core.get_theme_config()
-        print(f"✅ Theme config loaded: {theme_config['name']}")
-        
-        # Test utilities
-        formatted_num = core.utilities.format_number(1234.56)
-        print(f"✅ Utilities working: {formatted_num}")
-        
-        # Test system status
+        # Exportar estado inicial del sistema
         status = core.get_system_status()
-        print(f"✅ System status: {status['core_initialized']}")
         
-        # Test global instance
-        global_core = get_dashboard_core()
-        print(f"✅ Global instance: {global_core is not None}")
+        # Crear directorio de estado si no existe
+        from pathlib import Path
+        state_dir = Path(__file__).parent.parent.parent / "04-DATA" / "dashboard_state"
+        state_dir.mkdir(parents=True, exist_ok=True)
         
-        print("🎉 Dashboard Core test completed successfully!")
-        return True
+        # Guardar estado inicial
+        import json
+        from datetime import datetime
+        
+        state_file = state_dir / "core_status.json"
+        state_data = {
+            **status,
+            "initialization_time": datetime.now().isoformat(),
+            "theme": core.theme_manager.current_theme,
+            "components_loaded": {
+                "dash_available": core.imports.dash_available,
+                "plotly_available": core.imports.plotly_available,
+                "pandas_available": core.imports.pd is not None
+            }
+        }
+        
+        with open(state_file, 'w', encoding='utf-8') as f:
+            json.dump(state_data, f, indent=2)
+            
+        print(f"✅ Dashboard Core initialized for production")
+        print(f"📊 Status saved to: {state_file}")
+        print(f"🎨 Theme: {core.theme_manager.current_theme}")
+        print(f"⚡ Components: Dash={core.imports.dash_available}, Plotly={core.imports.plotly_available}")
+        
+        return core, state_data
         
     except Exception as e:
-        print(f"❌ Dashboard Core test failed: {e}")
-        traceback.print_exc()
-        return False
+        print(f"❌ Dashboard Core production initialization failed: {e}")
+        return None, None
 
 
 if __name__ == "__main__":
-    test_dashboard_core()
+    print("🏭 DashboardCore - Production initialization...")
+    core, state = initialize_dashboard_production()
+    
+    if core:
+        print("✅ DashboardCore ready for production use")
+        # Mostrar configuración de tema
+        theme_config = core.get_theme_config()
+        print(f"🎨 Active theme: {theme_config['name']}")
+        print(f"📈 Performance optimized: {theme_config.get('performance_optimized', False)}")
+    else:
+        print("❌ DashboardCore production initialization failed")

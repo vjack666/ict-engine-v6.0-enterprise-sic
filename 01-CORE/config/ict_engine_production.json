@@ -1,0 +1,70 @@
+{
+    "profile": "balanced",
+    "broker_type": "mt5_standard",
+    "market_condition": "normal",
+    "rate_limit": {
+        "orders_per_second": 5,
+        "orders_per_minute": 100,
+        "requests_per_second": 20,
+        "data_requests_per_minute": 1200,
+        "api_calls_per_hour": 5000,
+        "concurrent_orders": 50,
+        "burst_allowance_percent": 20.0
+    },
+    "validation": {
+        "enable_caching": true,
+        "cache_size": 1000,
+        "validation_level": "standard",
+        "enable_sanitization": true,
+        "enable_batch_validation": true,
+        "max_batch_size": 100
+    },
+    "health_monitor": {
+        "monitoring_level": "standard",
+        "health_check_interval": 30.0,
+        "performance_sample_interval": 1.0,
+        "enable_auto_recovery": true,
+        "circuit_breaker_enabled": true,
+        "max_concurrent_checks": 10,
+        "thresholds": {
+            "cpu_warning": 80.0,
+            "cpu_critical": 95.0,
+            "memory_warning": 85.0,
+            "memory_critical": 95.0,
+            "latency_warning": 100.0,
+            "latency_critical": 500.0,
+            "error_rate_warning": 5.0,
+            "error_rate_critical": 15.0
+        }
+    },
+    "trading": {
+        "max_position_size": 10.0,
+        "max_daily_trades": 100,
+        "max_drawdown_percent": 5.0,
+        "stop_trading_on_daily_loss": true,
+        "daily_loss_threshold": 1000.0,
+        "enable_position_sizing": true,
+        "risk_per_trade_percent": 1.0,
+        "order_blocks": {
+            "min_strength": 7.0,
+            "max_per_symbol": 5,
+            "invalidation_pips": 10.0
+        },
+        "smart_money": {
+            "liquidity_grab_confirmation": true,
+            "structural_break_confirmation": true,
+            "fvg_min_size": 5.0
+        }
+    },
+    "system": {
+        "enable_production_mode": true,
+        "max_memory_usage_mb": 512.0,
+        "max_cpu_usage_percent": 25.0,
+        "enable_detailed_logging": true,
+        "log_rotation_enabled": true,
+        "max_log_file_size_mb": 100,
+        "keep_log_files_days": 30,
+        "backup_enabled": true,
+        "backup_interval_hours": 6
+    }
+}

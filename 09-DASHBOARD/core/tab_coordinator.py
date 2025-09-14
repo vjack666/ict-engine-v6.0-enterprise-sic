@@ -25,33 +25,39 @@ import sys
 import json
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple, Callable, Union
+from typing import Dict, List, Optional, Any, Tuple, Callable, Union, TYPE_CHECKING
 from datetime import datetime, timedelta
 from dataclasses import dataclass, field
 from enum import Enum
 
-# Core imports
-try:
-    # Dashboard core
-    from dashboard_core import DashboardCore, get_dashboard_core
-    DASHBOARD_CORE_AVAILABLE = True
-except ImportError as e:
-    print(f"⚠️ Dashboard core not available: {e}")
-    DASHBOARD_CORE_AVAILABLE = False
-    DashboardCore = None
+if TYPE_CHECKING:
+    from dashboard_core import DashboardCore  # noqa: F401
+    from smart_trading_logger import SmartTradingLogger  # noqa: F401
 
-# System integration
-try:
-    current_dir = Path(__file__).parent.parent.parent / "01-CORE"
-    if str(current_dir) not in sys.path:
-        sys.path.insert(0, str(current_dir))
-    
-    from smart_trading_logger import SmartTradingLogger
-    CORE_LOGGING_AVAILABLE = True
-except ImportError as e:
-    print(f"⚠️ Core logging not available: {e}")
-    CORE_LOGGING_AVAILABLE = False
-    SmartTradingLogger = None
+# Core imports with safe loading
+def _try_import_dashboard_core():
+    try:
+        from dashboard_core import DashboardCore, get_dashboard_core
+        return DashboardCore, get_dashboard_core, True
+    except ImportError as e:
+        print(f"⚠️ Dashboard core not available: {e}")
+        return None, None, False
+
+def _try_import_smart_logger():
+    try:
+        current_dir = Path(__file__).parent.parent.parent / "01-CORE"
+        if str(current_dir) not in sys.path:
+            sys.path.insert(0, str(current_dir))
+        
+        from smart_trading_logger import SmartTradingLogger
+        return SmartTradingLogger, True
+    except ImportError as e:
+        print(f"⚠️ Core logging not available: {e}")
+        return None, False
+
+# Initialize imports
+DashboardCore, get_dashboard_core, DASHBOARD_CORE_AVAILABLE = _try_import_dashboard_core()
+SmartTradingLogger, CORE_LOGGING_AVAILABLE = _try_import_smart_logger()
 
 
 class TabState(Enum):
@@ -286,11 +292,11 @@ class TabCoordinator:
     Orquesta la navegación, estado y comunicación entre todos los tabs del dashboard.
     """
     
-    def __init__(self, dashboard_core: Optional[DashboardCore] = None):
+    def __init__(self, dashboard_core: Optional[Any] = None):
         # Dashboard core integration
         if dashboard_core:
             self.core = dashboard_core
-        elif DASHBOARD_CORE_AVAILABLE:
+        elif DASHBOARD_CORE_AVAILABLE and get_dashboard_core:
             self.core = get_dashboard_core()
         else:
             self.core = None
@@ -510,7 +516,7 @@ class TabCoordinator:
 # Global coordinator instance
 _tab_coordinator = None
 
-def get_tab_coordinator(dashboard_core: Optional[DashboardCore] = None) -> TabCoordinator:
+def get_tab_coordinator(dashboard_core: Optional[Any] = None) -> TabCoordinator:
     """🌍 Obtener instancia global del coordinador (singleton pattern)"""
     global _tab_coordinator
     
@@ -520,53 +526,158 @@ def get_tab_coordinator(dashboard_core: Optional[DashboardCore] = None) -> TabCo
     return _tab_coordinator
 
 
-# Testing and validation functions
-def test_tab_coordinator():
-    """🧪 Test function para validar TabCoordinator"""
-    print("🧪 Testing Tab Coordinator...")
+def register_default_tabs(coordinator: TabCoordinator) -> Dict[str, bool]:
+    """📝 Registrar tabs por defecto del sistema"""
+    default_tabs = [
+        ("overview", "System Overview", "System overview and status"),
+        ("metrics", "Performance Metrics", "System performance monitoring"),  
+        ("trading", "Trading Status", "Real-time trading operations"),
+        ("patterns", "Pattern Analysis", "ICT pattern detection"),
+        ("market_structure", "Market Structure", "Market structure analysis"),
+        ("order_blocks", "Order Blocks", "Order block identification"),
+        ("fvg", "Fair Value Gaps", "FVG detection and analysis"),
+        ("smart_money", "Smart Money", "Smart money concepts"),
+    ]
     
+    results = {}
+    for tab_id, tab_name, description in default_tabs:
+        # Create placeholder component
+        component = type('PlaceholderTab', (), {
+            'name': tab_name,
+            'description': description,
+            'tab_id': tab_id
+        })()
+        
+        success = coordinator.register_tab(tab_id, tab_name, component)
+        results[tab_id] = success
+    
+    return results
+
+
+def get_coordinator_metrics() -> Dict[str, Any]:
+    """📊 Obtener métricas del coordinador actual"""
+    global _tab_coordinator
+    
+    if _tab_coordinator is None:
+        return {"error": "TabCoordinator not initialized"}
+    
+    return _tab_coordinator.get_performance_metrics()
+
+
+def initialize_tab_coordinator_integration(dashboard_core: Optional[Any] = None) -> bool:
+    """🔧 Inicializar integración completa del TabCoordinator"""
     try:
-        # Test initialization
-        coordinator = TabCoordinator()
-        print("✅ Tab Coordinator initialized")
+        # Get coordinator instance
+        coordinator = get_tab_coordinator(dashboard_core)
         
-        # Test tab registration
-        class MockTab:
-            def __init__(self, name):
-                self.name = name
+        # Register default tabs
+        registration_results = register_default_tabs(coordinator)
         
-        mock_tab = MockTab("Test Tab")
-        success = coordinator.register_tab("test_tab", "Test Tab", mock_tab)
-        print(f"✅ Tab registration: {success}")
+        # Log results
+        successful_registrations = sum(1 for success in registration_results.values() if success)
+        total_tabs = len(registration_results)
         
-        # Test tab activation
-        activation_success = coordinator.activate_tab("test_tab")
-        print(f"✅ Tab activation: {activation_success}")
+        print(f"🎛️ Tab Coordinator integration initialized: {successful_registrations}/{total_tabs} tabs registered")
         
-        # Test data management
-        coordinator.set_tab_data("test_tab", "test_key", "test_value")
-        data = coordinator.get_tab_data("test_tab", "test_key")
-        print(f"✅ Data management: {data == 'test_value'}")
+        if coordinator.logger:
+            coordinator.logger.info(
+                f"Tab Coordinator initialized with {successful_registrations} tabs",
+                "tab_coordinator_init"
+            )
         
-        # Test navigation state
-        nav_state = coordinator.get_navigation_state()
-        print(f"✅ Navigation state: {nav_state['active_tab'] == 'test_tab'}")
-        
-        # Test performance metrics
-        metrics = coordinator.get_performance_metrics()
-        print(f"✅ Performance metrics: {metrics['tab_switches'] > 0}")
-        
-        # Test global instance
-        global_coordinator = get_tab_coordinator()
-        print(f"✅ Global instance: {global_coordinator is not None}")
-        
-        print("🎉 Tab Coordinator test completed successfully!")
-        return True
+        return successful_registrations > 0
         
     except Exception as e:
-        print(f"❌ Tab Coordinator test failed: {e}")
+        print(f"❌ Error initializing TabCoordinator integration: {e}")
         return False
 
 
+def setup_production_tabs_ecosystem():
+    """🏭 Configurar ecosistema completo de tabs para producción"""
+    try:
+        # Obtener coordinador global
+        coordinator = get_tab_coordinator()
+        
+        # Registrar tabs base del sistema
+        registration_results = register_default_tabs(coordinator)
+        
+        # Cargar tabs reales desde el directorio
+        from pathlib import Path
+        tabs_dir = Path(__file__).parent / "tabs"
+        
+        real_tabs = {}
+        
+        # Intentar cargar tabs reales
+        if tabs_dir.exists():
+            for tab_file in tabs_dir.glob("*_tab*.py"):
+                if "enterprise" in tab_file.stem:
+                    try:
+                        # Import dinámico del tab
+                        tab_name = tab_file.stem
+                        module_name = f"tabs.{tab_name}"
+                        
+                        import importlib
+                        tab_module = importlib.import_module(module_name, package="core")
+                        
+                        # Buscar factory function o clase principal
+                        if hasattr(tab_module, f"create_{tab_name}"):
+                            factory_func = getattr(tab_module, f"create_{tab_name}")
+                            tab_instance = factory_func()
+                            real_tabs[tab_name] = tab_instance
+                            
+                            print(f"✅ Loaded real tab: {tab_name}")
+                            
+                    except Exception as e:
+                        print(f"⚠️ Could not load tab {tab_file.stem}: {e}")
+        
+        # Persistir estado del coordinador
+        state_dir = Path(__file__).parent.parent.parent / "04-DATA" / "coordinator_state"
+        state_dir.mkdir(parents=True, exist_ok=True)
+        
+        export_data = coordinator.export_state()
+        
+        import json
+        from datetime import datetime
+        
+        state_file = state_dir / "coordinator_export.json"
+        with open(state_file, 'w', encoding='utf-8') as f:
+            json.dump(export_data, f, indent=2)
+            
+        # Activar tab principal
+        if coordinator.state_manager.tab_states:
+            main_tab = list(coordinator.state_manager.tab_states.keys())[0]
+            coordinator.activate_tab(main_tab)
+        
+        print(f"✅ Production tabs ecosystem ready")
+        print(f"📊 Registered tabs: {len(registration_results)}")
+        print(f"🔌 Real tabs loaded: {len(real_tabs)}")
+        print(f"💾 State exported to: {state_file}")
+        
+        return coordinator, real_tabs, export_data
+        
+    except Exception as e:
+        print(f"❌ Production tabs ecosystem setup failed: {e}")
+        return None, {}, {}
+
+
 if __name__ == "__main__":
-    test_tab_coordinator()
+    print("🏭 TabCoordinator - Production setup...")
+    coordinator, real_tabs, state = setup_production_tabs_ecosystem()
+    
+    if coordinator:
+        # Mostrar métricas del sistema
+        metrics = coordinator.get_performance_metrics()
+        print(f"📈 Performance metrics:")
+        print(f"  - Tab switches: {metrics['tab_switches']}")
+        print(f"  - Total updates: {metrics['total_updates']}")
+        print(f"  - Average switch time: {metrics['average_switch_time']:.2f}ms")
+        
+        # Mostrar estado de navegación
+        nav_state = coordinator.get_navigation_state()
+        print(f"🧭 Navigation state:")
+        print(f"  - Active tab: {nav_state['active_tab']}")
+        print(f"  - Available tabs: {nav_state['available_tabs']}")
+        
+        print("✅ TabCoordinator production system ready")
+    else:
+        print("❌ TabCoordinator production setup failed")

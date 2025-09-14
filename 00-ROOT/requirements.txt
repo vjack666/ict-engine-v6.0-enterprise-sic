@@ -16,6 +16,12 @@ rich>=13.0.0               # Output rico para debugging
 # Dashboard y UI (si se requiere)
 # tkinter                  # Interface gráfica (incluido en Python)
 # matplotlib>=3.7.0        # Gráficos (opcional)
+dash>=2.17.0               # Dashboard web (ya referenciado en web_dashboard)
+plotly>=5.22.0             # Gráficos interactivos para dashboard
+
+# API métricas FastAPI
+fastapi>=0.111.0           # API REST para métricas
+uvicorn[standard]>=0.30.0  # ASGI server para FastAPI
 
 # Testing y Development
 pytest>=7.4.0             # Testing framework

@@ -1,0 +1,21 @@
+module,path,component_type,responsibility,inputs,outputs,persistence,update_frequency,owner,status
+advanced_candle_downloader,01-CORE/data_management/advanced_candle_downloader.py,downloader,Descarga masiva velas históricos multi-símbolo/timeframe,mt5_feed;config,candles_normalized,in-memory+optional_export,on-demand|interval,core,active
+advanced_candle_downloader_singleton,01-CORE/data_management/advanced_candle_downloader_singleton.py,singleton wrapper,Proveer instancia única de downloader,config;downloader_class,downloader_instance,volatile,on-import,core,active
+ict_data_manager,01-CORE/data_management/ict_data_manager.py,manager/orchestrator,Coordinar pipeline datos (warm-up+enhancement),raw_candles;config;context,normalized_frames;context_cache,memory+json_state,interval|on-demand,core,active
+ict_data_manager_singleton,01-CORE/data_management/ict_data_manager_singleton.py,singleton wrapper,Instancia única ICTDataManager,config;manager_class,manager_instance,volatile,on-import,core,active
+mt5_data_manager,01-CORE/data_management/mt5_data_manager.py,source adapter,Acceso y descarga OHLC desde MT5,connection;símbolo;timeframe,raw_candles,transient,on-demand,core,active
+mt5_connection_manager,01-CORE/data_management/mt5_connection_manager.py,connection supervisor,Gestionar conexión MT5 y reconexión,mt5_api;credentials,connection_status,volatile+recreable,on-demand,core,active
+mt5_health_monitor,01-CORE/data_management/mt5_health_monitor.py,health monitor,Monitorear salud y latencia MT5,connection_stats,health_metrics;alerts,logs,interval,core,active
+mt5_black_box_logger,01-CORE/data_management/mt5_black_box_logger.py,audit logger,Registro eventos críticos MT5,event_hooks;errors,audit_logs,logs,continuous,core,active
+data_validator_real_trading,01-CORE/data_management/data_validator_real_trading.py,validator,Validar integridad/consistencia datos,candles;snapshots,validation_report,none,on-ingest|on-demand,core,active
+real_trading_bridge,01-CORE/data_management/real_trading_bridge.py,bridge,Exponer datos listos a motor trading,normalized_frames;analytics,structured_payload,transient,low-latency,core,active
+market_context_state,04-DATA/memory_persistence/market_context_state.json,state snapshot,Snapshot contexto mercado multi-timeframe,analyzers;candles,context_state_json,json_file,on-calculation,core,active
+historical_analysis_directory,04-DATA/memory_persistence/historical_analysis/,state collection,Estados análisis históricos agregados,analyzers,analysis_state_set,files,on-batch,core,active
+performance_initial,04-DATA/performance_initial.json,metrics baseline,Valores referencia inicial rendimiento,startup_metrics,baseline_json,json_file,on-startup,core,active
+system_status,data/system_status.json,system status,Resumen estado sistema consolidado,subsystems;health_inputs,status_document,json_file,interval,core,active
+cache_root,04-DATA/cache/,cache layer,Capa genérica de caches,data_producers,cached_assets,files_ttl,policy-driven,core,active
+logs_root,04-DATA/logs/,logging root,Almacén logs estructurados,multiple_modules,structured_logs,files_rotation,continuous,core,active
+exports_root,04-DATA/exports/,export root,Salida datos análisis externo,producers,export_files,csv|json,manual|interval,core,empty
+reports_root,04-DATA/reports/,report root,Reportes auditoría y rendimiento,producers,report_files,markdown|json,on-event,core,active
+status_dir,data/status/,status parts,Subestados específicos módulo,modules,status_fragments,json_files,interval,core,active
+memory_persistence_root,data/memory_persistence/,volatile state,Estados regenerables recientes,analytics;managers,state_files,json_files,on-update,core,active

@@ -212,19 +212,25 @@ def setup_module_logging(component_name: str,
     return LoggingProtocols.create_enterprise_logger(config)
 
 def create_safe_logger(component_name: str, 
-                      fallback_to_print: bool = True) -> EnterpriseLoggerProtocol:
+                      fallback_to_print: bool = True,
+                      log_level: Optional[LogLevel] = None,
+                      **kwargs) -> EnterpriseLoggerProtocol:
     """
     Crear logger con máximo nivel de seguridad
     
     Args:
         component_name: Nombre del componente
         fallback_to_print: Si usar print como último recurso
+        log_level: Nivel de logging (opcional, para compatibilidad)
+        **kwargs: Parámetros adicionales (ignorados para compatibilidad)
         
     Returns:
         EnterpriseLoggerProtocol: Logger ultra-seguro
     """
     try:
         config = LoggingProtocols.get_standard_config(component_name)
+        if log_level:
+            config.log_level = log_level
         return LoggingProtocols.create_enterprise_logger(config)
     except Exception as e:
         if fallback_to_print:

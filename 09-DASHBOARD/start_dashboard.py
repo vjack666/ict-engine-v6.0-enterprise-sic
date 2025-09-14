@@ -568,6 +568,19 @@ class StartDashboard:
             else:
                 print("❌ [DASHBOARD] No se pudo cargar clase ICTDashboard")
                 return False
+
+            # === PHASE 4: TAB COORDINATOR INTEGRATION ===
+            print("🎛️ [DASHBOARD] Inicializando TabCoordinator...")
+            try:
+                from core.tab_coordinator import initialize_tab_coordinator_integration
+                tab_coordinator_success = initialize_tab_coordinator_integration(dashboard_core=None)
+                if tab_coordinator_success:
+                    print("✅ [DASHBOARD] TabCoordinator integrado exitosamente")
+                else:
+                    print("⚠️ [DASHBOARD] TabCoordinator inicializado con advertencias")
+            except Exception as e:
+                print(f"⚠️ [DASHBOARD] Error inicializando TabCoordinator: {e}")
+                # No fallar completamente por esto
             
             print("✅ [DASHBOARD] Dashboard Enterprise inicializado correctamente")
             return True

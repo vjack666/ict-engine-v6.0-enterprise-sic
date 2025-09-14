@@ -202,23 +202,25 @@ class ValidationPipelineRunner:
                         
                         try:
                             # Ejecutar validación con reintentos
-                            validation_result = self._execute_validation_with_retries(sym, tf, period)
-                            
-                            if validation_result and not validation_result.get('error'):
-                                execution_results['validation_results'][validation_key] = validation_result
+                            validation_result_raw = self._execute_validation_with_retries(sym, tf, period)
+
+                            if isinstance(validation_result_raw, dict) and not validation_result_raw.get('error'):
+                                execution_results['validation_results'][validation_key] = validation_result_raw
                                 successful_validations += 1
-                                
-                                enviar_senal_log("INFO", f"✅ Validación exitosa: {validation_key}", 
+                                enviar_senal_log("INFO", f"✅ Validación exitosa: {validation_key}",
                                                 "validation_pipeline_runner", "execution")
                             else:
+                                if isinstance(validation_result_raw, dict):
+                                    error_msg = validation_result_raw.get('error', 'Unknown error')
+                                else:
+                                    error_msg = 'Invalid validation result'
                                 execution_results['validation_results'][validation_key] = {
-                                    'error': validation_result.get('error', 'Unknown error'),
+                                    'error': error_msg,
                                     'symbol': sym,
                                     'timeframe': tf,
                                     'period': period
                                 }
-                                
-                                enviar_senal_log("ERROR", f"❌ Validación fallida: {validation_key}", 
+                                enviar_senal_log("ERROR", f"❌ Validación fallida: {validation_key} - {error_msg}",
                                                 "validation_pipeline_runner", "execution")
                         
                         except Exception as e:
@@ -292,46 +294,78 @@ class ValidationPipelineRunner:
     
     def _execute_validation_with_retries(self, symbol: str, timeframe: str, 
                                        validation_period: str) -> Optional[Dict]:
-        """Ejecutar validación con sistema de reintentos"""
+        """Ejecutar validación con sistema de reintentos (robusto)"""
         max_retries = self.config.get('max_retries', 3)
         retry_delay = self.config.get('retry_delay', 5.0)
-        
+
         for attempt in range(max_retries):
             try:
-                if PIPELINE_COMPONENTS_AVAILABLE:
-                    # Ejecutar validación real
-                    validation_result = run_complete_validation(symbol, timeframe, validation_period)
-                    
-                    # Validar resultado
-                    if validation_result and not validation_result.get('error'):
+                if PIPELINE_COMPONENTS_AVAILABLE and 'run_complete_validation' in globals():
+                    raw_exec = run_complete_validation([symbol], [timeframe])  # type: ignore[func-returns-value]
+                    validation_result: Dict[str, Any] = {
+                        'validation_info': {
+                            'symbol': symbol,
+                            'timeframe': timeframe,
+                            'validation_period': validation_period,
+                            'started_at': datetime.now()
+                        },
+                        'summary': {},
+                        'raw_results': raw_exec,
+                        'execution_info': {'attempt': attempt + 1}
+                    }
+                    try:
+                        overall_results = (raw_exec or {}).get('overall_results', {})  # type: ignore[union-attr]
+                        accuracies: List[float] = []
+                        for res in overall_results.values():
+                            if isinstance(res, dict) and 'accuracy' in res:
+                                try:
+                                    accuracies.append(float(res['accuracy']))
+                                except (TypeError, ValueError):
+                                    continue
+                        if accuracies:
+                            avg_acc = sum(accuracies) / len(accuracies)
+                            validation_result['summary'] = {
+                                'overall_accuracy': avg_acc,
+                                'overall_status': 'PASSED' if avg_acc >= 0.75 else 'PARTIAL'
+                            }
+                    except Exception as metric_err:
+                        enviar_senal_log("WARNING", f"No se pudieron derivar métricas: {metric_err}",
+                                            "validation_pipeline_runner", "metrics")
+
+                    if validation_result['summary']:
                         return validation_result
-                    
-                    # Si hay error pero no es el último intento, continuar
+
                     if attempt < max_retries - 1:
-                        enviar_senal_log("WARNING", f"⚠️ Intento {attempt + 1} fallido para {symbol}_{timeframe}_{validation_period}, reintentando en {retry_delay}s", 
-                                        "validation_pipeline_runner", "retry")
-                        
+                        enviar_senal_log(
+                            "WARNING",
+                            f"⚠️ Intento {attempt + 1} sin métricas para {symbol}_{timeframe}_{validation_period}, reintentando en {retry_delay}s",
+                            "validation_pipeline_runner",
+                            "retry"
+                        )
                         import time
                         time.sleep(retry_delay)
                         continue
-                
                 else:
-                    # Modo simulado
                     return self._create_simulated_validation_result(symbol, timeframe, validation_period)
-                
             except Exception as e:
                 if attempt < max_retries - 1:
-                    enviar_senal_log("WARNING", f"⚠️ Error en intento {attempt + 1} para {symbol}_{timeframe}_{validation_period}: {e}, reintentando", 
-                                    "validation_pipeline_runner", "retry")
-                    
+                    enviar_senal_log(
+                        "WARNING",
+                        f"⚠️ Error en intento {attempt + 1} para {symbol}_{timeframe}_{validation_period}: {e}, reintentando",
+                        "validation_pipeline_runner",
+                        "retry"
+                    )
                     import time
                     time.sleep(retry_delay)
                     continue
-                else:
-                    enviar_senal_log("ERROR", f"❌ Todos los intentos fallidos para {symbol}_{timeframe}_{validation_period}: {e}", 
-                                    "validation_pipeline_runner", "retry")
-                    return {'error': str(e)}
-        
+                enviar_senal_log(
+                    "ERROR",
+                    f"❌ Todos los intentos fallidos para {symbol}_{timeframe}_{validation_period}: {e}",
+                    "validation_pipeline_runner",
+                    "retry"
+                )
+                return {'error': str(e)}
+
         return {'error': f'Máximo de reintentos ({max_retries}) alcanzado'}
     
     def _create_simulated_validation_result(self, symbol: str, timeframe: str, period: str) -> Dict:
@@ -373,8 +407,8 @@ class ValidationPipelineRunner:
                     try:
                         report_name = f"report_{validation_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                         
-                        if PIPELINE_COMPONENTS_AVAILABLE:
-                            report_result = generate_validation_report(validation_data, report_name)
+                        if PIPELINE_COMPONENTS_AVAILABLE and 'generate_validation_report' in globals():
+                            report_result = generate_validation_report(validation_data, report_name)  # type: ignore[func-returns-value]
                         else:
                             report_result = self._create_simulated_report_result(report_name)
                         
@@ -395,8 +429,8 @@ class ValidationPipelineRunner:
                     consolidated_report_name = f"consolidated_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                     consolidated_data = self._create_consolidated_validation_data(validation_results)
                     
-                    if PIPELINE_COMPONENTS_AVAILABLE:
-                        consolidated_report = generate_validation_report(consolidated_data, consolidated_report_name)
+                    if PIPELINE_COMPONENTS_AVAILABLE and 'generate_validation_report' in globals():
+                        consolidated_report = generate_validation_report(consolidated_data, consolidated_report_name)  # type: ignore[func-returns-value]
                     else:
                         consolidated_report = self._create_simulated_report_result(consolidated_report_name)
                     
