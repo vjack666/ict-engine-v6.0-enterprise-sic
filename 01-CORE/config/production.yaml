@@ -1,0 +1,123 @@
+# 🏭 ICT ENGINE v6.0 ENTERPRISE - PRODUCTION CONFIGURATION
+# =======================================================
+# Configuración específica para entorno de producción
+
+# 📊 TRADING CONFIGURATION (Production overrides)
+trading:
+  # Configuración más conservadora para producción
+  max_positions: 3
+  max_daily_trades: 10
+  risk_per_trade: 0.015  # 1.5% por operación (más conservador)
+  
+  # Order blocks - configuración optimizada
+  order_blocks:
+    min_size_pips: 15  # Más estricto en producción
+    max_age_hours: 12  # Más reciente
+    detection_timeframes: ["H1", "H4"]  # Solo timeframes principales
+
+# 🔌 MT5 CONNECTION (Production)
+mt5:
+  connection:
+    timeout: 30000  # 30 seconds (más rápido)
+    retries: 5      # Más reintentos
+    retry_delay: 3  # Menos delay
+  
+  # Production server details (to be set via environment variables)
+  # ICT_CONFIG_MT5_CONNECTION_SERVER
+  # ICT_CONFIG_MT5_CONNECTION_LOGIN
+  # ICT_CONFIG_MT5_CONNECTION_PASSWORD
+
+# 🎯 RISK MANAGEMENT (Production)
+risk:
+  # Límites más estrictos para producción
+  emergency_drawdown_limit: 0.05  # 5% (más conservador)
+  max_consecutive_losses: 3       # Menos pérdidas consecutivas
+  daily_loss_limit: 0.03         # 3% (más conservador)
+  
+  position_sizing:
+    method: "fixed_risk"
+    max_position_size: 5.0  # Más conservador
+
+# 📈 DASHBOARD CONFIGURATION (Production)
+dashboard:
+  refresh_interval: 10000  # 10 seconds (menos frecuente)
+  
+  charts:
+    max_candles: 500        # Menos datos para performance
+    update_interval: 5000   # 5 seconds
+
+# 📝 LOGGING CONFIGURATION (Production)
+logging:
+  level: "WARNING"  # Solo warnings y errores
+  
+  rotation:
+    max_size_mb: 50   # Archivos más pequeños
+    backup_count: 10  # Más backups
+  
+  # Solo logs críticos en producción
+  categories:
+    trading: true
+    mt5: true
+    dashboard: false  # Deshabilitado para performance
+    order_blocks: true
+    patterns: false   # Deshabilitado para performance
+    risk: true
+    system: true
+
+# 🔧 SYSTEM CONFIGURATION (Production)
+system:
+  performance:
+    cache_ttl_seconds: 600  # 10 minutes (más cache)
+    max_memory_usage_mb: 512  # Menos memoria
+    cleanup_interval_minutes: 10  # Más frecuente
+  
+  health:
+    check_interval_seconds: 15  # Más frecuente
+    alert_thresholds:
+      cpu_percent: 70      # Más estricto
+      memory_percent: 75   # Más estricto
+      disk_percent: 85     # Más estricto
+  
+  persistence:
+    backup_interval_hours: 2  # Backups más frecuentes
+    retention_days: 90       # Más retención
+
+# 🚨 ALERTS CONFIGURATION (Production)
+alerts:
+  channels:
+    console: false      # Deshabilitado en producción
+    file: true
+    dashboard: true
+    email: true         # Habilitado para producción
+  
+  # Todos los tipos habilitados para producción
+  types:
+    order_block_detected: true
+    pattern_confirmed: true
+    risk_threshold_exceeded: true
+    system_error: true
+    mt5_connection_lost: true
+
+# 🔐 SECURITY CONFIGURATION
+security:
+  # Configuración de seguridad para producción
+  encrypt_logs: true
+  audit_trail: true
+  session_timeout_minutes: 30
+  
+  # Rate limiting
+  rate_limits:
+    api_calls_per_minute: 100
+    dashboard_requests_per_minute: 60
+    
+# 📊 PERFORMANCE MONITORING
+monitoring:
+  # Métricas adicionales para producción
+  enabled: true
+  collect_system_metrics: true
+  collect_trading_metrics: true
+  
+  # Reporting
+  daily_reports: true
+  weekly_reports: true
+  monthly_reports: true

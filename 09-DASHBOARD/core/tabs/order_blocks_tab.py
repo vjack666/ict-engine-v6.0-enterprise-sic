@@ -2,19 +2,19 @@
 """ORDER BLOCKS TAB - REAL SYSTEMS ONLY
 
 Optimizado: Usa servicio cacheado para detección no-HF.
+
+Refactor: Usa stubs centralizados en ``core.stubs.dash_stubs`` para
+evitar lógica duplicada e inline *type: ignore* al importar Dash.
 """
 
 from datetime import datetime
 from typing import Dict, Any, List
 import json
 
-DASHBOARD_AVAILABLE = False
-try:
-    import dash
-    from dash import html, dcc, Input, Output, State
-    DASHBOARD_AVAILABLE = True
-except ImportError:  # pragma: no cover
-    pass
+from core.stubs.dash_stubs import dash_safe_imports
+
+html, dcc, Input, Output, State, DASHBOARD_AVAILABLE = dash_safe_imports()
+
 
 try:
     from smart_trading_logger import SmartTradingLogger  # root-level import

@@ -18,18 +18,26 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional
-import json, time, datetime
+import json, datetime
 
-try:
-    from protocols.logging_protocol import create_enterprise_logger, LogLevel
-except Exception:  # fallback mínimo
-    class _Mini:
-        def info(self,*a,**k): print(*a)
-        def warning(self,*a,**k): print(*a)
-        def error(self,*a,**k): print(*a)
-    def create_enterprise_logger(component_name: str, **_): return _Mini()  # type: ignore
-    class LogLevel:  # type: ignore
-        INFO = "INFO"
+def _fallback_logger_factory(component_name: str) -> Any:
+    class _FallbackLogger:
+        def info(self, message: str, component: str) -> None: print(f"[INFO][{component}] {message}")
+        def warning(self, message: str, component: str) -> None: print(f"[WARN][{component}] {message}")
+        def error(self, message: str, component: str) -> None: print(f"[ERROR][{component}] {message}")
+    return _FallbackLogger()
+
+def _get_logger(component_name: str) -> Any:
+    """Intenta usar logging central; cae a fallback si no disponible."""
+    try:
+        from protocols.logging_central_protocols import create_safe_logger  # lazy import
+        return create_safe_logger(component_name)
+    except Exception:
+        try:
+            from protocols.logging_protocol import create_enterprise_logger  # legacy
+            return create_enterprise_logger(component_name)
+        except Exception:
+            return _fallback_logger_factory(component_name)
 
 @dataclass
 class ExecutionAuditLogger:
@@ -42,8 +50,12 @@ class ExecutionAuditLogger:
         self.path = Path(self.base_dir)
         self.path.mkdir(parents=True, exist_ok=True)
         self.file_path = self.path / self.filename
-        self.logger = create_enterprise_logger("ExecutionAudit")
-        self.logger.info(f"ExecutionAuditLogger ready path={self.file_path}")
+        self.logger = _get_logger("ExecutionAudit")
+        try:
+            self.logger.info(f"ExecutionAuditLogger ready path={self.file_path}", "AUDIT")
+        except Exception:
+            # fallback silencioso si firma distinta
+            pass
 
     def log_event(self, event_type: str, order_id: Optional[str] = None, symbol: Optional[str] = None,
                   status: Optional[str] = None, latency_ms: Optional[float] = None, extra: Optional[Dict[str, Any]] = None) -> None:
@@ -64,6 +76,9 @@ class ExecutionAuditLogger:
             with open(self.file_path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
         except Exception as e:
-            self.logger.error(f"Audit write failed: {e}")
+            try:
+                self.logger.error(f"Audit write failed: {e}", "AUDIT")
+            except Exception:
+                pass
 
 __all__ = ["ExecutionAuditLogger"]

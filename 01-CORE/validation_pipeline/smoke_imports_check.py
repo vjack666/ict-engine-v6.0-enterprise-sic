@@ -41,6 +41,14 @@ PACKAGE_MODULES: List[str] = [
     'real_trading.market_data_validator',
     'real_trading.execution_metrics',
     'real_trading.execution_audit_logger',
+    'real_trading.rate_limiter',
+    'real_trading.session_state_manager',
+    'real_trading.composite_health_monitor',
+    'real_trading.alert_dispatcher',
+    'real_trading.position_sizer',
+    'real_trading.portfolio_exposure_tracker',
+    'real_trading.trade_compliance_checker',
+    'real_trading.execution_retry_policy',
     # Risk management
     'risk_management.risk_guard',
     'risk_management.risk_guard_validator',
@@ -53,6 +61,7 @@ PACKAGE_MODULES: List[str] = [
 PATH_MODULES: List[Tuple[str, Path]] = [
     ('dashboard.performance_tab', DASH_DIR / 'core' / 'tabs' / 'performance_tab.py'),
     ('dashboard.risk_health_tab', DASH_DIR / 'core' / 'tabs' / 'risk_health_tab.py'),
+    ('dashboard.order_blocks_tab', DASH_DIR / 'core' / 'tabs' / 'order_blocks_tab.py'),
 ]
 
 results: Dict[str, Dict[str, Any]] = {}

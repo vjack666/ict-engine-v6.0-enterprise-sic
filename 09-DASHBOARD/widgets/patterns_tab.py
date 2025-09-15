@@ -11,7 +11,7 @@ Compatible con Textual framework del dashboard principal.
 
 import sys
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, TYPE_CHECKING
 from pathlib import Path
 
 # Configurar rutas para acceso a módulos
@@ -23,11 +23,13 @@ sys.path.insert(0, str(dashboard_root))
 # Importar sistema modular existente - CORREGIDO
 from patterns_analysis.patterns_orchestrator import PatternsOrchestrator
 from patterns_analysis.pattern_factory import PatternFactory
-from patterns_analysis.base_pattern_module import PatternAnalysisResult
 
-from textual.containers import Container, Vertical, VerticalScroll, Horizontal
-from textual.widgets import Static, TabbedContent, TabPane
-from textual.reactive import reactive
+# Importar sólo para tipado sin costo en runtime pesado
+if TYPE_CHECKING:  # pragma: no cover - solo análisis estático
+    from patterns_analysis.base_pattern_module import PatternAnalysisResult
+
+# El dashboard textual principal puede inyectar componentes; se omiten imports
+# directos de contenedores si no se usan aquí para reducir dependencias.
 
 
 class PatternsTab:
@@ -189,7 +191,7 @@ class PatternsTab:
             result = pattern_module.analyze_pattern(
                 symbol=self.current_symbol,
                 timeframe=self.current_timeframes[0]  # Usar primer timeframe
-            )
+            )  # type: ignore[assignment]
             
             # Usar método del módulo para layout
             layout = pattern_module.create_dashboard_layout(result)

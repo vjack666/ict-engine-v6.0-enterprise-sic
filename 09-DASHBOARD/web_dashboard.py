@@ -61,17 +61,30 @@ try:
 except ImportError as e:
     print(f"⚠️ Tabs not available: {e}")
     TABS_AVAILABLE = False
-    OrderBlocksTab = create_order_blocks_tab = None
+    OrderBlocksTab = None  # type: ignore
+    def create_order_blocks_tab(*_, **__): return None  # fallback stub
 
 # Performance tab (metrics)
 try:
-    from core.tabs.performance_tab import PerformanceTab, create_performance_tab  # type: ignore
+    from core.tabs.performance_tab import PerformanceTab, create_performance_tab
     PERFORMANCE_TAB_OK = True
     print("✅ Performance Tab module loaded")
 except Exception as e:
     PERFORMANCE_TAB_OK = False
     print(f"⚠️ Performance Tab not available: {e}")
-    PerformanceTab = create_performance_tab = None  # type: ignore
+    PerformanceTab = None  # type: ignore
+    def create_performance_tab(*_, **__): return None  # fallback
+
+# Risk & Health tab
+try:
+    from core.tabs.risk_health_tab import RiskHealthTab, create_risk_health_tab
+    RISK_TAB_OK = True
+    print("✅ Risk & Health Tab module loaded")
+except Exception as e:
+    RISK_TAB_OK = False
+    print(f"⚠️ Risk & Health Tab not available: {e}")
+    RiskHealthTab = None  # type: ignore
+    def create_risk_health_tab(*_, **__): return None  # fallback
 
 
 class ICTWebDashboard:
@@ -129,29 +142,40 @@ class ICTWebDashboard:
     
     def _initialize_tabs(self):
         """Inicializar todas las pestañas disponibles"""
-        if TABS_AVAILABLE:
-            # Order Blocks Tab
+        if TABS_AVAILABLE and callable(create_order_blocks_tab):
             try:
-                self.tabs['order_blocks'] = create_order_blocks_tab(
-                    app=self.app,
-                    refresh_interval=self.config['refresh_interval']
-                )
-                print("✅ Order Blocks Tab initialized")
+                ob_tab = create_order_blocks_tab(app=self.app, refresh_interval=self.config['refresh_interval'])
+                if ob_tab is not None:
+                    self.tabs['order_blocks'] = ob_tab
+                    print("✅ Order Blocks Tab initialized")
             except Exception as e:
                 print(f"⚠️ Failed to initialize Order Blocks Tab: {e}")
 
         # Performance Tab
         metrics_dir_guess = str(project_root / '04-DATA' / 'metrics')
-        if PERFORMANCE_TAB_OK:
+        if PERFORMANCE_TAB_OK and callable(create_performance_tab):
             try:
-                self.tabs['performance'] = create_performance_tab(
-                    app=self.app,
-                    metrics_dir=metrics_dir_guess,
-                    refresh_interval=self.config['refresh_interval']
-                )
-                print(f"✅ Performance Tab initialized (metrics_dir={metrics_dir_guess})")
+                perf_tab = create_performance_tab(app=self.app, metrics_dir=metrics_dir_guess, refresh_interval=self.config['refresh_interval'])
+                if perf_tab is not None:
+                    self.tabs['performance'] = perf_tab
+                    print(f"✅ Performance Tab initialized (metrics_dir={metrics_dir_guess})")
             except Exception as e:
                 print(f"⚠️ Failed to initialize Performance Tab: {e}")
+        # Risk & Health Tab (usa mismo metrics dir e intenta risk dir base)
+        if RISK_TAB_OK and callable(create_risk_health_tab):
+            try:
+                risk_dir_guess = str(project_root / '04-DATA')
+                rh_tab = create_risk_health_tab(
+                    app=self.app,
+                    metrics_dir=str(project_root / '04-DATA' / 'metrics'),
+                    risk_dir=risk_dir_guess,
+                    refresh_interval=self.config['refresh_interval'] * 2
+                )
+                if rh_tab is not None:
+                    self.tabs['risk_health'] = rh_tab
+                    print(f"✅ Risk & Health Tab initialized (risk_dir={risk_dir_guess})")
+            except Exception as e:
+                print(f"⚠️ Failed to initialize Risk & Health Tab: {e}")
         
         # Future tabs can be added here
         # self.tabs['fvg_analysis'] = create_fvg_tab(self.app)
@@ -173,9 +197,13 @@ class ICTWebDashboard:
             {'label': '📊 FVG Analysis', 'value': 'fvg_analysis'},
             {'label': '💰 Smart Money', 'value': 'smart_money'},
             {'label': '⚡ Live Trading', 'value': 'live_trading'},
+            {'label': '🛡️ Risk & Health', 'value': 'risk_health'},
             {'label': '📈 Performance', 'value': 'performance'}
         ])
         
+        # Si Dash no está disponible, no intentamos construir layout (para análisis estático)
+        if not DASH_AVAILABLE:
+            return
         self.app.layout = html.Div([
             # Header Section
             html.Div([
@@ -257,6 +285,10 @@ class ICTWebDashboard:
                     return self.tabs['performance'].create_layout()
                 return self._create_placeholder_tab("📈 Performance", 
                     "Performance metrics module not available...")
+            elif active_tab == 'risk_health':
+                if 'risk_health' in self.tabs:
+                    return self.tabs['risk_health'].create_layout()
+                return self._create_placeholder_tab("🛡️ Risk & Health", "Risk module not available...")
             else:
                 return self._create_placeholder_tab("🚧 Under Construction", 
                     "This tab is being developed...")

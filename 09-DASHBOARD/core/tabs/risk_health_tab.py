@@ -16,25 +16,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, Optional, List
 import json
-from typing import Any as _Any
 
-# Intento importar dash/plotly reales
-try:
-    from dash import html, dcc, Input, Output  # type: ignore
-    DASH_OK: bool = True
-except Exception:  # fallback stub
-    DASH_OK = False
-    class _HtmlNS:
-        def Div(self, *children: _Any, **props: _Any): return {"type":"Div","children":list(children),"props":props}
-        def H2(self, *children: _Any, **props: _Any): return {"type":"H2","children":list(children),"props":props}
-        def H3(self, *children: _Any, **props: _Any): return {"type":"H3","children":list(children),"props":props}
-        def P(self, *children: _Any, **props: _Any): return {"type":"P","children":list(children),"props":props}
-    class _DccNS:
-        def Interval(self, *_, **props: _Any): return {"type":"Interval","props":props}
-    def Input(*a, **k): return (a,k)  # type: ignore
-    def Output(*a, **k): return (a,k)  # type: ignore
-    html = _HtmlNS()  # type: ignore
-    dcc = _DccNS()  # type: ignore
+from core.stubs.dash_stubs import dash_safe_imports
+
+html, dcc, Input, Output, _StateUnused, DASH_OK = dash_safe_imports()
 
 class RiskHealthTab:
     def __init__(self, app, metrics_dir: Optional[str], risk_dir: Optional[str] = None, refresh_interval: int = 2000):

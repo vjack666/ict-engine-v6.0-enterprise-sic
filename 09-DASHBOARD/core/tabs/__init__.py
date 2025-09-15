@@ -14,8 +14,11 @@ Fecha: 12 Septiembre 2025
 """
 
 from .order_blocks_tab import OrderBlocksTab, create_order_blocks_tab
+from .performance_tab import PerformanceTab, create_performance_tab  # nueva métrica de ejecución
+from .risk_health_tab import RiskHealthTab, create_risk_health_tab  # nueva pestaña riesgo/salud
 
 __all__ = [
-    'OrderBlocksTab',
-    'create_order_blocks_tab'
+    'OrderBlocksTab', 'create_order_blocks_tab',
+    'PerformanceTab', 'create_performance_tab',
+    'RiskHealthTab', 'create_risk_health_tab'
 ]

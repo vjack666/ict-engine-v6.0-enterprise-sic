@@ -1,0 +1,149 @@
+# 🔧 ICT ENGINE v6.0 ENTERPRISE - BASE CONFIGURATION
+# ================================================
+# Configuración base para todos los entornos
+
+# 📊 TRADING CONFIGURATION
+trading:
+  # Límites básicos
+  max_positions: 5
+  max_daily_trades: 20
+  risk_per_trade: 0.02  # 2% por operación
+  
+  # Timeframes soportados
+  timeframes:
+    - "M1"
+    - "M5"
+    - "M15"
+    - "M30"
+    - "H1"
+    - "H4"
+    - "D1"
+  
+  # Configuración de order blocks
+  order_blocks:
+    enabled: true
+    min_size_pips: 10
+    max_age_hours: 24
+    detection_timeframes: ["M15", "H1", "H4"]
+  
+  # Smart Money Concepts
+  smart_money:
+    liquidity_detection: true
+    market_structure_analysis: true
+    fvg_detection: true
+    premium_discount_zones: true
+
+# 🔌 MT5 CONNECTION
+mt5:
+  connection:
+    timeout: 60000  # 60 seconds
+    server: ""  # To be set in environment-specific config
+    login: 0    # To be set in environment-specific config
+    retries: 3
+    retry_delay: 5
+  
+  # Configuración de símbolos
+  symbols:
+    default_suffix: ""
+    major_pairs:
+      - "EURUSD"
+      - "GBPUSD"
+      - "USDJPY"
+      - "USDCAD"
+      - "AUDUSD"
+      - "NZDUSD"
+      - "USDCHF"
+
+# 🎯 RISK MANAGEMENT
+risk:
+  # Límites de emergencia
+  emergency_drawdown_limit: 0.10  # 10%
+  max_consecutive_losses: 5
+  daily_loss_limit: 0.05  # 5%
+  
+  # Position sizing
+  position_sizing:
+    method: "fixed_risk"  # fixed_risk, kelly, optimal_f
+    base_currency: "USD"
+    min_position_size: 0.01
+    max_position_size: 10.0
+
+# 📈 DASHBOARD CONFIGURATION
+dashboard:
+  # Configuración general
+  title: "ICT Engine v6.0 Enterprise"
+  theme: "bootstrap"
+  refresh_interval: 5000  # 5 seconds
+  
+  # Tabs habilitados
+  tabs:
+    order_blocks: true
+    patterns: true
+    performance: true
+    risk_health: true
+    system_status: true
+  
+  # Chart configuration
+  charts:
+    default_timeframe: "H1"
+    max_candles: 1000
+    update_interval: 1000  # 1 second
+
+# 📝 LOGGING CONFIGURATION
+logging:
+  # Levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "INFO"
+  
+  # Log rotation
+  rotation:
+    max_size_mb: 100
+    backup_count: 5
+  
+  # Log categories
+  categories:
+    trading: true
+    mt5: true
+    dashboard: true
+    order_blocks: true
+    patterns: true
+    risk: true
+    system: true
+
+# 🔧 SYSTEM CONFIGURATION
+system:
+  # Performance settings
+  performance:
+    cache_ttl_seconds: 300  # 5 minutes
+    max_memory_usage_mb: 1024  # 1GB
+    cleanup_interval_minutes: 15
+  
+  # Health monitoring
+  health:
+    check_interval_seconds: 30
+    alert_thresholds:
+      cpu_percent: 80
+      memory_percent: 85
+      disk_percent: 90
+  
+  # Data persistence
+  persistence:
+    enabled: true
+    backup_interval_hours: 6
+    retention_days: 30
+
+# 🚨 ALERTS CONFIGURATION
+alerts:
+  # Canales disponibles
+  channels:
+    console: true
+    file: true
+    dashboard: true
+    email: false  # Configurar en environment-specific
+  
+  # Tipos de alertas
+  types:
+    order_block_detected: true
+    pattern_confirmed: true
+    risk_threshold_exceeded: true
+    system_error: true
+    mt5_connection_lost: true

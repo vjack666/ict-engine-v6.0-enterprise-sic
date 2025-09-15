@@ -13,19 +13,30 @@ Funciones:
 """
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Protocol, runtime_checkable
 from datetime import datetime, timedelta
+import json, os
+
+@runtime_checkable
+class _LoggerProto(Protocol):
+    def info(self, message: str, category: str) -> None: ...
+    def warning(self, message: str, category: str) -> None: ...
+    def error(self, message: str, category: str) -> None: ...
+    def debug(self, message: str, category: str) -> None: ...
 
 try:
-    from protocols.logging_central_protocols import create_safe_logger
+    from protocols.logging_central_protocols import create_safe_logger as _enterprise_logger_factory
+    def create_safe_logger(component_name: str, **kwargs) -> _LoggerProto:  # type: ignore[override]
+        return _enterprise_logger_factory(component_name)  # type: ignore[return-value]
 except ImportError:  # fallback
     from smart_trading_logger import enviar_senal_log as _compat_log
     class _MiniLogger:
-        def info(self,m,c): _compat_log("INFO",m,c)
-        def warning(self,m,c): _compat_log("WARNING",m,c)
-        def error(self,m,c): _compat_log("ERROR",m,c)
-        def debug(self,m,c): _compat_log("DEBUG",m,c)
-    def create_safe_logger(component_name: str, **_): return _MiniLogger()
+        def info(self, message: str, category: str) -> None: _compat_log("INFO", message, category)
+        def warning(self, message: str, category: str) -> None: _compat_log("WARNING", message, category)
+        def error(self, message: str, category: str) -> None: _compat_log("ERROR", message, category)
+        def debug(self, message: str, category: str) -> None: _compat_log("DEBUG", message, category)
+    def create_safe_logger(component_name: str, **kwargs) -> _LoggerProto:  # type: ignore[override]
+        return _MiniLogger()
 
 @dataclass
 class RiskGuardConfig:
@@ -104,11 +115,23 @@ class RiskGuard:
         if violations and violations[0] != self._last_violation:
             self.logger.error(f"Risk violations detected: {violations}", "RISK")
             self._last_violation = violations[0]
-        return {
+        snapshot = {
             'timestamp': datetime.utcnow().isoformat(),
             'positions': pos_count,
             'exposure': exposure,
             'violations': violations
         }
+        # Persistencia ligera (best-effort) para dashboard RiskHealthTab
+        try:
+            base_dir = os.path.join('04-DATA')
+            os.makedirs(base_dir, exist_ok=True)
+            path = os.path.join(base_dir, 'risk_guard_status.json')
+            tmp = path + '.tmp'
+            with open(tmp, 'w', encoding='utf-8') as f:
+                json.dump(snapshot, f, ensure_ascii=False)
+            os.replace(tmp, path)
+        except Exception:
+            pass
+        return snapshot
 
 __all__ = ['RiskGuard', 'RiskGuardConfig']

@@ -65,9 +65,31 @@ except ImportError as e:
     print(f"⚠️ Dashboard architecture not available: {e}")
     DASHBOARD_AVAILABLE = False
     PLOTLY_AVAILABLE = False
-    html = dcc = Input = Output = State = callback = None
-    go = px = make_subplots = pd = None
+    html = dcc = Input = Output = State = callback = None  # type: ignore
+    go = px = make_subplots = pd = None  # type: ignore
     dashboard_core = None
+
+# Provide lightweight stubs when dash components are unavailable to reduce Pylance optional access noise
+if not DASHBOARD_AVAILABLE or html is None:
+    from types import SimpleNamespace
+    def _el_factory(tag_name: str):
+        def _builder(*children, **kwargs):  # pylint: disable=unused-argument
+            return {"type": tag_name.lower(), "children": list(children), **kwargs}
+        return _builder
+    html = SimpleNamespace(  # type: ignore
+        Div=_el_factory("div"),
+        H2=_el_factory("h2"),
+        H3=_el_factory("h3"),
+        H4=_el_factory("h4"),
+        P=_el_factory("p"),
+        Span=_el_factory("span"),
+        Button=_el_factory("button")
+    )
+if not DASHBOARD_AVAILABLE or dcc is None:
+    from types import SimpleNamespace as _SNS
+    dcc = _SNS(Graph=lambda *a, **k: {"type": "graph", "children": []},  # type: ignore
+               Interval=lambda *a, **k: {"type": "interval", **k},
+               Store=lambda *a, **k: {"type": "store", **k})
 
 # Core system imports
 try:
@@ -98,6 +120,7 @@ class ComponentStatus(Enum):
     INACTIVE = "inactive"
     ERROR = "error"
     MAINTENANCE = "maintenance"
+    WARNING = "warning"  # Added to align with usage in health checks
 
 
 @dataclass
@@ -275,9 +298,13 @@ class SystemHealthMonitor:
             
             # Tab Coordinator
             try:
-                tab_coordinator = get_tab_coordinator()
+                # get_tab_coordinator may not exist if import failed; protect access
+                try:
+                    tab_coordinator = get_tab_coordinator()  # type: ignore[name-defined]
+                except NameError:  # fallback when function not imported
+                    tab_coordinator = None  # type: ignore
                 if tab_coordinator:
-                    registered_tabs = len(tab_coordinator.registered_tabs)
+                    registered_tabs = len(getattr(tab_coordinator, 'registered_tabs', []))
                     self.components['tab_coordinator'] = SystemComponent(
                         name="Tab Coordinator",
                         status=ComponentStatus.ACTIVE,
@@ -856,6 +883,7 @@ class SystemStatusTabEnterprise:
                     html.Button("📋 Export Report", id="ss-export-btn", 
                               className="diagnostic-btn")
                 ], className="diagnostic-tools")
+                html.Div(id="ss-export-status", className="export-status")
                 
             ], className="diagnostics-section")
     
@@ -903,6 +931,13 @@ class SystemStatusTabEnterprise:
             
             # Update current data
             self.current_data = result
+
+            # Persist snapshot (ligero, append JSONL) 
+            try:
+                self._persist_health_snapshot(result)
+            except Exception as persist_err:
+                if self.logger:
+                    self.logger.warning(f"Persist health snapshot failed: {persist_err}", "persistence")
             
             return result
             
@@ -937,17 +972,25 @@ class SystemStatusTabEnterprise:
             @self.app.callback(
                 [Output("ss-data-store", "data"),
                  Output("ss-last-update", "children")],
-                [Input("ss-refresh-interval", "n_intervals")],
+                [Input("ss-refresh-interval", "n_intervals"),
+                 Input("ss-refresh-btn", "n_clicks"),
+                 Input("ss-clear-alerts-btn", "n_clicks")],
                 prevent_initial_call=False
             )
-            def update_system_status_data(n_intervals):
-                """Update System Status data"""
+            def update_system_status_data(n_intervals, refresh_clicks, clear_clicks):
+                """Update System Status data; soporta refresh manual y limpieza de alertas"""
                 data = self.fetch_system_status_data()
-                last_update = datetime.now().strftime("%H:%M:%S")
                 
+                # Limpiar alertas si se pulsó clear
+                ctx = getattr(self.app, 'callback_context', None) or getattr(__import__('dash'), 'callback_context', None)
+                if ctx and ctx.triggered:
+                    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+                    if trigger_id == 'ss-clear-alerts-btn':
+                        data['alerts'] = []
+                
+                last_update = datetime.now().strftime("%H:%M:%S")
                 if self.tab_coordinator:
                     self.tab_coordinator.set_tab_data(self.tab_id, "last_data", data)
-                
                 return data, last_update
             
             # Health overview update
@@ -985,6 +1028,162 @@ class SystemStatusTabEnterprise:
                     f"{metrics.get('response_time', 0):.0f}ms",
                     f"{metrics.get('memory_available', 0):.1f} GB"
                 )
+
+            # Component status rendering
+            @self.app.callback(
+                Output("ss-components-status", "children"),
+                [Input("ss-data-store", "data")]
+            )
+            def update_components_status(data):
+                comps = data.get('component_status', {})
+                if html.__class__.__name__ == 'MockHTML':
+                    return [f"{k}: {v.get('status')}" for k, v in comps.items()]
+                cards = []
+                for name, info in comps.items():
+                    status = info.get('status', 'unknown')
+                    health = info.get('health', 'unknown')
+                    color = self.colors.get(health, '#888')
+                    cards.append(
+                        html.Div([
+                            html.Div(name, className="comp-name"),
+                            html.Div(status, className="comp-status"),
+                            html.Div(health, className="comp-health")
+                        ], className="comp-card", style={"borderLeft": f"4px solid {color}"})
+                    )
+                return cards
+
+            # System info rendering
+            @self.app.callback(
+                Output("ss-system-info", "children"),
+                [Input("ss-data-store", "data")]
+            )
+            def update_system_info(data):
+                info = data.get('system_info', {})
+                if html.__class__.__name__ == 'MockHTML':
+                    return [f"{k}: {v}" for k, v in info.items()]
+                items = []
+                for k, v in info.items():
+                    items.append(html.Div([
+                        html.Span(f"{k}: ", className="sys-info-key"),
+                        html.Span(str(v), className="sys-info-val")
+                    ], className="sys-info-row"))
+                return html.Div(items, className="sys-info-grid")
+
+            # Alerts rendering
+            @self.app.callback(
+                Output("ss-alerts-display", "children"),
+                [Input("ss-data-store", "data")]
+            )
+            def update_alerts_display(data):
+                alerts = data.get('alerts', [])
+                if not alerts:
+                    if html.__class__.__name__ == 'MockHTML':
+                        return ["No alerts"]
+                    return html.Div("No active alerts", className="no-alerts")
+                rendered = []
+                for alert in alerts[-20:]:  # última 20
+                    level = alert.get('level', 'info')
+                    color_map = {
+                        'critical': self.colors.get('critical', '#ff4444'),
+                        'warning': self.colors.get('warning', '#ffaa00'),
+                        'info': self.colors.get('good', '#00cc66')
+                    }
+                    bar_color = color_map.get(level, '#888')
+                    if html.__class__.__name__ == 'MockHTML':
+                        rendered.append(f"{level.upper()} - {alert.get('component')}: {alert.get('message')}")
+                    else:
+                        rendered.append(html.Div([
+                            html.Div(level.upper(), className="alert-level"),
+                            html.Div(alert.get('component'), className="alert-component"),
+                            html.Div(alert.get('message'), className="alert-message"),
+                            html.Div(alert.get('timestamp'), className="alert-time")
+                        ], className=f"alert-item alert-{level}", style={"borderLeft": f"4px solid {bar_color}"}))
+                return rendered
+
+            # Performance history chart
+            @self.app.callback(
+                Output("ss-performance-chart", "figure"),
+                [Input("ss-data-store", "data")]
+            )
+            def update_performance_chart(data):
+                history = data.get('performance_history', [])
+                if go is None:
+                    return {}
+                try:
+                    fig = go.Figure()
+                    times = [h.get('timestamp') for h in history]
+                    cpu = [h.get('cpu') for h in history]
+                    mem = [h.get('memory') for h in history]
+                    resp = [h.get('response_time') for h in history]
+                    fig.add_trace(go.Scatter(x=times, y=cpu, name='CPU %', mode='lines', line=dict(color=self.colors.get('excellent', '#00ff88'))))
+                    fig.add_trace(go.Scatter(x=times, y=mem, name='Memory %', mode='lines', line=dict(color=self.colors.get('warning', '#ffaa00'))))
+                    fig.add_trace(go.Scatter(x=times, y=resp, name='Resp ms', mode='lines', yaxis='y2', line=dict(color=self.colors.get('critical', '#ff4444'))))
+                    fig.update_layout(
+                        template='plotly_dark',
+                        margin=dict(l=40, r=40, t=30, b=30),
+                        paper_bgcolor=self.colors.get('surface', '#1e2329'),
+                        plot_bgcolor=self.colors.get('surface', '#1e2329'),
+                        yaxis=dict(title='Usage %'),
+                        yaxis2=dict(title='Resp ms', overlaying='y', side='right'),
+                        legend=dict(orientation='h', y=1.1)
+                    )
+                    return fig
+                except Exception as chart_err:
+                    if self.logger:
+                        self.logger.warning(f"Performance chart error: {chart_err}", "charts")
+                    return go.Figure()
+
+            # Resource distribution chart
+            @self.app.callback(
+                Output("ss-resource-chart", "figure"),
+                [Input("ss-data-store", "data")]
+            )
+            def update_resource_chart(data):
+                pm = data.get('performance_metrics', {})
+                if px is None:
+                    return {}
+                try:
+                    values = [pm.get('cpu_usage', 0), pm.get('memory_usage', 0), pm.get('disk_usage', 0)]
+                    labels = ['CPU', 'Memory', 'Disk']
+                    fig = px.pie(values=values, names=labels, color=labels,
+                                  color_discrete_map={
+                                      'CPU': self.colors.get('excellent', '#00ff88'),
+                                      'Memory': self.colors.get('warning', '#ffaa00'),
+                                      'Disk': self.colors.get('good', '#00cc66')
+                                  })
+                    fig.update_layout(
+                        template='plotly_dark',
+                        margin=dict(l=20, r=20, t=30, b=20),
+                        paper_bgcolor=self.colors.get('surface', '#1e2329'),
+                        plot_bgcolor=self.colors.get('surface', '#1e2329')
+                    )
+                    return fig
+                except Exception as pie_err:
+                    if self.logger:
+                        self.logger.warning(f"Resource chart error: {pie_err}", "charts")
+                    return {}
+
+            # Export report callback
+            @self.app.callback(
+                Output("ss-export-status", "children"),
+                [Input("ss-export-btn", "n_clicks"), Input("ss-data-store", "data")],
+                prevent_initial_call=True
+            )
+            def export_system_status(n_clicks, data):
+                if not n_clicks:
+                    return ""
+                try:
+                    export_dir = Path(__file__).parent.parent.parent.parent / "04-DATA" / "reports" / "system_status" / "exports"
+                    export_dir.mkdir(parents=True, exist_ok=True)
+                    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    file_path = export_dir / f"system_status_report_{ts}.json"
+                    with file_path.open('w', encoding='utf-8') as f:
+                        json.dump(data, f, ensure_ascii=False, indent=2)
+                    return f"✅ Report exported: {file_path.name}"
+                except Exception as exp_err:
+                    if self.logger:
+                        self.logger.error(f"Export report failed: {exp_err}", "export")
+                    return f"❌ Export failed: {exp_err}"
             
             print("🔄 System Status Tab Enterprise callbacks registered successfully")
             
@@ -1003,6 +1202,28 @@ class SystemStatusTabEnterprise:
             "current_data": self.current_data,
             "last_updated": datetime.now().isoformat()
         }
+
+    # ----------------------
+    # Persistencia snapshots
+    # ----------------------
+    def _persist_health_snapshot(self, data: Dict[str, Any]) -> None:
+        """Guardar snapshot de salud en JSONL rotando por día.
+        Optimizado para bajo overhead: abre/escribe/cierra.
+        """
+        base_dir = Path(__file__).parent.parent.parent.parent / "04-DATA" / "reports" / "system_status"
+        base_dir.mkdir(parents=True, exist_ok=True)
+        day_str = datetime.now().strftime("%Y%m%d")
+        file_path = base_dir / f"health_snapshots_{day_str}.jsonl"
+        minimal = {
+            'ts': data.get('last_update'),
+            'overall_health': data.get('overall_health'),
+            'cpu': data.get('performance_metrics', {}).get('cpu_usage'),
+            'mem': data.get('performance_metrics', {}).get('memory_usage'),
+            'resp_ms': data.get('performance_metrics', {}).get('response_time'),
+            'alerts': len(data.get('alerts', []))
+        }
+        with file_path.open('a', encoding='utf-8') as f:
+            f.write(json.dumps(minimal, ensure_ascii=False) + '\n')
 
 
 def create_system_status_tab_enterprise(app=None, refresh_interval: int = 3000) -> SystemStatusTabEnterprise:

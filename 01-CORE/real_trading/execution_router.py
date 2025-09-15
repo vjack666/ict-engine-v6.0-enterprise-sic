@@ -14,12 +14,27 @@ Diseñado para integrarse sin bloquear el hilo principal y con bajo overhead.
 """
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, Protocol, Callable
+from typing import Optional, Dict, Any, Protocol, Callable, runtime_checkable
 from datetime import datetime, timedelta
 import threading
 import time
 import json
 import os
+try:
+    from .rate_limiter import RateLimiter, RateLimiterConfig
+except Exception:
+    RateLimiter = None  # type: ignore
+    RateLimiterConfig = None  # type: ignore
+try:
+    from .session_state_manager import SessionStateManager, SessionStateConfig
+except Exception:
+    SessionStateManager = None  # type: ignore
+    SessionStateConfig = None  # type: ignore
+try:
+    from .composite_health_monitor import CompositeHealthMonitor, CompositeHealthConfig
+except Exception:
+    CompositeHealthMonitor = None  # type: ignore
+    CompositeHealthConfig = None  # type: ignore
 try:
     from .slippage_tracker import SlippageTracker
 except Exception:
@@ -28,19 +43,53 @@ try:
     from .market_data_validator import MarketDataValidator
 except Exception:
     MarketDataValidator = None
+try:
+    from .alert_dispatcher import AlertDispatcher, AlertCategory, AlertSeverity
+except Exception:
+    AlertDispatcher = None  # type: ignore
+    AlertCategory = None  # type: ignore
+    AlertSeverity = None  # type: ignore
+try:
+    from .position_sizer import PositionSizer
+except Exception:
+    PositionSizer = None  # type: ignore
+try:
+    from .portfolio_exposure_tracker import PortfolioExposureTracker
+except Exception:
+    PortfolioExposureTracker = None  # type: ignore
+try:
+    from .trade_compliance_checker import TradeComplianceChecker
+except Exception:
+    TradeComplianceChecker = None  # type: ignore
+try:
+    from .execution_retry_policy import ExecutionRetryPolicy, RetryConfig
+except Exception:
+    ExecutionRetryPolicy = None  # type: ignore
+    RetryConfig = None  # type: ignore
+
+@runtime_checkable
+class _LoggerProto(Protocol):
+    def info(self, message: str, category: str) -> None: ...
+    def warning(self, message: str, category: str) -> None: ...
+    def error(self, message: str, category: str) -> None: ...
+    def debug(self, message: str, category: str) -> None: ...
 
 try:
-    from protocols.logging_central_protocols import create_safe_logger, LogLevel
+    from protocols.logging_central_protocols import create_safe_logger as _central_logger_factory, LogLevel as _CentralLogLevel
     _LOGLEVEL_AVAILABLE = True
+    _DEFAULT_LOG_LEVEL = getattr(_CentralLogLevel, 'INFO', None)
+    def create_safe_logger(component_name: str, **kwargs) -> _LoggerProto:  # type: ignore[override]
+        return _central_logger_factory(component_name, **kwargs)  # type: ignore[return-value]
 except ImportError:  # fallback mínimo
     from smart_trading_logger import enviar_senal_log as _compat_log
     _LOGLEVEL_AVAILABLE = False
-    class _MiniLogger:  # pragma: no cover - fallback simple
-        def info(self,m,c): _compat_log("INFO",m,c)
-        def warning(self,m,c): _compat_log("WARNING",m,c)
-        def error(self,m,c): _compat_log("ERROR",m,c)
-        def debug(self,m,c): _compat_log("DEBUG",m,c)
-    def create_safe_logger(component_name: str, **_): return _MiniLogger()
+    class _MiniLogger:
+        def info(self, message: str, category: str) -> None: _compat_log("INFO", message, category)
+        def warning(self, message: str, category: str) -> None: _compat_log("WARNING", message, category)
+        def error(self, message: str, category: str) -> None: _compat_log("ERROR", message, category)
+        def debug(self, message: str, category: str) -> None: _compat_log("DEBUG", message, category)
+    def create_safe_logger(component_name: str, **kwargs) -> _LoggerProto:  # type: ignore[override]
+        return _MiniLogger()
     class LogLevel:  # fallback enum-like
         INFO = "INFO"
 
@@ -76,6 +125,25 @@ class ExecutionRouterConfig:
     moderate_violation_volume_limit: float = 0.5  # (configurable) límite para permitir violaciones moderadas
     metrics_dir: Optional[str] = None  # ruta donde escribir métricas JSON
     metrics_history_limit: int = 500  # entradas de historial
+    rate_limit_enabled: bool = False
+    rate_limit_global: int = 30
+    rate_limit_per_symbol: int = 10
+    rate_limit_window_sec: int = 60
+    session_state_enabled: bool = False
+    composite_health_enabled: bool = False
+    composite_health_latency_ms: float = 900.0
+    composite_health_market_age_sec: int = 180
+    composite_health_heartbeat_age_sec: int = 90
+    # módulos opcionales adicionales
+    enable_position_sizer: bool = False
+    enable_portfolio_exposure_tracker: bool = False
+    enable_trade_compliance: bool = False
+    enable_retry_policy: bool = False
+    position_sizer_risk_pct: float = 0.01
+    compliance_max_spread_points: float | None = None
+    compliance_blacklist: list[str] | None = None
+    compliance_restricted_hours: list[int] | None = None
+    compliance_loss_cooldown_sec: int = 0
 
 class CircuitBreaker:
     def __init__(self, threshold: int, window_sec: int, cooldown_sec: int):
@@ -112,15 +180,83 @@ class ExecutionRouter:
                  risk_validator: Optional[RiskValidatorProtocol] = None,
                  latency_monitor: Optional[LatencyMonitorProtocol] = None,
                  health_monitor: Optional[HealthMonitorProtocol] = None,
+                 alert_dispatcher: Optional[Any] = None,
                  config: Optional[ExecutionRouterConfig] = None):
         self.primary = primary_executor
         self.backup = backup_executor
         self.risk_validator = risk_validator
         self.latency_monitor = latency_monitor
         self.health_monitor = health_monitor
+        self.alert_dispatcher = alert_dispatcher
         self.config = config or ExecutionRouterConfig()
+        # rate limiter opcional
+        self._rate_limiter = None
+        if getattr(self.config, 'rate_limit_enabled', False) and RateLimiter and RateLimiterConfig:
+            try:
+                rl_cfg = RateLimiterConfig(global_rate=self.config.rate_limit_global,
+                                           per_symbol_rate=self.config.rate_limit_per_symbol,
+                                           window_sec=self.config.rate_limit_window_sec,
+                                           persist_dir=self.config.metrics_dir)
+                self._rate_limiter = RateLimiter(rl_cfg)
+            except Exception:
+                self._rate_limiter = None
+        # session state opcional
+        self._session_state = None
+        if getattr(self.config, 'session_state_enabled', False) and SessionStateManager and SessionStateConfig:
+            try:
+                self._session_state = SessionStateManager(SessionStateConfig())
+            except Exception:
+                self._session_state = None
+        # composite health monitor (reemplaza health_monitor si se habilita)
+        if getattr(self.config, 'composite_health_enabled', False) and CompositeHealthMonitor and CompositeHealthConfig:
+            try:
+                ch_cfg = CompositeHealthConfig(
+                    max_latency_ms=self.config.composite_health_latency_ms,
+                    max_market_data_age_sec=self.config.composite_health_market_age_sec,
+                    max_heartbeat_age_sec=self.config.composite_health_heartbeat_age_sec
+                )
+                # intenta derivar proveedores desde objetos existentes
+                market_data_provider = globals().get('get_last_market_data_ts')  # opcional
+                heartbeat_ts_provider = globals().get('get_last_heartbeat_ts')
+                heartbeat_alive_check = globals().get('is_external_service_alive')
+                def _wrap_ts_provider(fn):  # garantiza float|None
+                    if callable(fn):
+                        def _inner():
+                            v = fn()
+                            try:
+                                if v is None:
+                                    return None
+                                if isinstance(v, (int, float)):
+                                    return float(v)
+                                # intenta extraer atributo timestamp
+                                ts = getattr(v, 'timestamp', None)
+                                if isinstance(ts, (int, float)):
+                                    return float(ts)
+                                return None
+                            except Exception:
+                                return None
+                        return _inner
+                    return None
+                def _wrap_alive(fn):
+                    if callable(fn):
+                        def _alive():
+                            try:
+                                return bool(fn())
+                            except Exception:
+                                return False
+                        return _alive
+                    return None
+                self.health_monitor = CompositeHealthMonitor(
+                    latency_monitor=self.latency_monitor,
+                    market_data_last_ts_provider=_wrap_ts_provider(market_data_provider),
+                    heartbeat_last_ts_provider=_wrap_ts_provider(heartbeat_ts_provider),
+                    heartbeat_alive_check=_wrap_alive(heartbeat_alive_check),
+                    config=ch_cfg
+                )
+            except Exception:
+                pass
         if _LOGLEVEL_AVAILABLE:
-            self.logger = create_safe_logger("ExecutionRouter", log_level=LogLevel.INFO)
+            self.logger = create_safe_logger("ExecutionRouter", log_level=_DEFAULT_LOG_LEVEL)
         else:
             self.logger = create_safe_logger("ExecutionRouter")
         self.breaker = CircuitBreaker(self.config.circuit_breaker_threshold,
@@ -145,14 +281,14 @@ class ExecutionRouter:
         }
         self._load_cumulative()
         # slippage tracker opcional
-        self.slippage_tracker: Optional['SlippageTracker'] = None
+        self.slippage_tracker = None  # type: ignore[assignment]
         try:
             if SlippageTracker and self.config.metrics_dir:
                 self.slippage_tracker = SlippageTracker(persist_dir=self.config.metrics_dir)
         except Exception:
             self.slippage_tracker = None
         # market data validator opcional (hook con TTL simple)
-        self._md_validator: Optional['MarketDataValidator'] = None
+        self._md_validator = None  # type: ignore[assignment]
         self._md_validator_ttl_sec = 5.0
         self._md_last_check_ts: float = 0.0
         self._md_last_ok: bool = True
@@ -180,7 +316,60 @@ class ExecutionRouter:
         except Exception:
             self._audit_logger = None
 
+        # --- MÓDULOS NUEVOS OPCIONALES ---
+        self._position_sizer = None
+        if getattr(self.config, 'enable_position_sizer', False) and PositionSizer:
+            try:
+                def _balance_provider():
+                    provider = globals().get('get_account_balance')
+                    if callable(provider):
+                        try:
+                            raw = provider()
+                            # intenta convertir por pathways típicos
+                            if isinstance(raw, (int, float)):
+                                return float(raw)
+                            if raw is None:
+                                return 0.0
+                            return float(str(raw))
+                        except Exception:  # pragma: no cover
+                            return 0.0
+                    return 0.0
+                self._position_sizer = PositionSizer(_balance_provider, logger=self.logger)
+            except Exception:
+                self._position_sizer = None
+        self._exposure_tracker = None
+        if getattr(self.config, 'enable_portfolio_exposure_tracker', False) and PortfolioExposureTracker:
+            try:
+                persist_dir = self.config.metrics_dir or ''
+                path = os.path.join(persist_dir, 'portfolio_exposure.json') if persist_dir else None
+                self._exposure_tracker = PortfolioExposureTracker(persistence_path=path, logger=self.logger)
+            except Exception:
+                self._exposure_tracker = None
+        self._compliance_checker = None
+        if getattr(self.config, 'enable_trade_compliance', False) and TradeComplianceChecker:
+            try:
+                self._compliance_checker = TradeComplianceChecker(
+                    blacklist=self.config.compliance_blacklist,
+                    restricted_hours_utc=self.config.compliance_restricted_hours,
+                    max_spread_points=self.config.compliance_max_spread_points,
+                    loss_cooldown_sec=self.config.compliance_loss_cooldown_sec,
+                    logger=self.logger
+                )
+            except Exception:
+                self._compliance_checker = None
+        self._retry_policy = None
+        if getattr(self.config, 'enable_retry_policy', False) and ExecutionRetryPolicy and RetryConfig:
+            try:
+                self._retry_policy = ExecutionRetryPolicy(RetryConfig(max_attempts=self.config.max_retries+1), logger=self.logger)
+            except Exception:
+                self._retry_policy = None
+
     def _pre_checks(self, symbol: str, volume: float, action: str, price: Optional[float]) -> Optional[str]:
+        # rate limiter primero para reducir carga si hay ráfaga
+        if self._rate_limiter:
+            ok, reason_rl = self._rate_limiter.hook_check(symbol)
+            if not ok:
+                return reason_rl
         if self.health_monitor and not self.health_monitor.is_system_healthy():
             return "system_unhealthy"
         if self.latency_monitor:
@@ -208,7 +397,12 @@ class ExecutionRouter:
                     # Se asume existencia de un proveedor global de velas reciente si está declarado
                     candles_provider = globals().get('get_recent_candles')  # tipo flexible
                     if callable(candles_provider):
-                        candles = candles_provider()
+                        raw = candles_provider()
+                        candles: list[dict[str, Any]] = []
+                        if isinstance(raw, list):
+                            for item in raw:
+                                if isinstance(item, dict):
+                                    candles.append(item)
                         ok, issues = self._md_validator.validate_candles(candles)
                         self._md_last_ok = ok
                         self._md_last_reason = None if ok else (issues[0] if issues else 'market_data_invalid')
@@ -225,9 +419,62 @@ class ExecutionRouter:
     def place_order(self, symbol: str, action: str, volume: float, price: Optional[float] = None,
                     sl: Optional[float] = None, tp: Optional[float] = None) -> ExecutionResult:
         start = datetime.utcnow()
+        # --- POSITION SIZING (override volume si habilitado) ---
+        if self._position_sizer and getattr(self.config, 'enable_position_sizer', False):
+            try:
+                # Si se provee stop-loss podemos evaluar sizing basado en riesgo fijo
+                if sl and price and sl > 0 and price > 0:
+                    stop_distance = abs(price - sl)
+                    sizing_res = self._position_sizer.fixed_risk(symbol, price, stop_distance, risk_pct=getattr(self.config, 'position_sizer_risk_pct', 0.01))
+                    if sizing_res.valid and sizing_res.volume > 0:
+                        volume = sizing_res.volume
+                        self.logger.info(f"Sizing aplicado volume={volume:.2f} basis={sizing_res.basis}", "EXECUTION")
+                # Futuro: fallback a volatility_adjusted si no hay SL
+            except Exception as e:  # pragma: no cover
+                self.logger.warning(f"PositionSizer error: {e}", "EXECUTION")
+
+        # --- COMPLIANCE CHECK previa ---
+        if self._compliance_checker and getattr(self.config, 'enable_trade_compliance', False):
+            try:
+                # spread opcional: buscar proveedor global
+                spread_provider = globals().get('get_current_spread_points')
+                spread_points = None
+                if callable(spread_provider):
+                    try:
+                        sp_raw = spread_provider(symbol)
+                        if isinstance(sp_raw, (int, float)):
+                            spread_points = float(sp_raw)
+                    except Exception:
+                        spread_points = None
+                comp_res = self._compliance_checker.check(symbol, spread_points=spread_points)
+                if not comp_res.allowed:
+                    reason = "compliance_block:" + ",".join(comp_res.violations)
+                    self.logger.warning(f"Compliance bloquea orden {reason}", "EXECUTION")
+                    # métrica bloqueos
+                    self._metrics['blocked_reasons']['hook_blocked'] = self._metrics['blocked_reasons'].get('hook_blocked', 0) + 1
+                    return ExecutionResult(False, error=reason)
+            except Exception as e:  # pragma: no cover
+                self.logger.warning(f"Compliance checker exception ignorada: {e}", "EXECUTION")
+
         pre_issue = self._pre_checks(symbol, volume, action, price)
         if pre_issue:
             self.logger.warning(f"Order blocked pre-check: {pre_issue}", "EXECUTION")
+            # Emit alerts for specific blocking reasons
+            if self.alert_dispatcher and AlertCategory and AlertSeverity:
+                try:
+                    if pre_issue == "circuit_open":
+                        self.alert_dispatcher.dispatch_circuit_breaker(symbol, self.breaker.failures)
+                    elif pre_issue == "risk_validation_failed":
+                        self.alert_dispatcher.dispatch_risk_block(symbol, "risk validation failed", 
+                                                                 {"volume": volume, "action": action, "price": price})
+                    elif pre_issue.startswith("latency_too_high"):
+                        latency_str = pre_issue.split(":")[1] if ":" in pre_issue else "unknown"
+                        self.alert_dispatcher.dispatch_system_health("latency_monitor", "high_latency", 
+                                                                   {"latency": latency_str, "threshold": self.config.max_latency_ms})
+                    elif pre_issue == "system_unhealthy":
+                        self.alert_dispatcher.dispatch_system_health("health_monitor", "unhealthy", {})
+                except Exception:
+                    pass  # no fallar por alertas
             # métricas de bloqueo
             key = pre_issue.split(':')[0]
             if key.startswith('latency_too_high'):
@@ -242,7 +489,15 @@ class ExecutionRouter:
         for attempt in range(self.config.max_retries + 1):
             for idx, executor in enumerate(executor_sequence):
                 try:
-                    result = executor.send_order(symbol, action, volume, price, sl, tp)
+                    def _send_once():
+                        return executor.send_order(symbol, action, volume, price, sl, tp)
+                    if self._retry_policy and getattr(self.config, 'enable_retry_policy', False):
+                        try:
+                            result = self._retry_policy.run(_send_once)
+                        except Exception as e:  # agotó retries internos de policy
+                            result = {'success': False, 'error': f'retry_policy_failed:{e}'}
+                    else:
+                        result = _send_once()
                     if result.get('success'):
                         ticket = result.get('ticket')
                         self.logger.info(f"Order executed via {'primary' if idx == 0 else 'backup'} ticket={ticket}", "EXECUTION")
@@ -271,6 +526,11 @@ class ExecutionRouter:
                                 )
                             except Exception:
                                 pass
+                        if self._session_state and isinstance(ticket, int):
+                            try:
+                                self._session_state.record_success(ticket, symbol, action, volume, result)
+                            except Exception:
+                                pass
                         now = time.time()
                         if self.latency_monitor:
                             try:
@@ -281,6 +541,12 @@ class ExecutionRouter:
                                 pass
                         if (now - self._metrics['last_log_ts']) > 30:
                             self._emit_metrics(now)
+                        # actualizar exposición de portafolio
+                        if self._exposure_tracker and getattr(self.config, 'enable_portfolio_exposure_tracker', False):
+                            try:
+                                self._exposure_tracker.apply_execution(symbol, volume, action)
+                            except Exception:
+                                pass
                         return ExecutionResult(True, ticket=ticket, retries=attempt,
                                                placed_at=datetime.utcnow(), extra=result)
                     last_error = result.get('error', 'unknown_error')
@@ -309,6 +575,13 @@ class ExecutionRouter:
                     last_error = f"exception:{e}"
                     self.logger.error(f"Execution exception attempt {attempt+1}: {e}", "EXECUTION")
                     self.breaker.record_failure()
+                    # Alert on execution exception that could trigger circuit breaker
+                    if self.alert_dispatcher and AlertCategory and AlertSeverity:
+                        try:
+                            self.alert_dispatcher.dispatch_order_failure(symbol, f"execution_exception: {e}",
+                                                                       {"attempt": attempt+1, "action": action})
+                        except Exception:
+                            pass
                     if self._metrics_recorder:
                         try:
                             self._metrics_recorder.record_order(False, 0.0)
@@ -328,6 +601,14 @@ class ExecutionRouter:
         # fracaso total
         if last_error:
             self.breaker.record_failure()
+            # Alert on final failure
+            if self.alert_dispatcher and AlertCategory and AlertSeverity:
+                try:
+                    self.alert_dispatcher.dispatch_order_failure(symbol, last_error, 
+                                                               {"retries": self.config.max_retries, 
+                                                                "action": action, "volume": volume})
+                except Exception:
+                    pass
         self._metrics['orders_total'] += 1
         self._metrics['orders_failed'] += 1
         if self._metrics_recorder:
@@ -341,6 +622,11 @@ class ExecutionRouter:
                     event_type="ORDER_FINAL_FAIL", order_id=None, symbol=symbol, status="FINAL_FAIL",
                     latency_ms=None, extra={'last_error': last_error, 'action': action}
                 )
+            except Exception:
+                pass
+        if self._session_state:
+            try:
+                self._session_state.record_failure(symbol, action, volume, last_error or 'execution_failed')
             except Exception:
                 pass
         now = time.time()
@@ -437,7 +723,8 @@ class ExecutionRouter:
             'orders_failed': self._metrics['orders_failed'],
             'avg_latency_ms': avg_latency,
             'latency_samples_count': len(lat_list),
-            'latency_percentiles': percentiles
+            'latency_percentiles': percentiles,
+            'blocked_reasons': self._metrics.get('blocked_reasons', {})
         }
         if self.slippage_tracker:
             try:
@@ -497,6 +784,7 @@ class ExecutionRouter:
             'latency_avg_ms': avg_latency,
             'latency_percentiles': latency_percentiles,
             'history': self._metrics['history'][-50:],  # recorte
+            'blocked_reasons': self._metrics.get('blocked_reasons', {})
         }
         if self.slippage_tracker:
             try:
@@ -533,6 +821,12 @@ class ExecutionRouter:
         if self._audit_logger:
             try:
                 self._audit_logger.log_event(event_type="SHUTDOWN", status="OK")
+            except Exception:
+                pass
+        if self._session_state:
+            try:
+                self._session_state.flush()
+                self._session_state.persist_snapshot()
             except Exception:
                 pass
 

@@ -17,28 +17,16 @@ from pathlib import Path
 from typing import Any, Dict, Optional, List
 import json
 import time
-from typing import Callable, TYPE_CHECKING, Any as _Any
+from typing import Callable, TYPE_CHECKING
 
-try:  # Intento real
-    from dash import html, dcc, Input, Output  # type: ignore
+from core.stubs.dash_stubs import dash_safe_imports
+
+# Centralized dash imports / stubs
+html, dcc, Input, Output, _StateUnused, DASH_OK = dash_safe_imports()  # State no usado aquí
+
+try:  # plotly opcional
     import plotly.graph_objects as go  # type: ignore
-    DASH_OK: bool = True
-except Exception:  # Fallback de tipos sin ejecutar Dash (sin dependencias externas)
-    DASH_OK = False
-
-    # --------- Tipos mínimos para que Pylance no marque None attributes ---------
-    class _HtmlNamespace:
-        def Div(self, *children: _Any, **props: _Any) -> dict:  # mimic dash.html.Div
-            return {"type": "Div", "children": list(children), "props": props}
-        def H2(self, *children: _Any, **props: _Any) -> dict:
-            return {"type": "H2", "children": list(children), "props": props}
-
-    class _DccNamespace:
-        def Interval(self, *_, **props: _Any) -> dict:
-            return {"type": "Interval", "props": props}
-        def Graph(self, *_, **props: _Any) -> dict:
-            return {"type": "Graph", "props": props}
-
+except Exception:  # pragma: no cover - stub mínimo si plotly ausente
     class _Figure:
         def __init__(self):
             self.layout = {}
@@ -51,32 +39,16 @@ except Exception:  # Fallback de tipos sin ejecutar Dash (sin dependencias exter
             return None
         def add_trace(self, *_ , **__):
             return None
-
-    class _Scatter:  # placeholders compatibles
+    class _Scatter:  # placeholders
         def __init__(self, *_, **__):
             pass
     class _Bar:
         def __init__(self, *_, **__):
             pass
-
     class _GoNamespace:
         Figure = _Figure
         Scatter = _Scatter
         Bar = _Bar
-
-    # Input/Output placeholders para no romper decoradores ni tipado
-    class _CallbackIO:
-        def __init__(self, *args: _Any, **kwargs: _Any):
-            self.args = args
-            self.kwargs = kwargs
-
-    def Input(*args: _Any, **kwargs: _Any) -> _CallbackIO:  # type: ignore
-        return _CallbackIO(*args, **kwargs)
-    def Output(*args: _Any, **kwargs: _Any) -> _CallbackIO:  # type: ignore
-        return _CallbackIO(*args, **kwargs)
-
-    html = _HtmlNamespace()  # type: ignore
-    dcc = _DccNamespace()  # type: ignore
     go = _GoNamespace()  # type: ignore
 
 

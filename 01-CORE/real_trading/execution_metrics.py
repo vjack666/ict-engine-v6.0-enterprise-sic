@@ -17,19 +17,27 @@ Diseño eficiente:
 """
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Protocol, runtime_checkable
 from pathlib import Path
 import json, time, os
 from datetime import datetime
 
+@runtime_checkable
+class _LoggerProto(Protocol):
+    def info(self, message: str, category: str) -> None: ...
+    def warning(self, message: str, category: str) -> None: ...
+    def error(self, message: str, category: str) -> None: ...
+
 try:
-    from protocols.logging_protocol import create_enterprise_logger
+    from protocols.logging_protocol import create_enterprise_logger as _central_logger_factory
+    def create_enterprise_logger(component_name: str, prefer_smart_logger: bool = True, **kwargs) -> _LoggerProto:  # type: ignore[override]
+        return _central_logger_factory(component_name, prefer_smart_logger=prefer_smart_logger, **kwargs)  # type: ignore[return-value]
 except Exception:  # fallback reducido
-    def create_enterprise_logger(name: str, **_):
-        class _M:  # type: ignore
-            def info(self,*a,**k): pass
-            def warning(self,*a,**k): pass
-            def error(self,*a,**k): pass
+    def create_enterprise_logger(component_name: str, prefer_smart_logger: bool = True, **kwargs) -> _LoggerProto:  # type: ignore[override]
+        class _M:
+            def info(self, message: str, category: str) -> None: pass
+            def warning(self, message: str, category: str) -> None: pass
+            def error(self, message: str, category: str) -> None: pass
         return _M()
 
 @dataclass
