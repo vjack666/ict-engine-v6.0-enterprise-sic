@@ -147,6 +147,15 @@ class POI:
     analysis_id: str = ""
     notes: str = ""
     related_pois: List[str] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def add_metadata(self, key: str, value: Any) -> None:
+        """Agregar/actualizar entrada de metadata de forma segura."""
+        self.metadata[key] = value
+
+    def get_metadata(self, key: str, default: Any = None) -> Any:
+        """Obtener valor de metadata con default si no existe."""
+        return self.metadata.get(key, default)
 
 
 class POISystem:

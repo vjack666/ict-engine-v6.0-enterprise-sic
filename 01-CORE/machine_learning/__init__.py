@@ -47,16 +47,47 @@ except ImportError:
     print("⚠️ ML libraries not available - install sklearn, joblib")
     ML_AVAILABLE = False
 
-# Integración con sistema existente
+# Integración con sistema existente (protegida)
 try:
-    from smart_trading_logger import log_trading_decision_smart_v6
-    from analysis.poi_system import POI, POIType, POISignificance
-    from ict_engine.pattern_detector import ICTPattern
-    from analysis.unified_memory_system import get_unified_memory_system
-    SYSTEM_INTEGRATION_AVAILABLE = True
+    from smart_trading_logger import log_trading_decision_smart_v6  # type: ignore
+except ImportError:  # Fallback no-op para evitar NameError en runtime / type check
+    def log_trading_decision_smart_v6(event: str, data: Dict[str, Any]):  # type: ignore
+        pass
+
+try:
+    from analysis.poi_system import POI, POIType, POISignificance  # type: ignore
 except ImportError:
-    print("⚠️ System integration limited - some features disabled")
-    SYSTEM_INTEGRATION_AVAILABLE = False
+    POI = Any  # type: ignore
+    POIType = Any  # type: ignore
+    POISignificance = Any  # type: ignore
+
+try:
+    from ict_engine.pattern_detector import ICTPattern  # type: ignore
+except ImportError:
+    ICTPattern = Any  # type: ignore
+
+try:
+    from analysis.unified_memory_system import get_unified_memory_system  # type: ignore
+    _UNIFIED_MEMORY_AVAILABLE = True
+except ImportError:
+    _UNIFIED_MEMORY_AVAILABLE = False
+    def get_unified_memory_system():  # type: ignore
+        return None
+
+SYSTEM_INTEGRATION_AVAILABLE = any([
+    'log_trading_decision_smart_v6' in globals(),
+    'POI' in globals(),
+    _UNIFIED_MEMORY_AVAILABLE
+])
+
+# Alias de tipo seguro para POI en anotaciones
+try:
+    if isinstance(POI, type):  # type: ignore
+        POITypeAlias = POI  # type: ignore
+    else:  # pragma: no cover
+        POITypeAlias = Any  # type: ignore
+except Exception:  # pragma: no cover
+    POITypeAlias = Any  # type: ignore
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -146,17 +177,23 @@ class ICTMLSystem:
         
         # Integración con sistema ICT
         self.memory_system = None
-        if SYSTEM_INTEGRATION_AVAILABLE:
-            self.memory_system = get_unified_memory_system()
+        if _UNIFIED_MEMORY_AVAILABLE and SYSTEM_INTEGRATION_AVAILABLE:
+            try:
+                self.memory_system = get_unified_memory_system()
+            except Exception:
+                self.memory_system = None
         
         self._initialize_components()
         
-        log_trading_decision_smart_v6("ML_SYSTEM_INITIALIZED", {
-            "component": "ICTMLSystem",
-            "models_path": str(self.models_path),
-            "ml_available": ML_AVAILABLE,
-            "system_integration": SYSTEM_INTEGRATION_AVAILABLE
-        })
+        try:
+            log_trading_decision_smart_v6("ML_SYSTEM_INITIALIZED", {
+                "component": "ICTMLSystem",
+                "models_path": str(self.models_path),
+                "ml_available": ML_AVAILABLE,
+                "system_integration": SYSTEM_INTEGRATION_AVAILABLE
+            })
+        except Exception:
+            pass
     
     def _load_default_config(self) -> Dict[str, Any]:
         """Configuración por defecto del sistema ML"""
@@ -222,7 +259,7 @@ class ICTMLSystem:
         for model_file in self.models_path.glob("*.joblib"):
             try:
                 model_name = model_file.stem
-                model = joblib.load(model_file)
+                model = joblib.load(model_file)  # type: ignore[arg-type]
                 
                 # Determinar tipo de modelo
                 for model_type in MLModelType:
@@ -238,7 +275,7 @@ class ICTMLSystem:
     # 🔍 FEATURE EXTRACTION
     # ============================================================================
     
-    def extract_poi_features(self, market_data: Any, poi: 'POI') -> Dict[str, float]:
+    def extract_poi_features(self, market_data: Any, poi: Any) -> Dict[str, float]:
         """Extraer features para análisis POI"""
         features = {}
         
@@ -326,7 +363,7 @@ class ICTMLSystem:
     # 🎯 PREDICCIONES ML
     # ============================================================================
     
-    def predict_poi_significance(self, market_data: Any, poi: 'POI') -> Optional[MLPrediction]:
+    def predict_poi_significance(self, market_data: Any, poi: Any) -> Optional[MLPrediction]:
         """Predecir significancia de POI usando ML"""
         if not ML_AVAILABLE or MLModelType.POI_CLASSIFIER not in self.loaded_models:
             return None
@@ -448,65 +485,62 @@ def reset_ict_ml_system():
 # 🔧 FUNCIONES DE UTILIDAD
 # ============================================================================
 
-def enhance_poi_with_ml(poi: 'POI', market_data: Any) -> 'POI':
+def enhance_poi_with_ml(poi: Any, market_data: Any) -> Any:  # type: ignore[name-defined]
     """Potenciar POI con análisis ML"""
     if not SYSTEM_INTEGRATION_AVAILABLE:
         return poi
-    
     try:
         ml_system = get_ict_ml_system()
         prediction = ml_system.predict_poi_significance(market_data, poi)
-        
         if prediction and prediction.confidence > 0.7:
-            # Actualizar POI con información ML
-            if hasattr(poi, 'metadata') and poi.metadata is None:
-                poi.metadata = {}
-            elif not hasattr(poi, 'metadata'):
-                poi.metadata = {}
-                
-            poi.metadata['ml_enhanced'] = True
-            poi.metadata['ml_prediction'] = prediction.prediction
-            poi.metadata['ml_confidence'] = prediction.confidence
-            poi.metadata['ml_timestamp'] = prediction.timestamp.isoformat()
-            
-            # Ajustar strength basado en ML si es significativo
+            if not hasattr(poi, 'metadata') or getattr(poi, 'metadata') is None:
+                try:
+                    setattr(poi, 'metadata', {})
+                except Exception:
+                    pass
+            try:
+                poi.metadata['ml_enhanced'] = True  # type: ignore[index]
+                poi.metadata['ml_prediction'] = prediction.prediction  # type: ignore[index]
+                poi.metadata['ml_confidence'] = prediction.confidence  # type: ignore[index]
+                poi.metadata['ml_timestamp'] = prediction.timestamp.isoformat()  # type: ignore[index]
+            except Exception:
+                pass
             if prediction.confidence > 0.8:
-                ml_factor = 1.0 + (prediction.confidence - 0.5) * 0.2
-                poi.strength = min(100.0, poi.strength * ml_factor)
-                
-    except Exception as e:
-        logger.error(f"Error enhancing POI with ML: {e}")
-    
+                try:
+                    ml_factor = 1.0 + (prediction.confidence - 0.5) * 0.2
+                    poi.strength = min(100.0, poi.strength * ml_factor)  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+    except Exception as ex:  # noqa: BLE001
+        logger.error(f"Error enhancing POI with ML: {ex}")
     return poi
 
 def enhance_bos_pattern_with_ml(pattern: Dict[str, Any], market_data: Any) -> Dict[str, Any]:
     """Potenciar patrón BOS con análisis ML"""
     if not SYSTEM_INTEGRATION_AVAILABLE:
         return pattern
-    
     try:
         ml_system = get_ict_ml_system()
         prediction = ml_system.predict_bos_probability(market_data)
-        
         if prediction and prediction.confidence > 0.7:
-            # Actualizar patrón con información ML
             if 'ml_analysis' not in pattern:
                 pattern['ml_analysis'] = {}
-            
-            pattern['ml_analysis']['enhanced'] = True
-            pattern['ml_analysis']['prediction'] = prediction.prediction
-            pattern['ml_analysis']['confidence'] = prediction.confidence
-            pattern['ml_analysis']['timestamp'] = prediction.timestamp.isoformat()
-            
-            # Ajustar confidence del patrón
+            try:
+                pattern['ml_analysis']['enhanced'] = True
+                pattern['ml_analysis']['prediction'] = prediction.prediction
+                pattern['ml_analysis']['confidence'] = prediction.confidence
+                pattern['ml_analysis']['timestamp'] = prediction.timestamp.isoformat()
+            except Exception:
+                pass
             if prediction.confidence > 0.8:
-                original_confidence = pattern.get('confidence', 0.5)
-                ml_boost = (prediction.confidence - 0.5) * 0.3
-                pattern['confidence'] = min(1.0, original_confidence + ml_boost)
-                
-    except Exception as e:
-        logger.error(f"Error enhancing BOS pattern with ML: {e}")
-    
+                try:
+                    original_confidence = pattern.get('confidence', 0.5)
+                    ml_boost = (prediction.confidence - 0.5) * 0.3
+                    pattern['confidence'] = min(1.0, original_confidence + ml_boost)
+                except Exception:
+                    pass
+    except Exception as ex:  # noqa: BLE001
+        logger.error(f"Error enhancing BOS pattern with ML: {ex}")
     return pattern
 
 # ============================================================================

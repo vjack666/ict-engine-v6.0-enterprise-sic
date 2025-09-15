@@ -29,7 +29,7 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Callable, Union
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from enum import Enum
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -47,11 +47,13 @@ except ImportError:
     SmartTradingLogger = None
 
 try:
-    from .config_manager import get_config
+    # Ajustar ruta correcta hacia config_manager (subir un nivel a config)
+    from ..config.config_manager import get_config  # type: ignore
     CONFIG_AVAILABLE = True
-except ImportError:
+except ImportError:  # Fallback seguro
     CONFIG_AVAILABLE = False
-    get_config = lambda key, default=None: default
+    def get_config(key: str, default=None):  # type: ignore
+        return default
 
 
 class NotificationPriority(Enum):
@@ -114,11 +116,7 @@ class NotificationTemplate:
     title_template: str
     body_template: str
     format: str = "text"  # text, html, markdown
-    variables: List[str] = None
-    
-    def __post_init__(self):
-        if self.variables is None:
-            self.variables = []
+    variables: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -130,28 +128,18 @@ class Notification:
     title: str
     message: str
     timestamp: datetime
-    data: Dict[str, Any] = None
-    channels: List[NotificationChannel] = None
+    data: Dict[str, Any] = field(default_factory=dict)
+    channels: List[NotificationChannel] = field(default_factory=list)
     retry_count: int = 0
     max_retries: int = 3
-    sent_to: List[NotificationChannel] = None
-    failed_channels: List[NotificationChannel] = None
-    
-    def __post_init__(self):
-        if self.data is None:
-            self.data = {}
-        if self.channels is None:
-            self.channels = []
-        if self.sent_to is None:
-            self.sent_to = []
-        if self.failed_channels is None:
-            self.failed_channels = []
+    sent_to: List[NotificationChannel] = field(default_factory=list)
+    failed_channels: List[NotificationChannel] = field(default_factory=list)
 
 
 class NotificationHandler:
     """🔧 Handler base para canales de notificación"""
     
-    def __init__(self, channel: NotificationChannel, config: Dict[str, Any] = None):
+    def __init__(self, channel: NotificationChannel, config: Optional[Dict[str, Any]] = None):
         self.channel = channel
         self.config = config or {}
         self.enabled = self.config.get('enabled', True)
@@ -208,7 +196,7 @@ class NotificationHandler:
 class ConsoleHandler(NotificationHandler):
     """🖥️ Handler para notificaciones de consola"""
     
-    def __init__(self, config: Dict[str, Any] = None):
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__(NotificationChannel.CONSOLE, config)
         self.colors = {
             NotificationPriority.LOW: '\033[37m',      # White
@@ -254,9 +242,10 @@ class ConsoleHandler(NotificationHandler):
 class FileHandler(NotificationHandler):
     """📁 Handler para notificaciones en archivo"""
     
-    def __init__(self, config: Dict[str, Any] = None):
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__(NotificationChannel.FILE, config)
-        self.file_path = Path(config.get('file_path', '05-LOGS/general/notifications.jsonl'))
+        cfg = config or {}
+        self.file_path = Path(cfg.get('file_path', '05-LOGS/general/notifications.jsonl'))
         self.file_path.parent.mkdir(parents=True, exist_ok=True)
         self._file_lock = threading.Lock()
     
@@ -287,15 +276,16 @@ class FileHandler(NotificationHandler):
 class EmailHandler(NotificationHandler):
     """📧 Handler para notificaciones por email"""
     
-    def __init__(self, config: Dict[str, Any] = None):
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__(NotificationChannel.EMAIL, config)
-        self.smtp_server = config.get('smtp_server', 'localhost')
-        self.smtp_port = config.get('smtp_port', 587)
-        self.username = config.get('username', '')
-        self.password = config.get('password', '')
-        self.from_email = config.get('from_email', 'ict-engine@localhost')
-        self.to_emails = config.get('to_emails', [])
-        self.use_tls = config.get('use_tls', True)
+        cfg = config or {}
+        self.smtp_server = cfg.get('smtp_server', 'localhost')
+        self.smtp_port = cfg.get('smtp_port', 587)
+        self.username = cfg.get('username', '')
+        self.password = cfg.get('password', '')
+        self.from_email = cfg.get('from_email', 'ict-engine@localhost')
+        self.to_emails = cfg.get('to_emails', [])
+        self.use_tls = cfg.get('use_tls', True)
     
     async def _send_impl(self, notification: Notification) -> bool:
         """📨 Enviar notificación por email"""
@@ -407,11 +397,12 @@ Additional Data:
 class DashboardHandler(NotificationHandler):
     """📊 Handler para notificaciones de dashboard"""
     
-    def __init__(self, config: Dict[str, Any] = None):
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__(NotificationChannel.DASHBOARD, config)
+        cfg = config or {}
         self.notifications_file = Path('04-DATA/notifications/dashboard_notifications.json')
         self.notifications_file.parent.mkdir(parents=True, exist_ok=True)
-        self.max_notifications = config.get('max_notifications', 100)
+        self.max_notifications = cfg.get('max_notifications', 100)
         self._file_lock = threading.Lock()
     
     async def _send_impl(self, notification: Notification) -> bool:
@@ -511,20 +502,66 @@ class NotificationManager:
         self.logger.info("✅ NotificationManager initialized")
     
     def _setup_logger(self) -> logging.Logger:
-        """📝 Configurar logger"""
+        """📝 Configurar logger con compatibilidad de tipos"""
         if LOGGER_AVAILABLE and SmartTradingLogger:
-            return SmartTradingLogger("NotificationManager")
-        else:
-            logger = logging.getLogger("NotificationManager")
-            if not logger.handlers:
+            raw_logger = SmartTradingLogger("NotificationManager")
+            if isinstance(raw_logger, logging.Logger):  # ya compatible
+                return raw_logger
+            base_logger = logging.getLogger("NotificationManager")
+            if not base_logger.handlers:
                 handler = logging.StreamHandler()
-                formatter = logging.Formatter(
-                    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-                )
+                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
                 handler.setFormatter(formatter)
-                logger.addHandler(handler)
-                logger.setLevel(logging.INFO)
-            return logger
+                base_logger.addHandler(handler)
+                base_logger.setLevel(logging.INFO)
+
+            class _Adapter(logging.Logger):  # type: ignore[misc]
+                def __init__(self, delegate: Any):
+                    super().__init__("NotificationManagerAdapter")
+                    self._delegate = delegate
+                    for h in base_logger.handlers:
+                        self.addHandler(h)
+                    self.setLevel(base_logger.level)
+
+                def info(self, msg: str, *a: Any, **kw: Any) -> None:
+                    try:
+                        self._delegate.info(msg, *a, **kw)
+                    except AttributeError:
+                        base_logger.info(msg, *a, **kw)
+
+                def warning(self, msg: str, *a: Any, **kw: Any) -> None:
+                    try:
+                        self._delegate.warning(msg, *a, **kw)
+                    except AttributeError:
+                        base_logger.warning(msg, *a, **kw)
+
+                def error(self, msg: str, *a: Any, **kw: Any) -> None:
+                    try:
+                        self._delegate.error(msg, *a, **kw)
+                    except AttributeError:
+                        base_logger.error(msg, *a, **kw)
+
+                def debug(self, msg: str, *a: Any, **kw: Any) -> None:
+                    try:
+                        self._delegate.debug(msg, *a, **kw)
+                    except AttributeError:
+                        base_logger.debug(msg, *a, **kw)
+
+                def exception(self, msg: str, *a: Any, **kw: Any) -> None:
+                    try:
+                        self._delegate.exception(msg, *a, **kw)
+                    except AttributeError:
+                        base_logger.exception(msg, *a, **kw)
+
+            return _Adapter(raw_logger)
+        logger = logging.getLogger("NotificationManager")
+        if not logger.handlers:
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+            logger.setLevel(logging.INFO)
+        return logger
     
     def _setup_handlers(self):
         """⚙️ Configurar handlers de notificación"""
@@ -538,9 +575,10 @@ class NotificationManager:
         
         # Usar configuración del ConfigManager si está disponible
         if CONFIG_AVAILABLE:
-            alerts_config = get_config('alerts.channels', default_config)
+            alerts_raw = get_config('alerts.channels', default_config)
         else:
-            alerts_config = default_config
+            alerts_raw = default_config
+        alerts_config: Dict[str, Any] = alerts_raw if isinstance(alerts_raw, dict) else default_config
         
         # Crear handlers
         if alerts_config.get('console', {}).get('enabled', False):
@@ -748,8 +786,8 @@ class NotificationManager:
                title: str,
                message: str,
                priority: NotificationPriority = NotificationPriority.MEDIUM,
-               data: Dict[str, Any] = None,
-               channels: List[NotificationChannel] = None) -> str:
+               data: Optional[Dict[str, Any]] = None,
+               channels: Optional[List[NotificationChannel]] = None) -> str:
         """
         📢 Enviar notificación
         
@@ -784,7 +822,7 @@ class NotificationManager:
                 message=message,
                 timestamp=datetime.now(),
                 data=data or {},
-                channels=channels
+                channels=channels or []
             )
             
             # Agregar a la cola
@@ -810,7 +848,7 @@ class NotificationManager:
             NotificationPriority.MEDIUM
         )
     
-    def notify_order_block_detected(self, symbol: str, price: float, timeframe: str, data: Dict[str, Any] = None):
+    def notify_order_block_detected(self, symbol: str, price: float, timeframe: str, data: Optional[Dict[str, Any]] = None):
         """📊 Notificación de order block detectado"""
         return self.notify(
             NotificationType.ORDER_BLOCK_DETECTED,
@@ -930,8 +968,8 @@ def notify(type: Union[NotificationType, str],
           title: str,
           message: str,
           priority: NotificationPriority = NotificationPriority.MEDIUM,
-          data: Dict[str, Any] = None,
-          channels: List[NotificationChannel] = None) -> str:
+          data: Optional[Dict[str, Any]] = None,
+          channels: Optional[List[NotificationChannel]] = None) -> str:
     """
     🎯 Función de conveniencia para enviar notificación
     """

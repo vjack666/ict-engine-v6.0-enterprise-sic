@@ -28,7 +28,7 @@ import hashlib
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Union, Callable
+from typing import Dict, List, Optional, Any, Union, Callable, Protocol, runtime_checkable
 from dataclasses import dataclass, asdict
 from enum import Enum
 import logging
@@ -162,21 +162,84 @@ class ConfigManager:
         
         return env_mapping.get(env_var, Environment.DEVELOPMENT)
     
+    @runtime_checkable
+    class _LoggerLike(Protocol):  # internal protocol for type compatibility
+        def info(self, msg: str, *args: Any, **kwargs: Any) -> None: ...
+        def warning(self, msg: str, *args: Any, **kwargs: Any) -> None: ...
+        def error(self, msg: str, *args: Any, **kwargs: Any) -> None: ...
+        def debug(self, msg: str, *args: Any, **kwargs: Any) -> None: ...
+        def exception(self, msg: str, *args: Any, **kwargs: Any) -> None: ...
+
     def _setup_logger(self) -> logging.Logger:
-        """📝 Configurar logger"""
+        """📝 Configurar logger
+        Devuelve siempre una instancia que cumple la interfaz logging.Logger
+        Si SmartTradingLogger no hereda explícitamente de logging.Logger se crea
+        un wrapper adaptador para satisfacer a Pylance.
+        """
         if LOGGER_AVAILABLE and SmartTradingLogger:
-            return SmartTradingLogger("ConfigManager")
-        else:
-            logger = logging.getLogger("ConfigManager")
-            if not logger.handlers:
+            raw_logger = SmartTradingLogger("ConfigManager")
+            # Si ya es instancia de logging.Logger la devolvemos directamente
+            if isinstance(raw_logger, logging.Logger):
+                return raw_logger
+            # Adaptador mínimal que delega métodos estándar
+            base_logger = logging.getLogger("ConfigManager")
+            if not base_logger.handlers:
                 handler = logging.StreamHandler()
-                formatter = logging.Formatter(
-                    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-                )
+                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
                 handler.setFormatter(formatter)
-                logger.addHandler(handler)
-                logger.setLevel(logging.INFO)
-            return logger
+                base_logger.addHandler(handler)
+                base_logger.setLevel(logging.INFO)
+
+            class _Adapter(logging.Logger):  # type: ignore[misc]
+                def __init__(self, delegate: Any):
+                    super().__init__("ConfigManagerAdapter")
+                    self._delegate = delegate
+                    # Reutilizamos handlers del base_logger
+                    for h in base_logger.handlers:
+                        self.addHandler(h)
+                    self.setLevel(base_logger.level)
+
+                def info(self, msg: str, *args: Any, **kwargs: Any) -> None:  # noqa: D401
+                    try:
+                        return self._delegate.info(msg, *args, **kwargs)
+                    except AttributeError:
+                        return base_logger.info(msg, *args, **kwargs)
+
+                def warning(self, msg: str, *args: Any, **kwargs: Any) -> None:
+                    try:
+                        return self._delegate.warning(msg, *args, **kwargs)
+                    except AttributeError:
+                        return base_logger.warning(msg, *args, **kwargs)
+
+                def error(self, msg: str, *args: Any, **kwargs: Any) -> None:
+                    try:
+                        return self._delegate.error(msg, *args, **kwargs)
+                    except AttributeError:
+                        return base_logger.error(msg, *args, **kwargs)
+
+                def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
+                    try:
+                        return self._delegate.debug(msg, *args, **kwargs)
+                    except AttributeError:
+                        return base_logger.debug(msg, *args, **kwargs)
+
+                def exception(self, msg: str, *args: Any, **kwargs: Any) -> None:
+                    try:
+                        return self._delegate.exception(msg, *args, **kwargs)
+                    except AttributeError:
+                        return base_logger.exception(msg, *args, **kwargs)
+
+            return _Adapter(raw_logger)
+
+        # Fallback logger estándar
+        logger = logging.getLogger("ConfigManager")
+        if not logger.handlers:
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+            logger.setLevel(logging.INFO)
+        return logger
     
     def _setup_default_validation_rules(self):
         """⚙️ Configurar reglas de validación por defecto"""

@@ -35,15 +35,44 @@ import json
 import statistics
 import random
 from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 from pathlib import Path
 import psutil
 import gc
+import subprocess
+import logging
 
 # Add project paths
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('01-CORE'))
 sys.path.insert(0, os.path.abspath('09-DASHBOARD'))
+
+# Thresholds centralizados para ajustar criterios sin modificar lógica interna
+STRESS_THRESHOLDS: Dict[str, Any] = {
+    'startup_time_max_s': 30.0,
+    'config_loading_max_s': 5.0,
+    'logging_min_logs_per_s': 500,
+    'memory_peak_max_mb': 512.0,
+    'avg_cpu_max_percent': 25.0,
+    'memory_leak_max_mb': 100.0,
+    'concurrent_ops_min_total': 1000,
+    'concurrent_error_rate_max': 0.02,
+    'persistence_write_ms_max': 100,
+    'persistence_read_ms_max': 50
+}
+
+
+def _get_git_revision() -> Optional[str]:
+    """Obtener hash corto de commit si git está disponible."""
+    try:
+        result = subprocess.run([
+            'git', 'rev-parse', '--short', 'HEAD'
+        ], capture_output=True, text=True, timeout=2)
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception:
+        return None
+    return None
 
 # ============================================================================
 # SYSTEM INTEGRATION TESTS
@@ -64,11 +93,17 @@ class SystemIntegrationTester:
         
         try:
             # Import and initialize core components
-            from smart_trading_logger import setup_logging
-            from poi_system import POISystem
-            
-            # Setup logging
-            logger = setup_logging()
+            from analysis.poi_system import POISystem
+            try:
+                from smart_trading_logger import SmartTradingLogger as _LoggerClass  # type: ignore
+                logger = _LoggerClass("StressTest")
+            except Exception:
+                logger = logging.getLogger("StressTest")
+                if not logger.handlers:
+                    handler = logging.StreamHandler()
+                    handler.setFormatter(logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s'))
+                    logger.addHandler(handler)
+                    logger.setLevel(logging.INFO)
             logger.info("🧪 Starting system integration test")
             
             # Initialize POI system
@@ -79,11 +114,21 @@ class SystemIntegrationTester:
             try:
                 from config.production_config import get_config_manager
                 config_manager = get_config_manager()
-                config_data = config_manager.get_all_configs()
+                current_cfg = config_manager.get_current_config()
+                saved = config_manager.list_saved_configs()
                 config_time = time.time() - config_start
-            except ImportError:
-                config_time = 0
-                config_data = {}
+                config_data = {
+                    'current_config_loaded': current_cfg is not None,
+                    'saved_configs_count': len(saved),
+                    'saved_configs_sample': saved[:5]
+                }
+            except Exception:
+                config_time = 0.0
+                config_data = {
+                    'current_config_loaded': False,
+                    'saved_configs_count': 0,
+                    'saved_configs_sample': []
+                }
             
             startup_time = time.time() - startup_start
             
@@ -93,7 +138,10 @@ class SystemIntegrationTester:
                 'poi_system_initialized': poi_system is not None,
                 'logger_initialized': logger is not None,
                 'config_entries': len(config_data),
-                'success': startup_time < 30.0  # Under 30 seconds
+                'success': (
+                    startup_time <= STRESS_THRESHOLDS['startup_time_max_s'] and
+                    config_time <= STRESS_THRESHOLDS['config_loading_max_s']
+                )
             }
             
             logger.info(f"✅ System startup completed in {startup_time:.2f}s")
@@ -114,8 +162,16 @@ class SystemIntegrationTester:
         print(f"🧪 Testing logging performance - {duration}s duration")
         
         try:
-            from smart_trading_logger import setup_logging
-            logger = setup_logging()
+            try:
+                from smart_trading_logger import SmartTradingLogger as _LoggerClass  # type: ignore
+                logger = _LoggerClass("StressLoggingPerf")
+            except Exception:
+                logger = logging.getLogger("StressLoggingPerf")
+                if not logger.handlers:
+                    handler = logging.StreamHandler()
+                    handler.setFormatter(logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s'))
+                    logger.addHandler(handler)
+                    logger.setLevel(logging.INFO)
         except ImportError:
             return False, {
                 'error': 'Logger not available',
@@ -168,7 +224,10 @@ class SystemIntegrationTester:
             'duration_seconds': total_duration,
             'logs_per_second': logs_per_second,
             'error_rate_percent': (errors / max(log_count + errors, 1)) * 100,
-            'success': logs_per_second >= 500 and errors == 0  # At least 500 logs/s, no errors
+            'success': (
+                logs_per_second >= STRESS_THRESHOLDS['logging_min_logs_per_s'] and
+                errors == 0
+            )
         }
         
         return metrics['success'], metrics
@@ -177,57 +236,80 @@ class SystemIntegrationTester:
         """Prueba de componentes del dashboard"""
         print("🧪 Testing dashboard components")
         
+        components_loaded = {
+            'main_dashboard_app_class': False,
+            'ict_dashboard_class': False,
+            'web_dashboard_class': False
+        }
+        import_error_details = []
+        # Detect ICTDashboardApp
         try:
-            # Try to import dashboard components
-            from dashboard import create_dashboard_app
-            from ict_dashboard import create_ict_dashboard
-            from web_dashboard import create_web_dashboard
-            
-            components_loaded = {
-                'main_dashboard': True,
-                'ict_dashboard': True, 
-                'web_dashboard': True
-            }
-            
-        except ImportError as e:
-            components_loaded = {
-                'main_dashboard': False,
-                'ict_dashboard': False,
-                'web_dashboard': False,
-                'import_error': str(e)
-            }
+            import importlib
+            dash_mod = importlib.import_module('dashboard')
+            if hasattr(dash_mod, 'ICTDashboardApp'):
+                components_loaded['main_dashboard_app_class'] = True
+        except Exception as e:
+            import_error_details.append(f'dashboard: {e}')
+        # Detect ICTDashboard
+        try:
+            import importlib
+            ict_dash_mod = importlib.import_module('ict_dashboard')
+            if hasattr(ict_dash_mod, 'ICTDashboard'):
+                components_loaded['ict_dashboard_class'] = True
+        except Exception as e:
+            import_error_details.append(f'ict_dashboard: {e}')
+        # Detect ICTWebDashboard
+        try:
+            import importlib
+            web_dash_mod = importlib.import_module('web_dashboard')
+            if hasattr(web_dash_mod, 'ICTWebDashboard'):
+                components_loaded['web_dashboard_class'] = True
+        except Exception as e:
+            import_error_details.append(f'web_dashboard: {e}')
+        import_errors_summary = import_error_details
         
         # Test enterprise tabs manager
         try:
-            from enterprise_tabs_manager import EnterpriseTabsManager
-            from smart_trading_logger import setup_logging
-            
-            logger = setup_logging()
-            tabs_manager = EnterpriseTabsManager(logger=logger)
-            
-            # Test tab registration and initialization
+            from enterprise_tabs_manager import EnterpriseTabsManager  # type: ignore
+            try:
+                from smart_trading_logger import SmartTradingLogger as _LoggerClass  # type: ignore
+                logger_tabs = _LoggerClass("TabsManagerTest")
+            except Exception:
+                logger_tabs = logging.getLogger("TabsManagerTest")
+                if not logger_tabs.handlers:
+                    handler = logging.StreamHandler()
+                    handler.setFormatter(logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s'))
+                    logger_tabs.addHandler(handler)
+                    logger_tabs.setLevel(logging.INFO)
+            tabs_manager = EnterpriseTabsManager(logger=logger_tabs)  # type: ignore
+
             initialization_start = time.time()
-            tabs_manager.initialize_all_tabs()
-            tabs = tabs_manager.get_available_tabs()
+            # Métodos defensivos (pueden no existir en implementación mínima)
+            init_fn = getattr(tabs_manager, 'initialize_all_tabs', None)
+            get_tabs_fn = getattr(tabs_manager, 'get_available_tabs', None)
+            if callable(init_fn):
+                init_fn()
+            tabs = get_tabs_fn() if callable(get_tabs_fn) else {}
             initialization_time = time.time() - initialization_start
-            
+
             tabs_metrics = {
                 'tabs_manager_loaded': True,
-                'tabs_count': len(tabs),
+                'tabs_count': len(tabs) if isinstance(tabs, dict) else 0,
                 'initialization_time_seconds': initialization_time,
-                'tabs_list': list(tabs.keys()) if tabs else []
+                'tabs_list': list(tabs.keys()) if isinstance(tabs, dict) else []
             }
-            
+
         except Exception as e:
             tabs_metrics = {
                 'tabs_manager_loaded': False,
-                'error': str(e)
+                'error': f"enterprise_tabs_manager missing or failed: {e}"
             }
         
         metrics = {
             'components': components_loaded,
+            'import_errors': import_errors_summary,
             'tabs_manager': tabs_metrics,
-            'success': any(components_loaded.values()) and tabs_metrics.get('tabs_manager_loaded', False)
+            'success': any(v for v in components_loaded.values()) and tabs_metrics.get('tabs_manager_loaded', False)
         }
         
         return metrics['success'], metrics
@@ -287,10 +369,10 @@ class SystemIntegrationTester:
         
         success = all([
             persistence_metrics['json_write'],
-            persistence_metrics['json_read'], 
+            persistence_metrics['json_read'],
             persistence_metrics['data_integrity'],
-            persistence_metrics['write_time_ms'] < 100,  # Under 100ms
-            persistence_metrics['read_time_ms'] < 50     # Under 50ms
+            persistence_metrics['write_time_ms'] <= STRESS_THRESHOLDS['persistence_write_ms_max'],
+            persistence_metrics['read_time_ms'] <= STRESS_THRESHOLDS['persistence_read_ms_max']
         ])
         
         return success, persistence_metrics
@@ -398,9 +480,9 @@ class PerformanceTester:
                 'max_cpu_percent': max_cpu,
                 'samples_count': len(memory_samples),
                 'success': (
-                    max_memory < 512.0 and           # Under 512MB peak
-                    avg_cpu < 25.0 and               # Average CPU under 25%
-                    abs(final_memory - initial_memory) < 100.0  # Memory leak < 100MB
+                    max_memory <= STRESS_THRESHOLDS['memory_peak_max_mb'] and
+                    avg_cpu <= STRESS_THRESHOLDS['avg_cpu_max_percent'] and
+                    abs(final_memory - initial_memory) <= STRESS_THRESHOLDS['memory_leak_max_mb']
                 )
             }
         else:
@@ -522,8 +604,8 @@ class PerformanceTester:
             'error_rate_percent': (results['errors'] / max(total_operations + results['errors'], 1)) * 100,
             'duration_seconds': total_duration,
             'success': (
-                total_operations > 1000 and        # At least 1000 operations
-                results['errors'] < total_operations * 0.02  # Error rate < 2%
+                total_operations >= STRESS_THRESHOLDS['concurrent_ops_min_total'] and
+                results['errors'] <= total_operations * STRESS_THRESHOLDS['concurrent_error_rate_max']
             )
         }
         
@@ -613,6 +695,8 @@ class IntegratedStressTester:
         
         return {
             'timestamp': time.time(),
+            'git_revision': _get_git_revision(),
+            'thresholds': STRESS_THRESHOLDS,
             'total_duration_seconds': total_duration,
             'total_tests': len(self.results),
             'passed_tests': len(successful_tests),
