@@ -68,10 +68,12 @@ El Sistema ML ICT Engine v6.0 está diseñado como una **arquitectura modular y 
 #### **🎯 COMPONENTES ML A IMPLEMENTAR**
 
 ##### **1. ICTMLSystem (Core Orchestrator)**
-- [ ] **Conectar con POI System existente**
-  - [ ] Integrar `poi_system.detect_pois()` como fuente de datos
-  - [ ] Extraer features desde POI confidence scores
-  - [ ] Usar confluences existentes como features
+- [x] **Conectar con POI System existente**  
+  - [x] Integración en: `01-CORE/machine_learning/__init__.py`  
+  - [x] Integrar `poi_system.detect_pois()` como fuente de datos (via import protegido y métodos de features)
+  - [x] Extraer features desde POI confidence scores (`extract_poi_features`)
+  - [x] Usar confluences existentes como features (`extract_poi_features`)
+  - [x] Métodos: `predict_poi_significance`, `enhance_poi_with_ml` usan POI y confluencias reales
   
 - [ ] **Conectar con Pattern Detector**
   - [ ] Integrar `pattern_detector._detect_bos_patterns()` 

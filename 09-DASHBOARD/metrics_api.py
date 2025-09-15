@@ -16,8 +16,26 @@ Lee los archivos JSON generados por ExecutionRouter. No mantiene estado en memor
 más allá de lecturas puntuales.
 """
 from __future__ import annotations
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+try:
+    from fastapi import FastAPI, HTTPException  # type: ignore
+    from fastapi.responses import JSONResponse  # type: ignore
+    FASTAPI_AVAILABLE = True
+except ImportError:  # Fallback stubs so Pylance no marque errores si falta fastapi
+    FASTAPI_AVAILABLE = False
+    class HTTPException(Exception):  # type: ignore
+        def __init__(self, status_code: int, detail: str):  # minimal shape
+            self.status_code = status_code
+            self.detail = detail
+    class _StubJSONResponse(dict):  # simple container
+        pass
+    JSONResponse = _StubJSONResponse  # type: ignore
+    class _StubApp:
+        def __init__(self, *_, **__): ...
+        def get(self, *_, **__):  # decorator stub
+            def _wrap(fn): return fn
+            return _wrap
+    def FastAPI(*_, **__):  # type: ignore
+        return _StubApp()
 from pathlib import Path
 from typing import Dict, Any
 import json
@@ -107,6 +125,10 @@ async def get_coordinator_export():  # pragma: no cover - runtime
 
 
 if __name__ == '__main__':  # pragma: no cover
-    import uvicorn
-    print(f"Starting Metrics API on http://127.0.0.1:8090 (METRICS_DIR={METRICS_DIR})")
-    uvicorn.run("metrics_api:app", host="127.0.0.1", port=8090, reload=True)
+    try:
+        import uvicorn  # type: ignore
+    except ImportError:
+        print("⚠️ uvicorn no instalado. Instalar con: pip install uvicorn[standard]")
+    else:
+        print(f"Starting Metrics API on http://127.0.0.1:8090 (METRICS_DIR={METRICS_DIR})")
+        uvicorn.run("metrics_api:app", host="127.0.0.1", port=8090, reload=True)

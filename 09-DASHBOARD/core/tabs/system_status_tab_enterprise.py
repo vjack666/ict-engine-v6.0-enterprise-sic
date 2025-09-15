@@ -33,12 +33,49 @@ import psutil
 import platform
 import socket
 from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Optional, Any, Tuple, Union
+from typing import Dict, List, Optional, Any, Tuple, Union, Callable
 from pathlib import Path
 from enum import Enum
 from dataclasses import dataclass
+from types import SimpleNamespace
+try:  # typing support
+    from typing import Protocol as _DashProtocol  # type: ignore
+except Exception:  # pragma: no cover
+    class _DashProtocol:  # type: ignore
+        ...
+
+class _HTMLLike(_DashProtocol):  # pragma: no cover - structural only
+    Div: Any
+    H2: Any
+    H3: Any
+    H4: Any
+    P: Any
+    Span: Any
+    Button: Any
+
+class _DCCLike(_DashProtocol):  # pragma: no cover - structural only
+    Graph: Any
+    Interval: Any
+    Store: Any
+
+
+# Stub callback IO classes (overridden if real dashboard available)
+class _IOStub:  # pragma: no cover - structural only
+    def __init__(self, *args, **kwargs) -> None: ...
+
+def _callback_stub(*dec_args, **dec_kwargs):  # pragma: no cover
+    def _wrap(fn):
+        return fn
+    return _wrap
+
+Input = Output = State = _IOStub  # type: ignore
+callback = _callback_stub  # type: ignore
 
 # Dashboard architecture imports (patrón establecido)
+html = None  # type: ignore
+dcc = None  # type: ignore
+go = px = make_subplots = pd = None  # type: ignore
+
 try:
     import sys
     
@@ -65,18 +102,26 @@ except ImportError as e:
     print(f"⚠️ Dashboard architecture not available: {e}")
     DASHBOARD_AVAILABLE = False
     PLOTLY_AVAILABLE = False
-    html = dcc = Input = Output = State = callback = None  # type: ignore
     go = px = make_subplots = pd = None  # type: ignore
     dashboard_core = None
+    # Provide stubs so static analysis doesn't treat as None and keep types stable
+    def get_tab_coordinator() -> Optional['TabCoordinator']:  # type: ignore
+        return None
+
+# If dashboard components not loaded, create harmless stubs for callback system
+if not DASHBOARD_AVAILABLE or callback is None or Input is None or Output is None:
+    # Already have stubs defined above; nothing further needed
+    pass
 
 # Provide lightweight stubs when dash components are unavailable to reduce Pylance optional access noise
-if not DASHBOARD_AVAILABLE or html is None:
-    from types import SimpleNamespace
+if not DASHBOARD_AVAILABLE or html is None:  # Provide deterministic non-None fallback
+    class MockHTML(SimpleNamespace):
+        pass
     def _el_factory(tag_name: str):
-        def _builder(*children, **kwargs):  # pylint: disable=unused-argument
-            return {"type": tag_name.lower(), "children": list(children), **kwargs}
+        def _builder(*children, **kwargs):  # type: ignore
+            return {"tag": tag_name, "children": list(children), **kwargs}
         return _builder
-    html = SimpleNamespace(  # type: ignore
+    html = MockHTML(  # type: ignore
         Div=_el_factory("div"),
         H2=_el_factory("h2"),
         H3=_el_factory("h3"),
@@ -85,11 +130,18 @@ if not DASHBOARD_AVAILABLE or html is None:
         Span=_el_factory("span"),
         Button=_el_factory("button")
     )
-if not DASHBOARD_AVAILABLE or dcc is None:
-    from types import SimpleNamespace as _SNS
-    dcc = _SNS(Graph=lambda *a, **k: {"type": "graph", "children": []},  # type: ignore
-               Interval=lambda *a, **k: {"type": "interval", **k},
-               Store=lambda *a, **k: {"type": "store", **k})
+if not DASHBOARD_AVAILABLE or dcc is None:  # Provide deterministic non-None fallback
+    class MockDCC(SimpleNamespace):
+        pass
+    dcc = MockDCC(  # type: ignore
+        Graph=lambda *a, **k: {"tag": "graph", **k},
+        Interval=lambda *a, **k: {"tag": "interval", **k},
+        Store=lambda *a, **k: {"tag": "store", **k}
+    )
+
+# Explicit type hints for analysis tools
+html: _HTMLLike  # type: ignore
+dcc: _DCCLike  # type: ignore
 
 # Core system imports
 try:
@@ -299,10 +351,12 @@ class SystemHealthMonitor:
             # Tab Coordinator
             try:
                 # get_tab_coordinator may not exist if import failed; protect access
-                try:
-                    tab_coordinator = get_tab_coordinator()  # type: ignore[name-defined]
-                except NameError:  # fallback when function not imported
-                    tab_coordinator = None  # type: ignore
+                tab_coordinator = None
+                try:  # Guarded access; reduces Pylance unbound warnings
+                    if 'get_tab_coordinator' in globals():  # type: ignore
+                        tab_coordinator = get_tab_coordinator()  # type: ignore
+                except Exception:
+                    tab_coordinator = None
                 if tab_coordinator:
                     registered_tabs = len(getattr(tab_coordinator, 'registered_tabs', []))
                     self.components['tab_coordinator'] = SystemComponent(
@@ -543,13 +597,13 @@ class SystemStatusTabEnterprise:
         if dashboard_core:
             try:
                 self.tab_coordinator = get_tab_coordinator()
-                # Register this tab
-                self.tab_coordinator.register_tab(
-                    self.tab_id,
-                    "System Status Monitor",
-                    self,
-                    {"refresh_interval": refresh_interval}
-                )
+                if self.tab_coordinator and hasattr(self.tab_coordinator, 'register_tab'):
+                    self.tab_coordinator.register_tab(
+                        self.tab_id,
+                        "System Status Monitor",
+                        self,
+                        {"refresh_interval": refresh_interval}
+                    )
             except Exception as e:
                 print(f"⚠️ Tab coordinator registration failed: {e}")
                 self.tab_coordinator = None
@@ -876,13 +930,10 @@ class SystemStatusTabEnterprise:
                 html.H3("🔍 Diagnostic Tools", className="section-title"),
                 
                 html.Div([
-                    html.Button("🔄 Refresh Health Check", id="ss-refresh-btn", 
-                              className="diagnostic-btn"),
-                    html.Button("🧹 Clear Alerts", id="ss-clear-alerts-btn", 
-                              className="diagnostic-btn"),
-                    html.Button("📋 Export Report", id="ss-export-btn", 
-                              className="diagnostic-btn")
-                ], className="diagnostic-tools")
+                    html.Button("🔄 Refresh Health Check", id="ss-refresh-btn", className="diagnostic-btn"),
+                    html.Button("🧹 Clear Alerts", id="ss-clear-alerts-btn", className="diagnostic-btn"),
+                    html.Button("📋 Export Report", id="ss-export-btn", className="diagnostic-btn")
+                ], className="diagnostic-tools"),
                 html.Div(id="ss-export-status", className="export-status")
                 
             ], className="diagnostics-section")

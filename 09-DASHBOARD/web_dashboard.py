@@ -21,7 +21,7 @@ Fecha: 12 Septiembre 2025
 import sys
 import os
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union, Protocol
 import time
 
 # Configurar paths
@@ -44,47 +44,36 @@ try:
     from dash import Dash, html, dcc, Input, Output, callback
     import plotly.graph_objects as go
     import pandas as pd
-    DASH_AVAILABLE = True
     print("✅ Dash framework loaded successfully")
-except ImportError as e:
-    print(f"⚠️ Dash not available: {e}")
-    print("   Install with: pip install dash plotly pandas")
-    DASH_AVAILABLE = False
-    dash = Dash = html = dcc = Input = Output = callback = None
-    go = pd = None
+except ImportError as e:  # runtime hard failure (no modo mock)
+    raise ImportError(f"Dash no instalado. Instala dependencias: pip install dash plotly pandas. Detalle: {e}")
 
-# Core tabs imports
 try:
-    from core.tabs.order_blocks_tab import OrderBlocksTab, create_order_blocks_tab
-    TABS_AVAILABLE = True
+    from core.tabs.order_blocks_tab import OrderBlocksTab, create_order_blocks_tab  # Real tab factory (returns instance)
     print("✅ Order Blocks Tab loaded successfully")
-except ImportError as e:
-    print(f"⚠️ Tabs not available: {e}")
-    TABS_AVAILABLE = False
-    OrderBlocksTab = None  # type: ignore
-    def create_order_blocks_tab(*_, **__): return None  # fallback stub
+except Exception as e:  # pragma: no cover - must hard fail (no modo mock)
+    raise ImportError(f"No se pudo importar OrderBlocksTab real: {e}")
 
-# Performance tab (metrics)
+# Performance tab (metrics) - real only (sin fallback)
 try:
     from core.tabs.performance_tab import PerformanceTab, create_performance_tab
-    PERFORMANCE_TAB_OK = True
     print("✅ Performance Tab module loaded")
-except Exception as e:
-    PERFORMANCE_TAB_OK = False
-    print(f"⚠️ Performance Tab not available: {e}")
-    PerformanceTab = None  # type: ignore
-    def create_performance_tab(*_, **__): return None  # fallback
+except Exception as e:  # pragma: no cover
+    raise ImportError(f"No se pudo importar Performance Tab real: {e}")
 
-# Risk & Health tab
+# Risk & Health tab - real only (sin fallback)
 try:
     from core.tabs.risk_health_tab import RiskHealthTab, create_risk_health_tab
-    RISK_TAB_OK = True
     print("✅ Risk & Health Tab module loaded")
-except Exception as e:
-    RISK_TAB_OK = False
-    print(f"⚠️ Risk & Health Tab not available: {e}")
-    RiskHealthTab = None  # type: ignore
-    def create_risk_health_tab(*_, **__): return None  # fallback
+except Exception as e:  # pragma: no cover
+    raise ImportError(f"No se pudo importar Risk & Health Tab real: {e}")
+
+
+class _HasCreateLayout(Protocol):  # runtime-light structural protocol para tipado
+    def create_layout(self) -> Any: ...  # noqa: D401 (simple protocol)
+
+
+DashboardTabType = _HasCreateLayout  # alias semántico
 
 
 class ICTWebDashboard:
@@ -99,8 +88,7 @@ class ICTWebDashboard:
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         self.config = config or self._get_default_config()
         
-        if not DASH_AVAILABLE:
-            raise ImportError("Dash framework is required. Install with: pip install dash plotly pandas")
+        # Dash requerido: ya validado en import
         
         # Initialize Dash app
         self.app = Dash(
@@ -114,12 +102,12 @@ class ICTWebDashboard:
         
         # Configure server settings
         self.app.server.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-        
-        # Initialize tabs
-        self.tabs = {}
+
+        # Initialize tabs (clave -> instancia con .create_layout())
+        self.tabs: Dict[str, DashboardTabType] = {}
         self._initialize_tabs()
         
-        # Setup layout
+        # Setup layout only if real Dash available
         self._setup_layout()
         
         print(f"🎯 ICT Web Dashboard initialized")
@@ -141,41 +129,40 @@ class ICTWebDashboard:
         }
     
     def _initialize_tabs(self):
-        """Inicializar todas las pestañas disponibles"""
-        if TABS_AVAILABLE and callable(create_order_blocks_tab):
-            try:
-                ob_tab = create_order_blocks_tab(app=self.app, refresh_interval=self.config['refresh_interval'])
-                if ob_tab is not None:
-                    self.tabs['order_blocks'] = ob_tab
-                    print("✅ Order Blocks Tab initialized")
-            except Exception as e:
-                print(f"⚠️ Failed to initialize Order Blocks Tab: {e}")
+        """Inicializar todas las pestañas disponibles (solo implementaciones reales)."""
+        # Order Blocks (requerido, la factory devuelve instancia real o lanza)
+        try:
+            ob_tab = create_order_blocks_tab(app=self.app, refresh_interval=self.config['refresh_interval'])
+            self.tabs['order_blocks'] = ob_tab  # asume interfaz con create_layout()
+            print("✅ Order Blocks Tab initialized (real)")
+        except Exception as e:
+            print(f"❌ No se pudo inicializar Order Blocks Tab: {e}")
+            raise
 
         # Performance Tab
         metrics_dir_guess = str(project_root / '04-DATA' / 'metrics')
-        if PERFORMANCE_TAB_OK and callable(create_performance_tab):
-            try:
-                perf_tab = create_performance_tab(app=self.app, metrics_dir=metrics_dir_guess, refresh_interval=self.config['refresh_interval'])
-                if perf_tab is not None:
-                    self.tabs['performance'] = perf_tab
-                    print(f"✅ Performance Tab initialized (metrics_dir={metrics_dir_guess})")
-            except Exception as e:
-                print(f"⚠️ Failed to initialize Performance Tab: {e}")
+        try:
+            perf_tab = create_performance_tab(app=self.app, metrics_dir=metrics_dir_guess, refresh_interval=self.config['refresh_interval'])
+            self.tabs['performance'] = perf_tab
+            print(f"✅ Performance Tab initialized (metrics_dir={metrics_dir_guess})")
+        except Exception as e:
+            print(f"❌ No se pudo inicializar Performance Tab: {e}")
+            raise
+
         # Risk & Health Tab (usa mismo metrics dir e intenta risk dir base)
-        if RISK_TAB_OK and callable(create_risk_health_tab):
-            try:
-                risk_dir_guess = str(project_root / '04-DATA')
-                rh_tab = create_risk_health_tab(
-                    app=self.app,
-                    metrics_dir=str(project_root / '04-DATA' / 'metrics'),
-                    risk_dir=risk_dir_guess,
-                    refresh_interval=self.config['refresh_interval'] * 2
-                )
-                if rh_tab is not None:
-                    self.tabs['risk_health'] = rh_tab
-                    print(f"✅ Risk & Health Tab initialized (risk_dir={risk_dir_guess})")
-            except Exception as e:
-                print(f"⚠️ Failed to initialize Risk & Health Tab: {e}")
+        try:
+            risk_dir_guess = str(project_root / '04-DATA')
+            rh_tab = create_risk_health_tab(
+                app=self.app,
+                metrics_dir=str(project_root / '04-DATA' / 'metrics'),
+                risk_dir=risk_dir_guess,
+                refresh_interval=self.config['refresh_interval'] * 2
+            )
+            self.tabs['risk_health'] = rh_tab
+            print(f"✅ Risk & Health Tab initialized (risk_dir={risk_dir_guess})")
+        except Exception as e:
+            print(f"❌ No se pudo inicializar Risk & Health Tab: {e}")
+            raise
         
         # Future tabs can be added here
         # self.tabs['fvg_analysis'] = create_fvg_tab(self.app)
@@ -201,9 +188,6 @@ class ICTWebDashboard:
             {'label': '📈 Performance', 'value': 'performance'}
         ])
         
-        # Si Dash no está disponible, no intentamos construir layout (para análisis estático)
-        if not DASH_AVAILABLE:
-            return
         self.app.layout = html.Div([
             # Header Section
             html.Div([
@@ -305,14 +289,14 @@ class ICTWebDashboard:
             
             # Check system status
             status = "🟢 ACTIVE"
-            if TABS_AVAILABLE and 'order_blocks' in self.tabs:
+            if 'order_blocks' in self.tabs:
                 status = "🟢 ACTIVE"
             else:
-                status = "🟡 LIMITED"
+                status = "🟡 PARTIAL"
             
             return current_time, status
     
-    def _create_placeholder_tab(self, title: str, message: str) -> html.Div:
+    def _create_placeholder_tab(self, title: str, message: str) -> Any:
         """Crear pestaña placeholder para futuras implementaciones"""
         return html.Div([
             html.Div([
@@ -320,8 +304,7 @@ class ICTWebDashboard:
                 html.P(message, className="placeholder-message"),
                 html.Div([
                     html.Div("🔧", className="construction-icon"),
-                    html.P("Esta funcionalidad será implementada próximamente", 
-                           className="construction-text")
+                    html.P("Esta funcionalidad será implementada próximamente", className="construction-text")
                 ], className="construction-notice")
             ], className="placeholder-content")
         ], className="placeholder-tab")
