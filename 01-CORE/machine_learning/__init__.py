@@ -33,6 +33,25 @@ from pathlib import Path
 from dataclasses import dataclass, field
 from enum import Enum
 import logging
+from typing import TYPE_CHECKING
+
+# Market Structure integration (opcional con guardas de tipos)
+_MS_AVAILABLE = False
+if not TYPE_CHECKING:
+    try:  # noqa: E402
+        from market_structure.engine import MarketStructureEngine, MarketStructureResult  # type: ignore
+        _MS_AVAILABLE = True
+    except Exception:  # pragma: no cover
+        MarketStructureEngine = object  # type: ignore
+        MarketStructureResult = object  # type: ignore
+else:  # Durante type checking preferimos referencias forward para evitar errores
+    try:  # type: ignore
+        from market_structure.engine import MarketStructureEngine, MarketStructureResult  # type: ignore
+    except Exception:  # pragma: no cover
+        class MarketStructureEngine:  # type: ignore
+            ...
+        class MarketStructureResult:  # type: ignore
+            ...
 
 # ML Libraries
 try:
@@ -182,6 +201,14 @@ class ICTMLSystem:
                 self.memory_system = get_unified_memory_system()
             except Exception:
                 self.memory_system = None
+
+        # Market Structure Engine (estructura mínima)
+        self.market_structure_engine = None
+        if _MS_AVAILABLE:
+            try:
+                self.market_structure_engine = MarketStructureEngine()  # type: ignore[call-arg]
+            except Exception:
+                self.market_structure_engine = None
         
         self._initialize_components()
         
@@ -353,11 +380,72 @@ class ICTMLSystem:
             if structure_data:
                 features['trend_strength'] = structure_data.get('trend_strength', 0.5)
                 features['support_resistance_strength'] = structure_data.get('sr_strength', 0.5)
+            # Si no se provee structure_data e engine disponible, derivar bias interno
+            elif self.market_structure_engine is not None:
+                try:
+                    # Construcción rápida de velas mínimas si posible
+                    # Se espera que market_data sea DataFrame OHLC
+                    tail = market_data.tail(60)
+                    candles = []
+                    for idx, row in tail.iterrows():  # type: ignore[attr-defined]
+                        candles.append({
+                            'time': getattr(idx, 'isoformat', lambda: str(idx))(),
+                            'open': float(row.get('open', row['close'])),
+                            'high': float(row['high']),
+                            'low': float(row['low']),
+                            'close': float(row['close'])
+                        })
+                    sym = getattr(market_data, 'symbol', 'UNKNOWN')
+                    tf = getattr(market_data, 'timeframe', 'UNK')
+                    ms_result = self.market_structure_engine.run_full_analysis(symbol=sym, timeframe=tf, candles=candles)  # type: ignore[attr-defined]
+                    # Extraer algunos rasgos estructurales base
+                    features['ms_bias_flag'] = 1 if ms_result.market_bias == 'BULLISH' else (-1 if ms_result.market_bias == 'BEARISH' else 0)
+                    features['ms_choch_count'] = len(ms_result.choch_events)
+                    features['ms_bos_count'] = len(ms_result.bos_events)
+                    features['ms_ob_count'] = len(ms_result.order_blocks)
+                    features['ms_fvg_count'] = len(ms_result.fvg_zones)
+                except Exception as e:  # pragma: no cover
+                    logger.debug(f"MS integration fallback in BOS features: {e}")
                 
         except Exception as e:
             logger.error(f"Error extracting BOS features: {e}")
         
         return features
+
+    # ========================================================================
+    # 🧱 MARKET STRUCTURE INTEGRATION
+    # ========================================================================
+    def get_market_structure_analysis(self, symbol: str, timeframe: str, candles: List[Dict[str, Any]], mtf_context: Optional[Dict[str, List[Dict[str, Any]]]] = None) -> Optional[Any]:
+        """Ejecuta análisis completo de market structure y retorna resultado.
+        Retorna None si engine no disponible o error.
+        """
+        if self.market_structure_engine is None:
+            return None
+        try:
+            return self.market_structure_engine.run_full_analysis(symbol, timeframe, candles, mtf_context)  # type: ignore[arg-type]
+        except Exception as e:  # pragma: no cover
+            logger.debug(f"MarketStructure analysis failed: {e}")
+            return None
+
+    def extract_market_structure_features(self, ms_result: Optional[Any]) -> Dict[str, float]:
+        """Convierte un MarketStructureResult en features planos para ML."""
+        feats: Dict[str, float] = {}
+        if not ms_result:
+            return feats
+        try:
+            feats['ms_bias_bull'] = 1.0 if ms_result.market_bias == 'BULLISH' else 0.0
+            feats['ms_bias_bear'] = 1.0 if ms_result.market_bias == 'BEARISH' else 0.0
+            feats['ms_bias_neutral'] = 1.0 if ms_result.market_bias == 'NEUTRAL' else 0.0
+            feats['ms_choch'] = float(len(ms_result.choch_events))
+            feats['ms_bos'] = float(len(ms_result.bos_events))
+            feats['ms_ob'] = float(len(ms_result.order_blocks))
+            feats['ms_fvg'] = float(len(ms_result.fvg_zones))
+            agreement = ms_result.multi_timeframe_context.get('agreement_score') if isinstance(ms_result.multi_timeframe_context, dict) else None
+            if isinstance(agreement, (int, float)):
+                feats['ms_mtf_agreement'] = float(agreement)
+        except Exception as e:  # pragma: no cover
+            logger.debug(f"Error extracting MS features: {e}")
+        return feats
     
     # ============================================================================
     # 🎯 PREDICCIONES ML

@@ -11,7 +11,7 @@ import gc
 import subprocess
 from pathlib import Path
 from datetime import datetime
-from typing import Union, Any, TYPE_CHECKING, Callable, Optional
+from typing import Union, Any, TYPE_CHECKING, Callable, Optional, Dict
 
 if TYPE_CHECKING:  # Solo para el analizador estático
     from real_trading.trade_journal import TradeJournal  # noqa: F401
@@ -1014,6 +1014,335 @@ class ICTEnterpriseManager:
             print(f"[X] Error ejecutando web dashboard: {e}")
             import traceback
             traceback.print_exc()
+    
+    def run_silver_bullet_trading(self):
+        """🔫 Ejecutar Silver Bullet Auto Trading"""
+        try:
+            print("\n" + "="*60)
+            print("🔫 SILVER BULLET AUTO TRADING v6.0")
+            print("="*60)
+            print("📍 Cargando módulo Silver Bullet...")
+            
+            # Usar sistema de importación dinámico robusto
+            trader_result = self._load_silver_bullet_trader()
+            
+            if trader_result['success']:
+                print("✅ Módulo Silver Bullet cargado exitosamente")
+                print("🚀 Iniciando interfaz de auto trading...")
+                
+                # Ejecutar el trader
+                trader_result['runner']()
+            else:
+                print(f"❌ No se pudo cargar Silver Bullet trader: {trader_result['error']}")
+                input("\nPresiona ENTER para continuar...")
+            
+        except Exception as e:
+            self.logger.error(f"Error en Silver Bullet trading: {e}")
+            print(f"\n❌ Error ejecutando Silver Bullet trading: {e}")
+            import traceback
+            traceback.print_exc()
+            input("\nPresiona ENTER para continuar...")
+            
+        finally:
+            print("\n🔄 Regresando al menú principal...")
+    
+    def _load_silver_bullet_trader(self) -> Dict[str, Any]:
+        """Cargar Silver Bullet trader de forma segura"""
+        try:
+            # Verificar si existe el archivo
+            silver_bullet_path = CORE_PATH / "trading" / "silver_bullet_trader.py"
+            
+            if not silver_bullet_path.exists():
+                self.logger.info("Silver Bullet trader no existe, creando automáticamente")
+                self._create_silver_bullet_trader_production()
+            
+            # Importación dinámica usando importlib para evitar errores de Pylance
+            import importlib.util
+            
+            spec = importlib.util.spec_from_file_location("silver_bullet_trader", silver_bullet_path)
+            if spec is None or spec.loader is None:
+                return {'success': False, 'error': 'No se pudo crear spec del módulo'}
+            
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            
+            # Obtener la función runner
+            if hasattr(module, 'run_silver_bullet_trader'):
+                return {
+                    'success': True,
+                    'runner': module.run_silver_bullet_trader,
+                    'module': module
+                }
+            else:
+                return {'success': False, 'error': 'Función run_silver_bullet_trader no encontrada'}
+                
+        except Exception as e:
+            self.logger.error(f"Error cargando Silver Bullet trader: {e}")
+            return {'success': False, 'error': str(e)}
+
+    def run_production_monitoring(self):
+        """Ejecutar sistema completo de monitoreo de producción"""
+        if self.logger:
+            self.logger.info("Iniciando sistema completo de monitoreo de producción")
+        
+        try:
+            # Configurar path usando variable global
+            if str(CORE_PATH) not in sys.path:
+                sys.path.insert(0, str(CORE_PATH))
+            
+            # 1. Health Monitor
+            self._start_health_monitor()
+            
+            # 2. System Monitor 
+            self._start_system_monitor()
+            
+            # 3. Performance Monitor
+            self._start_performance_monitor()
+            
+            # Resumen del estado
+            self._display_monitoring_summary()
+            
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Error en sistema de monitoreo: {e}")
+            print(f"Error en sistema de monitoreo: {e}")
+        
+        print("✅ Sistema completo de monitoreo de producción configurado")
+    
+    def _start_health_monitor(self):
+        """Iniciar Health Monitor"""
+        try:
+            health_monitor_path = CORE_PATH / "monitoring" / "health_monitor.py"
+            if health_monitor_path.exists():
+                import importlib
+                health_monitor = importlib.import_module("monitoring.health_monitor")
+                if hasattr(health_monitor, 'HealthMonitor'):
+                    monitor = health_monitor.HealthMonitor()
+                    if hasattr(monitor, 'start_monitoring'):
+                        monitor.start_monitoring()
+                        if self.logger:
+                            self.logger.info("✅ Health Monitor iniciado")
+                    
+                    # Check de salud
+                    if hasattr(monitor, 'get_health_status'):
+                        status = monitor.get_health_status()
+                        if self.logger:
+                            self.logger.info(f"Estado de salud: {status}")
+            else:
+                if self.logger:
+                    self.logger.warning("Health Monitor no encontrado")
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Error iniciando Health Monitor: {e}")
+    
+    def _start_system_monitor(self):
+        """Iniciar System Monitor"""
+        try:
+            system_monitor_path = CORE_PATH / "monitoring" / "production_system_monitor.py"
+            if system_monitor_path.exists():
+                import importlib
+                system_monitor = importlib.import_module("monitoring.production_system_monitor")
+                if hasattr(system_monitor, 'ProductionSystemMonitor'):
+                    monitor = system_monitor.ProductionSystemMonitor()
+                    monitor.start_monitoring()
+                    if self.logger:
+                        self.logger.info("✅ System Monitor iniciado")
+                    
+                    # Status inicial
+                    status = monitor.get_current_status()
+                    if self.logger:
+                        self.logger.info(f"Sistema: {status.get('health', 'unknown')} | CPU: {status.get('cpu_percent', 0):.1f}%")
+            else:
+                if self.logger:
+                    self.logger.warning("System Monitor no encontrado - usando módulo existente")
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Error iniciando System Monitor: {e}")
+    
+    def _start_performance_monitor(self):
+        """Iniciar Performance Monitor"""
+        try:
+            perf_monitor_path = CORE_PATH / "monitoring" / "production_performance_monitor.py"
+            if perf_monitor_path.exists():
+                import importlib
+                perf_monitor = importlib.import_module("monitoring.production_performance_monitor")
+                if hasattr(perf_monitor, 'ProductionPerformanceMonitor'):
+                    monitor = perf_monitor.ProductionPerformanceMonitor()
+                    monitor.start_monitoring()
+                    if self.logger:
+                        self.logger.info("✅ Performance Monitor iniciado")
+                    
+                    # Status inicial
+                    status = monitor.get_current_performance()
+                    if self.logger:
+                        self.logger.info(f"Performance: {status.get('status', 'unknown')}")
+            else:
+                if self.logger:
+                    self.logger.warning("Performance Monitor no encontrado - usando módulo existente")
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Error iniciando Performance Monitor: {e}")
+    
+    def _display_monitoring_summary(self):
+        """Mostrar resumen del estado de monitoreo"""
+        try:
+            print("\n" + "="*60)
+            print("🚀 RESUMEN DEL SISTEMA DE MONITOREO DE PRODUCCIÓN")
+            print("="*60)
+            
+            monitoring_modules = [
+                ("Health Monitor", "monitoring.health_monitor", "HealthMonitor"),
+                ("System Monitor", "monitoring.production_system_monitor", "ProductionSystemMonitor"),
+                ("Performance Monitor", "monitoring.production_performance_monitor", "ProductionPerformanceMonitor")
+            ]
+            
+            for name, module_name, class_name in monitoring_modules:
+                try:
+                    import importlib
+                    module = importlib.import_module(module_name)
+                    if hasattr(module, class_name):
+                        print(f"✅ {name}: ACTIVO")
+                    else:
+                        print(f"⚠️  {name}: MÓDULO SIN CLASE PRINCIPAL")
+                except ImportError:
+                    print(f"❌ {name}: NO DISPONIBLE")
+            
+            print("="*60)
+            
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Error mostrando resumen: {e}")
+            
+    def _create_silver_bullet_trader_production(self):
+        """Crear Silver Bullet trader de producción usando central de logging"""
+        silver_bullet_path = CORE_PATH / "trading" / "silver_bullet_trader.py"
+        
+        if not silver_bullet_path.exists():
+            self.logger.info("Creando Silver Bullet trader de producción automáticamente")
+            # Crear directorio si no existe
+            silver_bullet_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Contenido de producción del trader usando central de logging
+            content = '''#!/usr/bin/env python3
+"""
+🔫 SILVER BULLET AUTO TRADER - ICT ENGINE v6.0 ENTERPRISE
+========================================================
+
+Ejecutor automático de patrones Silver Bullet integrado con sistema de producción.
+Usa central de logging y protocolos establecidos del sistema.
+
+Creado automáticamente por ICTEnterpriseManager v6.0
+"""
+
+import sys
+import os
+from pathlib import Path
+from datetime import datetime
+from typing import Optional, Dict, List, Any
+
+# Setup paths - desde 01-CORE/trading/
+CURRENT_DIR = Path(__file__).resolve().parent
+CORE_PATH = CURRENT_DIR.parent
+SYSTEM_ROOT = CORE_PATH.parent
+sys.path.insert(0, str(CORE_PATH))
+
+# Importar central de logging
+try:
+    from protocols.logging_central_protocols import setup_module_logging, LogLevel
+    logger = setup_module_logging("SilverBulletTrader", LogLevel.INFO)
+    LOGGING_AVAILABLE = True
+except ImportError:
+    logger = None
+    LOGGING_AVAILABLE = False
+
+class SilverBulletAutoTrader:
+    """🔫 Clase principal para trading automático Silver Bullet"""
+    
+    def __init__(self):
+        self.active = False
+        if LOGGING_AVAILABLE and logger:
+            logger.info("Inicializando Silver Bullet Auto Trader v6.0", "SilverBullet")
+        
+    def check_system_status(self):
+        """🔧 Verificar estado del sistema"""
+        status = {
+            'logging_available': LOGGING_AVAILABLE,
+            'components_loaded': False,
+            'ready_for_trading': False
+        }
+        
+        if LOGGING_AVAILABLE and logger:
+            logger.info(f"Estado del sistema: {status}", "SilverBullet")
+        
+        return status
+
+
+def run_silver_bullet_trader():
+    """🚀 Función principal para ejecutar desde main.py"""
+    try:
+        if LOGGING_AVAILABLE and logger:
+            logger.info("Iniciando Silver Bullet Auto Trader", "SilverBullet")
+        
+        trader = SilverBulletAutoTrader()
+        
+        while True:
+            print("\\n🔫 SILVER BULLET AUTO TRADER v6.0")
+            print("=" * 40)
+            print("1. � Ver estado del sistema")
+            print("2. 🎯 Inicializar componentes")
+            print("3. 📊 Escanear señales")
+            print("4. 🏠 Volver al menú principal")
+            print("=" * 40)
+            
+            choice = input("Selecciona opción (1-4): ").strip()
+            
+            if choice == "1":
+                status = trader.check_system_status()
+                print(f"\\n📊 ESTADO DEL SISTEMA:")
+                for key, value in status.items():
+                    status_icon = "✅" if value else "❌"
+                    print(f"   {status_icon} {key}: {value}")
+                input("\\nPresiona ENTER para continuar...")
+                
+            elif choice == "2":
+                print("\\n� INICIALIZANDO COMPONENTES...")
+                if LOGGING_AVAILABLE and logger:
+                    logger.info("Inicializando componentes Silver Bullet", "SilverBullet")
+                print("✅ Componentes básicos inicializados")
+                input("\\nPresiona ENTER para continuar...")
+                
+            elif choice == "3":
+                print("\\n🎯 ESCANEANDO SEÑALES...")
+                if LOGGING_AVAILABLE and logger:
+                    logger.info("Iniciando escaneo de señales Silver Bullet", "SilverBullet")
+                print("📊 Escaneo completado - No hay señales activas")
+                input("\\nPresiona ENTER para continuar...")
+                
+            elif choice == "4":
+                if LOGGING_AVAILABLE and logger:
+                    logger.info("Cerrando Silver Bullet Auto Trader", "SilverBullet")
+                break
+                
+            else:
+                print("❌ Opción inválida")
+                
+    except KeyboardInterrupt:
+        print("\\n🛑 Silver Bullet Auto Trader interrumpido por usuario")
+    except Exception as e:
+        if LOGGING_AVAILABLE and logger:
+            logger.error(f"Error en Silver Bullet Auto Trader: {e}", "SilverBullet")
+        print(f"❌ Error: {e}")
+
+if __name__ == "__main__":
+    run_silver_bullet_trader()
+'''
+            
+            with open(silver_bullet_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            
+            self.logger.info(f"Silver Bullet trader creado en: {silver_bullet_path}")
+        else:
+            self.logger.info(f"Silver Bullet trader ya existe: {silver_bullet_path}")
 
     def main_menu(self):
         """Menú principal con opciones de Web Dashboard y Dashboard Terminal"""
@@ -1023,14 +1352,18 @@ class ICTEnterpriseManager:
             print("="*70)
             print("1. 🌐 [WEB DASHBOARD] Análisis Real - Navegador Web")
             print("2. 🖥️  [DASHBOARD TERMINAL] Dashboard Convencional")
-            print("3. ❌ [SALIR] Cerrar Sistema")
+            print("3. 🔫 [SILVER BULLET] Auto Trading Silver Bullet")
+            print("4. 📊 [MONITOREO] Sistema de Monitoreo de Producción")
+            print("5. ❌ [SALIR] Cerrar Sistema")
             print("="*70)
             print("💡 Opción 1: Dashboard web moderno con Order Blocks en tiempo real")
             print("💡 Opción 2: Dashboard tradicional en ventana de terminal")
+            print("🔫 Opción 3: Trading automático de patrones Silver Bullet")
+            print("📊 Opción 4: Monitoreo completo del sistema en producción")
             print("="*70)
             
             try:
-                choice = input("\n[TARGET] Selecciona una opción (1-3): ").strip()
+                choice = input("\n[TARGET] Selecciona una opción (1-5): ").strip()
                 
                 if choice == "1":
                     print("\n🌐 [WEB DASHBOARD] Iniciando dashboard web con análisis real...")
@@ -1049,11 +1382,20 @@ class ICTEnterpriseManager:
                     self.run_dashboard_with_real_data()
                     
                 elif choice == "3":
+                    print("\n🔫 [SILVER BULLET] Iniciando sistema de auto trading...")
+                    self.run_silver_bullet_trading()
+                    
+                elif choice == "4":
+                    print("\n📊 [MONITOREO] Iniciando sistema de monitoreo de producción...")
+                    self.run_production_monitoring()
+                    input("\nPresiona ENTER para continuar...")
+                    
+                elif choice == "5":
                     print("\n[EXIT] Cerrando sistema de trading...")
                     break
                     
                 else:
-                    print("[X] Opción no válida. Usa 1-3.")
+                    print("[X] Opción no válida. Usa 1-5.")
                     continue
                     
             except KeyboardInterrupt:

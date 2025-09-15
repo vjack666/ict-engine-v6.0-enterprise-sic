@@ -1570,6 +1570,55 @@ class FractalAnalyzerEnterprise:
             self.logger.error(f"Error obteniendo métricas: {e}", component="FRACTAL")
             return {}
 
+    # =============================================================================
+    # 📡 TELEMETRY EXPORT / CENTRAL HOOKS (v6.2 UPGRADE VERIFICATION)
+    # =============================================================================
+    def export_telemetry(self) -> Dict[str, Any]:
+        """Exporta snapshot consolidado de telemetría fractal.
+
+        Incluye performance, cache, circuit breaker y estado fractal actual
+        para integración con dashboards o sistemas externos.
+        """
+        try:
+            perf = self.get_performance_metrics()
+            current_levels = None
+            try:
+                current_levels = self.get_current_fractal_levels()  # type: ignore[attr-defined]
+            except Exception:
+                current_levels = None
+            snapshot = {
+                'symbol': self.symbol,
+                'timeframe': self.timeframe,
+                'session_id': self.session_id,
+                'timestamp': datetime.utcnow().isoformat(),
+                'metrics': perf,
+                'current_levels': current_levels,
+                'fractal_active': bool(self.current_fractal and self.current_fractal.valid),
+                'ai_enhanced': getattr(self, 'ai_enhanced', False)
+            }
+            return snapshot
+        except Exception as e:
+            self.logger.error(f"Error exportando telemetría fractal: {e}", component="FRACTAL")
+            return {}
+
+    def telemetry_hook(self, emitter: Optional[Any] = None) -> bool:
+        """Hook extensible para enviar telemetría a un emisor externo.
+
+        Args:
+            emitter: Objeto con método emit(event: str, data: dict)
+        Returns:
+            bool indicando si el envío fue exitoso
+        """
+        try:
+            if emitter is None or not hasattr(emitter, 'emit'):
+                return False
+            data = self.export_telemetry()
+            emitter.emit('fractal_telemetry', data)
+            return True
+        except Exception as e:
+            self.logger.warning(f"Fallo telemetry_hook: {e}", component="FRACTAL")
+            return False
+
 # =============================================================================
 # FUNCIONES DE UTILIDAD ENTERPRISE
 # =============================================================================

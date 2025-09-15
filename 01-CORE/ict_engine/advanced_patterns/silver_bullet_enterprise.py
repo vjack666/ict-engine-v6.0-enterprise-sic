@@ -310,30 +310,63 @@ class SilverBulletDetectorEnterprise:
     def _validate_killzone_timing_enterprise(self) -> Tuple[float, SilverBulletType, KillzoneStatus]:
         """⏰ Validación de timing de killzones enterprise"""
         try:
-            current_time = datetime.now().time()
-            current_utc = datetime.utcnow().time()
+            now = datetime.now()
+            current_hour = now.hour
+            current_minute = now.minute
             
-            # 🔍 VERIFICAR CADA KILLZONE
-            for killzone_type, (start_time, end_time) in self.killzones.items():
-                if start_time <= current_utc <= end_time:
-                    score = 1.0
+            # Definir killzones con horarios EST (optimizado para forex)
+            killzones_est = {
+                SilverBulletType.LONDON_KILL: (3, 5),      # 3-5 AM EST (London session)
+                SilverBulletType.NY_KILL: (10, 11),        # 10-11 AM EST (NY session)
+                SilverBulletType.LONDON_CLOSE: (10, 11),   # 10-11 AM EST (overlap)
+                SilverBulletType.ASIAN_KILL: (20, 22)      # 8-10 PM EST (Asian session)
+            }
+            
+            best_score = 0.0
+            active_killzone = SilverBulletType.LONDON_KILL  # Default más confiable
+            killzone_status = KillzoneStatus.OUTSIDE
+            
+            for killzone_type, (start_hour, end_hour) in killzones_est.items():
+                score = 0.0
+                status = KillzoneStatus.OUTSIDE
+                
+                if start_hour <= current_hour <= end_hour:
+                    # Dentro de killzone activa - score alto
+                    progress = (current_minute / 60.0)  # 0-1 durante la hora
+                    score = 0.85 + (0.15 * progress)    # 85-100% score
                     status = KillzoneStatus.ACTIVE
-                    self._log_debug(f"⏰ {killzone_type.value} ACTIVA: {current_utc}")
-                    return score, killzone_type, status
-            
-            # 🔄 VERIFICAR SI SE APROXIMA ALGUNA KILLZONE
-            for killzone_type, (start_time, end_time) in self.killzones.items():
-                # Calcular tiempo hasta inicio (simplificado)
-                if self._is_approaching_killzone(current_utc, start_time):
-                    score = 0.3
+                    
+                elif current_hour == start_hour - 1:
+                    # 1 hora antes - aproximándose
+                    score = 0.4 + (current_minute / 150.0)  # 40-60% score
                     status = KillzoneStatus.APPROACHING
-                    return score, killzone_type, status
+                    
+                elif current_hour == end_hour + 1:
+                    # 1 hora después - terminando
+                    score = 0.3 - (current_minute / 200.0)  # 30-0% score
+                    status = KillzoneStatus.ENDED
+                
+                # Bonus por killzones más confiables
+                killzone_multipliers = {
+                    SilverBulletType.LONDON_KILL: 1.15,    # London más confiable
+                    SilverBulletType.NY_KILL: 1.10,        # NY segundo
+                    SilverBulletType.LONDON_CLOSE: 1.05,   # Overlap decente
+                    SilverBulletType.ASIAN_KILL: 0.95      # Asian menos confiable
+                }
+                score *= killzone_multipliers.get(killzone_type, 1.0)
+                
+                # Tomar el mejor score
+                if score > best_score:
+                    best_score = min(score, 1.0)  # Cap a 1.0
+                    active_killzone = killzone_type
+                    killzone_status = status
             
-            return 0.0, SilverBulletType.LONDON_KILL, KillzoneStatus.OUTSIDE  # Default to London killzone - most reliable
+            self._log_debug(f"⏰ Killzone: {active_killzone.value} - Score: {best_score:.2f} - Status: {killzone_status.value} (Hour: {current_hour})")
+            return best_score, active_killzone, killzone_status
             
         except Exception as e:
             self._log_error(f"Error validando killzone timing: {e}")
-            return 0.0, SilverBulletType.LONDON_KILL, KillzoneStatus.OUTSIDE  # Default to London killzone - most reliable
+            return 0.1, SilverBulletType.LONDON_KILL, KillzoneStatus.OUTSIDE
 
     def _analyze_market_structure_enterprise(self, 
                                            data: DataFrameType,
