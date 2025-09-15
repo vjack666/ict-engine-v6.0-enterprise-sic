@@ -29,7 +29,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple, Callable, Union
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from enum import Enum
 from collections import defaultdict, deque
 import statistics
@@ -97,11 +97,7 @@ class MetricDefinition:
     threshold_critical: Optional[float] = None
     is_percentage: bool = False
     decimal_places: int = 2
-    tags: List[str] = None
-    
-    def __post_init__(self):
-        if self.tags is None:
-            self.tags = []
+    tags: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -109,14 +105,8 @@ class DataPoint:
     """📈 Punto de datos para métricas"""
     timestamp: datetime
     value: Union[float, int]
-    tags: Dict[str, str] = None
-    metadata: Dict[str, Any] = None
-    
-    def __post_init__(self):
-        if self.tags is None:
-            self.tags = {}
-        if self.metadata is None:
-            self.metadata = {}
+    tags: Dict[str, str] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -128,14 +118,8 @@ class AnalysisResult:
     timestamp: datetime
     result: Dict[str, Any]
     confidence: float  # 0.0 to 1.0
-    insights: List[str] = None
-    recommendations: List[str] = None
-    
-    def __post_init__(self):
-        if self.insights is None:
-            self.insights = []
-        if self.recommendations is None:
-            self.recommendations = []
+    insights: List[str] = field(default_factory=list)
+    recommendations: List[str] = field(default_factory=list)
 
 
 class MetricCollector:
@@ -153,7 +137,7 @@ class MetricCollector:
             self.definitions[definition.name] = definition
     
     def record(self, metric_name: str, value: Union[float, int], 
-               tags: Dict[str, str] = None, metadata: Dict[str, Any] = None):
+               tags: Optional[Dict[str, str]] = None, metadata: Optional[Dict[str, Any]] = None):
         """📝 Registrar punto de datos"""
         with self._lock:
             data_point = DataPoint(
@@ -308,12 +292,19 @@ class AnomalyDetector:
                 return False
             
             # Normalizar
-            self.scaler = StandardScaler()
-            X = self.scaler.fit_transform(features)
+            # Hint types for pylance
+            scaler_cls = StandardScaler  # type: ignore[assignment]
+            if scaler_cls is None:  # Runtime safety
+                return False
+            self.scaler = scaler_cls()  # type: ignore[call-arg]
+            X = self.scaler.fit_transform(features)  # type: ignore[arg-type]
             
             # Entrenar modelo
-            self.model = IsolationForest(contamination=self.contamination, random_state=42)
-            self.model.fit(X)
+            model_cls = IsolationForest  # type: ignore[assignment]
+            if model_cls is None:
+                return False
+            self.model = model_cls(contamination=self.contamination, random_state=42)  # type: ignore[call-arg]
+            self.model.fit(X)  # type: ignore[arg-type]
             
             self.trained = True
             return True
@@ -331,9 +322,11 @@ class AnomalyDetector:
             if len(features) == 0:
                 return []
             
-            X = self.scaler.transform(features)
-            scores = self.model.decision_function(X)
-            predictions = self.model.predict(X)
+            if self.scaler is None or self.model is None:
+                return []
+            X = self.scaler.transform(features)  # type: ignore[arg-type]
+            scores = self.model.decision_function(X)  # type: ignore[attr-defined]
+            predictions = self.model.predict(X)  # type: ignore[attr-defined]
             
             anomalies = []
             for i, (dp, score, pred) in enumerate(zip(data_points, scores, predictions)):
@@ -425,7 +418,7 @@ class PatternRecognizer:
         }
     
     @staticmethod
-    def _find_level(values: List[float], tolerance: float) -> Tuple[float, int]:
+    def _find_level(values: List[float], tolerance: float) -> Tuple[Optional[float], int]:
         """🎯 Encontrar nivel más tocado"""
         if not values:
             return None, 0
@@ -679,7 +672,8 @@ class AnalyticsEngine:
     def _setup_logger(self) -> logging.Logger:
         """📝 Configurar logger"""
         if LOGGER_AVAILABLE and SmartTradingLogger:
-            return SmartTradingLogger("AnalyticsEngine")
+            # SmartTradingLogger cumple interfaz similar a logging.Logger para métodos usados
+            return SmartTradingLogger("AnalyticsEngine")  # type: ignore[return-value]
         else:
             logger = logging.getLogger("AnalyticsEngine")
             if not logger.handlers:
@@ -721,7 +715,7 @@ class AnalyticsEngine:
             self.metric_collector.define_metric(metric)
     
     def record_metric(self, name: str, value: Union[float, int], 
-                     tags: Dict[str, str] = None, metadata: Dict[str, Any] = None):
+                     tags: Optional[Dict[str, str]] = None, metadata: Optional[Dict[str, Any]] = None):
         """📝 Registrar métrica"""
         self.metric_collector.record(name, value, tags, metadata)
         

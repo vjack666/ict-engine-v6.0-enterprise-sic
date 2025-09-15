@@ -1,15 +1,15 @@
 {
-  "generated": "2025-09-15T18:46:12.679900",
+  "timestamp": "2025-09-15T18:46:12.679900",
   "orders_total": 0,
   "orders_ok": 0,
   "orders_failed": 0,
-  "latency_avg_ms": 0.0,
+  "avg_latency_ms": 0.0,
+  "latency_samples_count": 0,
   "latency_percentiles": {
     "p50": 0.0,
     "p75": 0.0,
     "p90": 0.0,
     "p95": 0.0,
     "p99": 0.0
-  },
-  "history": []
+  }
 }

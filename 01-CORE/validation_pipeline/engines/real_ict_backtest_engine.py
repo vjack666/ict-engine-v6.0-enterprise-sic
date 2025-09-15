@@ -24,6 +24,8 @@ from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
 import random
 import os
+import csv
+from pathlib import Path
 try:
     from protocols.logging_protocol import get_central_logger
 except ImportError:
@@ -221,19 +223,94 @@ class RealICTBacktestEngine:
             self.logger.warning(f"{self._log_prefix} Detected {gaps} non-forward timestamp steps (possible data anomalies)")
 
     def _default_data_loader(self, symbol: str, timeframe: str, max_candles: int) -> List[Dict[str, Any]]:
-        # Placeholder: en producción, cargar de data/cache o proveedor externo
-        data: List[Dict[str, Any]] = []
+        """Carga histórica ligera integrada (CSV) con fallback sintético.
+        Busca archivos en:
+          data/candles/{SYMBOL}_{TF}.csv
+          04-DATA/candles/{SYMBOL}_{TF}.csv
+        Formatos de timestamp soportados: ISO, epoch.
+        """
+        symbol_u = symbol.upper()
+        tf_u = timeframe.upper().replace('/', '')
+        candidates = [
+            Path('data') / 'candles' / f'{symbol_u}_{tf_u}.csv',
+            Path('04-DATA') / 'candles' / f'{symbol_u}_{tf_u}.csv'
+        ]
+        target = None
+        for p in candidates:
+            if p.exists():
+                target = p
+                break
+        if target is None:
+            if self.logger:
+                self.logger.warning(f"[HistoricalLoader] No file found for {symbol_u} {tf_u}, using synthetic data")
+            return self._generate_synthetic_series(max_candles)
+        rows: List[Dict[str, Any]] = []
+        try:
+            with target.open('r', encoding='utf-8') as fh:
+                rdr = csv.reader(fh)
+                header = next(rdr, None)
+                if not header:
+                    raise ValueError('empty csv header')
+                lower = [h.lower() for h in header]
+                # map columns
+                def idx(name: str):
+                    return lower.index(name) if name in lower else None
+                ts_i = next((idx(c) for c in ('timestamp','time','date') if idx(c) is not None), None)
+                o_i, h_i, l_i, c_i, v_i = idx('open'), idx('high'), idx('low'), idx('close'), idx('volume')
+                from datetime import datetime as _dt
+                def parse_ts(raw: str):
+                    r = raw.strip()
+                    if not r:
+                        return _dt.utcnow()
+                    if r.isdigit() and len(r) in (10,13):
+                        try:
+                            return _dt.utcfromtimestamp(int(r[:10]))
+                        except Exception:
+                            return _dt.utcnow()
+                    for fmt in ('%Y-%m-%d %H:%M:%S','%Y-%m-%dT%H:%M:%S','%Y-%m-%d %H:%M','%Y-%m-%d'):
+                        try:
+                            return _dt.strptime(r, fmt)
+                        except Exception:
+                            continue
+                    try:
+                        return _dt.fromisoformat(r.replace('Z',''))
+                    except Exception:
+                        return _dt.utcnow()
+                for row in rdr:
+                    try:
+                        ts = parse_ts(row[ts_i]) if ts_i is not None else datetime.utcnow()
+                        o = float(row[o_i]) if o_i is not None else 0.0
+                        h = float(row[h_i]) if h_i is not None else o
+                        l = float(row[l_i]) if l_i is not None else o
+                        c = float(row[c_i]) if c_i is not None else o
+                        v = float(row[v_i]) if (v_i is not None and row[v_i].strip()) else 0.0
+                        rows.append({'timestamp': ts,'open': o,'high': h,'low': l,'close': c,'volume': v})
+                    except Exception:
+                        continue
+            if len(rows) > max_candles:
+                rows = rows[-max_candles:]
+            if self.logger:
+                self.logger.info(f"[HistoricalLoader] Loaded {len(rows)} candles from {target}")
+            return rows if rows else self._generate_synthetic_series(max_candles)
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"[HistoricalLoader] Failed load {target}: {e}")
+            return self._generate_synthetic_series(max_candles)
+
+    def _generate_synthetic_series(self, max_candles: int) -> List[Dict[str, Any]]:
+        out: List[Dict[str, Any]] = []
         now = datetime.utcnow()
-        for i in range(max_candles):
-            data.append({
-                "timestamp": now,
-                "open": 1.1000 + random.uniform(-0.01, 0.01),
-                "high": 1.1010 + random.uniform(-0.01, 0.01),
-                "low": 1.0990 + random.uniform(-0.01, 0.01),
-                "close": 1.1005 + random.uniform(-0.01, 0.01),
-                "volume": random.randint(50, 500)
+        for _ in range(max_candles):
+            out.append({
+                'timestamp': now,
+                'open': 1.1000 + random.uniform(-0.01, 0.01),
+                'high': 1.1010 + random.uniform(-0.01, 0.01),
+                'low': 1.0990 + random.uniform(-0.01, 0.01),
+                'close': 1.1005 + random.uniform(-0.01, 0.01),
+                'volume': random.randint(50, 500),
+                'mode': 'synthetic'
             })
-        return data
+        return out
 
 
 def get_real_backtest_engine(**kwargs) -> RealICTBacktestEngine:
