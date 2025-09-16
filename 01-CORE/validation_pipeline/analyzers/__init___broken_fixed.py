@@ -8,6 +8,7 @@ resultados entre dashboard live y backtesting histórico.
 Esta es la versión completamente funcional sin errores de sintaxis.
 """
 
+from protocols.unified_logging import get_unified_logger
 from typing import Dict, Any, Optional, List, Union, Callable
 from datetime import datetime
 

@@ -6,11 +6,12 @@ Valida el entorno de ejecución para producción:
 - Dependencias opcionales clave
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from typing import Dict, Any, List
 import sys
 import os
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 try:
     from protocols.logging_central_protocols import create_safe_logger  # type: ignore
@@ -26,12 +27,12 @@ except Exception:  # pragma: no cover
 class EnvironmentValidator:
     def __init__(self, project_root: Path):
         self.project_root = project_root
-        self.logger = create_safe_logger("EnvironmentValidator")
+        self.logger = get_unified_logger("EnvironmentValidator")
         self._last_result: Dict[str, Any] = {}
 
     def validate(self) -> Dict[str, Any]:
         result: Dict[str, Any] = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'python_version': sys.version.split()[0],
             'status': 'OK',
             'checks': {},

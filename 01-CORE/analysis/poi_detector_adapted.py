@@ -15,6 +15,7 @@ Versi�n: v3.3.3-adapted (Consolidado y Adaptado para Backtesting)
 Adaptado desde: poi_detector.py original del proyecto principal
 """
 
+from protocols.unified_logging import get_unified_logger
 import numpy as np
 from typing import List, Dict, Optional, Tuple, Any, TYPE_CHECKING
 from datetime import datetime

@@ -18,6 +18,7 @@ Autor: ICT Engine v6.0 Team
 Fecha: 13 Septiembre 2025
 """
 
+from protocols.unified_logging import get_unified_logger
 from typing import Dict, Any, Optional, Callable, Protocol
 from dataclasses import dataclass
 from enum import Enum

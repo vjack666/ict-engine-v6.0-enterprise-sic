@@ -18,6 +18,7 @@ Versión: v6.1.0-enterprise-unified-memory-system
 Estado: FASE 2 - MEMORIA UNIFICADA
 """
 
+from protocols.unified_logging import get_unified_logger
 import json
 import os
 import time

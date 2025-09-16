@@ -30,6 +30,7 @@ Fecha: Agosto 2025
 # ===============================
 
 # Imports básicos (migrados a Enterprise system)
+from protocols.unified_logging import get_unified_logger
 import threading
 import json  # Añadido import que faltaba al inicio
 from typing import Dict, List, Optional, Callable, Any, Set, Tuple, Union

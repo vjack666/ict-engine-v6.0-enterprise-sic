@@ -13,6 +13,7 @@ Funcionalidades:
 - Exportación JSON/CSV
 """
 
+from protocols.unified_logging import get_unified_logger
 import sys
 import os
 import json

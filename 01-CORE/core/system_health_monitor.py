@@ -13,9 +13,10 @@ Checks incluidos:
 La clase expone is_system_healthy() usada por ExecutionRouter.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass
 from typing import Optional, Protocol, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import os
 import psutil
 
@@ -52,7 +53,7 @@ class SystemHealthMonitor:
         self.latency_provider = latency_provider
         self.data_collector = data_collector
         self.config = config or HealthConfig()
-        self.logger = create_safe_logger("SystemHealthMonitor")
+        self.logger = get_unified_logger("SystemHealthMonitor")
         self._last_status: Dict[str, Any] = {}
 
     def _check_latency(self) -> Dict[str, Any]:
@@ -78,7 +79,7 @@ class SystemHealthMonitor:
             active = self.data_collector.is_active() if hasattr(self.data_collector, 'is_active') else True
             silence = None
             if isinstance(last, datetime):
-                silence = (datetime.utcnow() - last).total_seconds()
+                silence = (datetime.now(timezone.utc) - last).total_seconds()
             status = "ok"
             if silence is not None and silence > self.config.max_silence_seconds:
                 status = "stale"
@@ -116,7 +117,7 @@ class SystemHealthMonitor:
             healthy = False
             reasons.append("memory")
         result = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'healthy': healthy,
             'reasons': reasons,
             'latency': latency,

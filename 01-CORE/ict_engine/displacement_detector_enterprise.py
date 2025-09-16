@@ -14,6 +14,7 @@ Displacement Detection ICT:
 """
 
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import pandas as pd

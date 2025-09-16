@@ -5,6 +5,7 @@ Permite usar RiskGuard directamente como validador en ExecutionRouter.
 Evalúa violaciones recientes y bloquea nuevas órdenes si se detectan severas.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from typing import Optional, List, Any
 import time, json, os
 
@@ -42,7 +43,7 @@ class RiskGuardValidator:
         self._last_snapshot_read: float = 0.0
         self._snapshot_refresh_sec = snapshot_refresh_sec
         self._snapshot_path = os.path.join('04-DATA', 'risk_guard_status.json')
-        self.logger = create_safe_logger("RiskGuardValidator")
+        self.logger = get_unified_logger("RiskGuardValidator")
 
     # ----------------- Actualización Externa -----------------
     def update_violations(self, violations: List[str]) -> None:

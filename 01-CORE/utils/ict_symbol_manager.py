@@ -18,6 +18,7 @@ Versión: 1.0.0
 Fecha: 2025-09-02
 """
 
+from protocols.unified_logging import get_unified_logger
 import json
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple

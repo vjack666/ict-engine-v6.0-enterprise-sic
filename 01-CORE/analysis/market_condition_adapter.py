@@ -17,6 +17,7 @@ Versión: v6.1.1-market-adaptive
 Fecha: 4 de Septiembre 2025 - 16:45 GMT
 """
 
+from protocols.unified_logging import get_unified_logger
 import json
 import os
 from datetime import datetime, timezone

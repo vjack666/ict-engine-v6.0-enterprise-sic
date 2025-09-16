@@ -4,9 +4,10 @@ Calcula métricas de latencia para diferentes etapas del pipeline
 (señal -> validación -> ejecución) para optimización en producción.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import statistics
 
 
@@ -27,7 +28,7 @@ class LatencyMonitor:
         self._samples: list[LatencySample] = []
 
     def record(self, stage: str, started_at: datetime, completed_at: Optional[datetime] = None) -> None:
-        comp = completed_at or datetime.utcnow()
+        comp = completed_at or datetime.now(timezone.utc)
         sample = LatencySample(stage=stage, started_at=started_at, completed_at=comp)
         self._samples.append(sample)
         if len(self._samples) > self.max_samples:

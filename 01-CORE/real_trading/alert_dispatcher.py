@@ -16,9 +16,10 @@ Características:
 - Shortcuts para eventos comunes
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Callable, Any
 from enum import Enum
@@ -139,7 +140,7 @@ class AlertDispatcher:
         if logger:
             self.logger = logger
         else:
-            self.logger = create_safe_logger("AlertDispatcher", log_level=getattr(LogLevel, 'INFO', None))
+            self.logger = get_unified_logger("AlertDispatcher")
         
         # Setup paths
         self.base_dir = Path(self.config.log_file_path).parent
@@ -375,7 +376,7 @@ class AlertDispatcher:
         """Rota el archivo de log si excede el tamaño máximo."""
         try:
             if self.log_path.exists() and self.log_path.stat().st_size > self.config.max_file_size:
-                ts = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+                ts = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
                 self.log_path.rename(self.base_dir / f"alerts_{ts}.jsonl")
         except Exception:
             pass

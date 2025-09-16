@@ -26,7 +26,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Logger centralizado
-from smart_trading_logger import SmartTradingLogger
+from protocols.unified_logging import get_unified_logger
 
 
 class ValidationStatus(Enum):
@@ -96,7 +96,7 @@ class ValidationEngine:
             max_workers: Número máximo de workers paralelos
             default_timeout: Timeout por defecto en segundos
         """
-        self.logger = SmartTradingLogger("validation_engine")
+        self.logger = get_unified_logger("validation_engine")
         self.max_workers = max_workers
         self.default_timeout = default_timeout
         

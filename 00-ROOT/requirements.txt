@@ -9,19 +9,23 @@ pandas>=2.0.0              # Análisis de datos financieros
 numpy>=1.24.0              # Computación numérica
 requests>=2.31.0           # HTTP requests para APIs
 
+# Machine Learning Dependencies
+scikit-learn>=1.3.0        # ML algorithms para analytics y detección anomalías
+joblib>=1.3.0              # Serialización modelos ML
+
 # Logging y Debugging
 colorlog>=6.7.0            # Logging colorizado para SLUC v2.1
 rich>=13.0.0               # Output rico para debugging
 
-# Dashboard y UI (si se requiere)
+# Dashboard y UI (Deprecado: Web UI retirada)
 # tkinter                  # Interface gráfica (incluido en Python)
 # matplotlib>=3.7.0        # Gráficos (opcional)
-dash>=2.17.0               # Dashboard web (ya referenciado en web_dashboard)
-plotly>=5.22.0             # Gráficos interactivos para dashboard
+# dash>=2.17.0             # (DEPRECATED) Web dashboard removido
+# plotly>=5.22.0           # (DEPRECATED) Gráficos interactivos para UI web
 
 # API métricas FastAPI
-fastapi>=0.111.0           # API REST para métricas
-uvicorn[standard]>=0.30.0  # ASGI server para FastAPI
+fastapi>=0.111.0           # API REST para métricas (opcional)
+uvicorn[standard]>=0.30.0  # ASGI server para FastAPI (opcional)
 
 # Testing y Development
 pytest>=7.4.0             # Testing framework

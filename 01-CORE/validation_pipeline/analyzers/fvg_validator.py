@@ -26,7 +26,7 @@ import numpy as np
 # Imports absolutos sin type: ignore - sistema robusto de dependencias
 
 # Logger centralizado principal
-from smart_trading_logger import SmartTradingLogger
+from protocols.unified_logging import get_unified_logger
 
 # Dependencias enterprise con manejo granular de errores
 from typing import TYPE_CHECKING
@@ -43,7 +43,7 @@ class EnterpriseModuleLoader:
     """🏗️ Cargador optimizado de módulos enterprise"""
     
     def __init__(self):
-        self.logger = SmartTradingLogger("fvg_validator_loader")
+        self.logger = get_unified_logger("fvg_validator_loader")
         self.modules: Dict[str, Any] = {}
         self.missing_dependencies: Dict[str, str] = {}
         self.enterprise_available = False
@@ -104,7 +104,7 @@ _module_loader = EnterpriseModuleLoader()
 
 # Variables globales para acceso directo
 ENTERPRISE_MODULES_AVAILABLE = _module_loader.is_enterprise_ready()
-logger = SmartTradingLogger("fvg_validator")
+logger = get_unified_logger("fvg_validator")
 
 # Acceso a módulos enterprise
 def get_smart_money_analyzer():

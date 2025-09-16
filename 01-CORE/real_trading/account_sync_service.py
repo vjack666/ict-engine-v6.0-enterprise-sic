@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Account Sync Service - sincroniza información de cuenta periódicamente."""
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from typing import Optional, Dict, Any
 import threading
 import time
@@ -32,7 +33,7 @@ class AccountSyncService:
         if logger:
             self.logger = logger
         else:
-            self.logger = create_safe_logger("AccountSyncService", log_level=getattr(LogLevel, 'INFO', None))
+            self.logger = get_unified_logger("AccountSyncService")
         
         self._last_snapshot: Dict[str, Any] = {}
 

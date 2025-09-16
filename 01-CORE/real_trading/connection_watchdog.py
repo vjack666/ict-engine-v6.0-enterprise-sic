@@ -4,9 +4,10 @@ Supervisa estabilidad de la conexión (ej. MT5 / broker API) y expone
 métricas de latencia, reconexiones y disponibilidad.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass, field
 from typing import Optional, Callable, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import threading
 import time
 import random
@@ -31,7 +32,7 @@ class ConnectionWatchdog:
         self.reconnect_function = reconnect_function or self._default_reconnect
         self.check_interval = check_interval
         self.max_failures_before_reconnect = max_failures_before_reconnect
-        self._stats = ConnectionStats(datetime.utcnow(), 0.0, 0, 0, True)
+        self._stats = ConnectionStats(datetime.now(timezone.utc), 0.0, 0, 0, True)
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._callbacks: list[Callable[[Dict[str, Any]], None]] = []
@@ -70,7 +71,7 @@ class ConnectionWatchdog:
             except Exception:
                 success = False
 
-            self._stats.last_check = datetime.utcnow()
+            self._stats.last_check = datetime.now(timezone.utc)
             if success and latency_ms is not None:
                 self._stats.last_latency_ms = latency_ms
                 self._stats.consecutive_failures = 0

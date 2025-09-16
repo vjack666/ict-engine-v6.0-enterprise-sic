@@ -4,6 +4,7 @@
 ICT Engine v6.0 Enterprise - Categoriza logs según reglas definidas
 """
 
+from protocols.unified_logging import get_unified_logger
 import json
 import re
 from pathlib import Path

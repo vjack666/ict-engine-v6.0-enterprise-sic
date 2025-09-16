@@ -26,6 +26,7 @@ Autor: ICT Engine v6.1 Enterprise Team
 Fecha: September 17, 2025 - FASE 2 Week 3 Day 1
 """
 
+from protocols.unified_logging import get_unified_logger
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Any, Union
 from dataclasses import dataclass, field

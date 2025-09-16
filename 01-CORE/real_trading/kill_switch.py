@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Kill Switch - parada global segura de trading."""
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from typing import Optional, Dict, Any
 import threading
 import time
@@ -30,7 +31,7 @@ class KillSwitch:
         if logger:
             self.logger = logger
         else:
-            self.logger = create_safe_logger("KillSwitch", log_level=getattr(LogLevel, 'INFO', None))
+            self.logger = get_unified_logger("KillSwitch")
 
     def engage(self, reason: str, **meta) -> None:
         if not reason:

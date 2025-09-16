@@ -14,8 +14,8 @@ sys.path.append('01-CORE')
 
 # Import sistema de logging centralizado
 try:
-    from smart_trading_logger import SmartTradingLogger
-    logger = SmartTradingLogger("enterprise_comparison_dashboard")
+    from protocols.unified_logging import get_unified_logger
+    logger = get_unified_logger("enterprise_comparison_dashboard")
 except ImportError:
     import logging
     logging.basicConfig(level=logging.INFO)

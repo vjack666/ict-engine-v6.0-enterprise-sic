@@ -3,9 +3,10 @@
 Agrega métricas operativas y de trading para reporting centralizado.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass, field
 from typing import Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import threading
 
 
@@ -25,7 +26,7 @@ class MetricsCollector:
     def record(self, name: str, value: float) -> None:
         with self._lock:
             lst = self._metrics.setdefault(name, [])
-            lst.append(MetricPoint(name=name, value=value, timestamp=datetime.utcnow()))
+            lst.append(MetricPoint(name=name, value=value, timestamp=datetime.now(timezone.utc)))
             if len(lst) > self.max_points:
                 lst.pop(0)
 

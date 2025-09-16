@@ -7,6 +7,7 @@ Dependencias:
 - smart_trading_logger
 """
 
+from protocols.unified_logging import get_unified_logger
 import time
 import threading
 import logging

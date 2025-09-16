@@ -16,6 +16,7 @@ Versión: v6.1.0-enterprise-integration
 Fecha: 4 de Septiembre 2025 - 15:20 GMT
 """
 
+from protocols.unified_logging import get_unified_logger
 import sys
 import os
 import logging

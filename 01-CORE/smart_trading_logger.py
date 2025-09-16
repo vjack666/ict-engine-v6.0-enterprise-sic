@@ -10,6 +10,7 @@ Integrado con Enterprise System.
 Autor: ICT Engine v6.1.0 Team
 """
 
+from protocols.unified_logging import get_unified_logger
 import logging
 import sys
 import json

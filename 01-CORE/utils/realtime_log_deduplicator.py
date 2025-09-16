@@ -13,6 +13,7 @@ Autor: ICT Engine v6.0 Team
 Fecha: 2025-09-10 (Optimizado)
 """
 
+from protocols.unified_logging import get_unified_logger
 import time
 import hashlib
 import re

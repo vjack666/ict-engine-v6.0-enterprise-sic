@@ -12,9 +12,10 @@ Metas diseño:
 - Orientado a integrarse con sistema ML (features).
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Any, Optional, Sequence
-from datetime import datetime
+from datetime import datetime, timezone
 
 try:  # logger opcional
     from smart_trading_logger import SmartTradingLogger  # type: ignore
@@ -64,7 +65,7 @@ class MarketStructureEngine:
             raise ValueError(f"Candle incompleta: faltan claves {needed - set(sample.keys())}")
 
     def _ts(self) -> str:
-        return datetime.utcnow().isoformat()
+        return datetime.now(timezone.utc).isoformat()
 
     # ---------------------- Core Detections (Placeholders) ---------------------- #
     def detect_choch(self, candles: Sequence[Candle]) -> List[Dict[str, Any]]:

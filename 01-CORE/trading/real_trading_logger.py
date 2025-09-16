@@ -6,6 +6,7 @@ Extends SmartTradingLogger with specialized trading logs
 Provides audit trail for all trading activities
 """
 
+from protocols.unified_logging import get_unified_logger
 import json
 import os
 from datetime import datetime, timedelta

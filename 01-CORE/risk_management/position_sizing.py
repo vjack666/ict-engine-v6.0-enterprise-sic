@@ -38,7 +38,7 @@ import logging
 
 # Fallback tradicional
 try:
-    from ..smart_trading_logger import SmartTradingLogger
+    from protocols.unified_logging import get_unified_logger
     LOGGER_AVAILABLE = True
 except ImportError:
     try:
@@ -46,11 +46,11 @@ except ImportError:
         import sys
         import os
         sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-        from smart_trading_logger import SmartTradingLogger
+        from protocols.unified_logging import get_unified_logger
         LOGGER_AVAILABLE = True
     except ImportError:
         LOGGER_AVAILABLE = False
-        SmartTradingLogger = None
+        get_unified_logger = None
 
 try:
     import MetaTrader5 as mt5
@@ -125,8 +125,8 @@ class PositionSizingCalculator:
         # Configurar logger usando protocolos centrales
         if PROTOCOLS_AVAILABLE and setup_module_logging and LogLevel:
             self.logger = setup_module_logging("PositionSizing", LogLevel.INFO)
-        elif LOGGER_AVAILABLE and SmartTradingLogger:
-            self.logger = SmartTradingLogger("PositionSizing")
+        elif LOGGER_AVAILABLE and get_unified_logger is not None:
+            self.logger = get_unified_logger("PositionSizing")
         else:
             logging.basicConfig(level=logging.INFO)
             self.logger = logging.getLogger("PositionSizing")

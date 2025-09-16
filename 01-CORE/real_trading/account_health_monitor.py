@@ -5,9 +5,10 @@ críticas que requieran reducción de riesgo, cierre de posiciones o parada
 emergente.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, Callable
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import threading
 import random
 
@@ -92,7 +93,7 @@ class AccountHealthMonitor:
             try:
                 metrics = self.fetch_account_metrics()
                 snap = AccountSnapshot(
-                    timestamp=datetime.utcnow(),
+                    timestamp=datetime.now(timezone.utc),
                     balance=metrics.get("balance", 10000.0),
                     equity=metrics.get("equity", 10000.0),
                     free_margin=metrics.get("free_margin", 9000.0),

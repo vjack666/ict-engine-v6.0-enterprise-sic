@@ -26,7 +26,7 @@ from enum import Enum
 from datetime import datetime
 
 try:
-    from ..smart_trading_logger import SmartTradingLogger
+    from protocols.unified_logging import get_unified_logger
     LOGGER_AVAILABLE = True
 except ImportError:
     try:
@@ -34,11 +34,11 @@ except ImportError:
         import sys
         import os
         sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-        from smart_trading_logger import SmartTradingLogger
+        from protocols.unified_logging import get_unified_logger
         LOGGER_AVAILABLE = True
     except ImportError:
         LOGGER_AVAILABLE = False
-        SmartTradingLogger = None
+        get_unified_logger = None
 
 try:
     import MetaTrader5 as mt5
@@ -143,8 +143,8 @@ class ExecutionEngine:
         self.config = config or self._default_config()
         
         # Configurar logger
-        if LOGGER_AVAILABLE and SmartTradingLogger:
-            self.logger = SmartTradingLogger("ExecutionEngine")
+        if LOGGER_AVAILABLE and get_unified_logger is not None:
+            self.logger = get_unified_logger("ExecutionEngine")
         else:
             logging.basicConfig(level=logging.INFO)
             self.logger = logging.getLogger("ExecutionEngine")
@@ -190,15 +190,14 @@ class ExecutionEngine:
             return False
             
         try:
-            if MT5_AVAILABLE and mt5 and _mt5_initialize:
-                if not _mt5_initialize():
+            from real_trading.mt5_config import mt5_initialize  # type: ignore
+            if MT5_AVAILABLE and mt5 and mt5_initialize:
+                if not mt5_initialize():
                     if _mt5_last_error:
                         error = _mt5_last_error()
                         if LOGGER_AVAILABLE:
                             self.logger.error(f"Error inicializando MT5: {error}", "ExecutionEngine")
                     return False
-                    
-                # Verificar cuenta
                 if _mt5_account_info:
                     account_info = _mt5_account_info()
                     if account_info is None:

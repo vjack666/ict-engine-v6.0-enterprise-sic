@@ -19,6 +19,7 @@ Autor: ICT Engine v6.0 Team
 Fecha: 2025-09-10
 """
 
+from protocols.unified_logging import get_unified_logger
 import os
 import sys
 import json

@@ -19,6 +19,7 @@ Autor: ICT Engine v6.0 Team - Production Module
 Fecha: 15 Septiembre 2025
 """
 
+from protocols.unified_logging import get_unified_logger
 import psutil
 import time
 import threading
@@ -519,9 +520,10 @@ class ProductionSystemMonitor:
             
             # Try to get MT5 info
             try:
+                from real_trading.mt5_config import mt5_initialize  # type: ignore
                 import MetaTrader5 as mt5  # type: ignore
                 
-                if mt5.initialize():  # type: ignore
+                if mt5_initialize():  # type: ignore
                     metrics.mt5_connected = True
                     
                     # Account info
@@ -657,6 +659,7 @@ class ProductionSystemMonitor:
     def _attempt_mt5_reconnect(self):
         """Intentar reconexión a MT5"""
         try:
+            from real_trading.mt5_config import mt5_initialize  # type: ignore
             import MetaTrader5 as mt5  # type: ignore
             
             # Record attempt
@@ -668,7 +671,7 @@ class ProductionSystemMonitor:
             mt5.shutdown()  # type: ignore
             time.sleep(2)
             
-            if mt5.initialize():  # type: ignore
+            if mt5_initialize():  # type: ignore
                 if LOGGING_AVAILABLE and logger:
                     logger.info("MT5 reconnection successful", "AutoRecovery")
                 return True

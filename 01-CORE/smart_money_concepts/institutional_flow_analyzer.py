@@ -26,6 +26,7 @@ Autor: ICT Engine v6.0 Enterprise Team
 Fecha: 13 Septiembre 2025
 """
 
+from protocols.unified_logging import get_unified_logger
 import time
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any, Tuple, Union

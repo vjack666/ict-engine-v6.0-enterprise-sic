@@ -1,3 +1,72 @@
+# PRODUCTION MONITORING GUIDE — Sin Servidor Web
+
+Este documento describe cómo monitorear el sistema en producción sin servidores web, usando el exportador de métricas a JSON incorporado.
+
+## 1) Qué exporta
+
+- Componente: `01-CORE/monitoring/metrics_json_exporter.py` (clase `MetricsJSONExporter`)
+- Fuente de datos: `PerformanceMetricsAggregator`
+- Directorio de salida: `04-DATA/metrics/`
+- Archivos generados:
+    - `metrics_live.json` — métricas de monitoreo en vivo (timestamp, counters, gauges)
+    - `metrics_summary.json` — snapshot actual
+    - `metrics_cumulative.json` — actualmente igual a summary (para acumulados futuros)
+    - `metrics_all.json` — combinado con `live`, `summary`, `cumulative` y `timestamp`
+
+## 2) Activación rápida (Windows PowerShell)
+
+```powershell
+$env:ICT_EXPORT_METRICS = '1'
+$env:ICT_EXPORT_INTERVAL = '5'  # opcional (segundos)
+python .\main.py
+```
+
+- `ICT_EXPORT_METRICS`: `'1'`/`'true'` habilita el exportador.
+- `ICT_EXPORT_INTERVAL`: intervalo de export (mínimo 0.5; por defecto 5).
+
+El exportador se inicia en background y se detiene automáticamente durante `shutdown()` del sistema.
+
+## 3) Consumo de métricas
+
+Ejemplo en Python para leer el archivo de métricas live:
+
+```python
+from pathlib import Path
+import json
+
+metrics_dir = Path('04-DATA/metrics')
+with open(metrics_dir / 'metrics_live.json', 'r', encoding='utf-8') as f:
+        live = json.load(f)
+print(live.get('counters', {}))
+```
+
+Ejemplo en PowerShell:
+
+```powershell
+Get-Content .\04-DATA\metrics\metrics_live.json
+```
+
+## 4) Integración con herramientas externas
+
+- Dashboards locales o scripts pueden observar cambios en `04-DATA/metrics/*`.
+- La escritura es atómica (archivo `.tmp` + reemplazo), lo que evita lecturas corruptas.
+- Frecuencia de scraping recomendada ≥ `ICT_EXPORT_INTERVAL`.
+
+## 5) Solución de problemas
+
+- No se generan archivos:
+    - Verifica que `ICT_EXPORT_METRICS` esté en `'1'` y que `main.py` esté corriendo.
+    - Revisa permisos de escritura en `04-DATA/metrics/`.
+    - Comprueba logs de `MetricsJSONExporter` en consola.
+- Archivos vacíos o con error:
+    - Asegura que exista una instancia de `PerformanceMetricsAggregator` (el sistema la crea en `ICTEnterpriseManager`).
+    - Aumenta `ICT_EXPORT_INTERVAL` si hay alta carga.
+
+## 6) Notas
+
+- El archivo `09-DASHBOARD/metrics_api.py` (FastAPI) es opcional y no requerido para este modo.
+- Este flujo es el recomendado para entornos con mínimos componentes (sin servicios web).
+
 # 📊 MONITOREO DE PRODUCCIÓN - ICT ENGINE v6.0 ENTERPRISE
 
 ## 🎯 Resumen

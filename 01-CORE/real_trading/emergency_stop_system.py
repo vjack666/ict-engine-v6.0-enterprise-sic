@@ -13,6 +13,7 @@ Características:
 - Emergency procedures automation
 """
 
+from protocols.unified_logging import get_unified_logger
 import logging
 import time
 from datetime import datetime, timedelta

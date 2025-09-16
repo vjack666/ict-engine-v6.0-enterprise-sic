@@ -14,9 +14,10 @@ No elimina rutas existentes; ofrece un único entrypoint para nuevas
 integraciones (trading loop, dashboard, validation pipeline).
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, List, Protocol, runtime_checkable, TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timezone
 
 class _LoggerLike(Protocol):
     def info(self, m: str, c: str) -> None: ...
@@ -96,7 +97,7 @@ class RiskPipelineDecision:
     exposure: Dict[str, float] = field(default_factory=dict)
     ict_factors: Dict[str, Any] = field(default_factory=dict)
     sizing_metadata: Dict[str, Any] = field(default_factory=dict)
-    timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class RiskPipeline:
     def __init__(self,
@@ -105,7 +106,7 @@ class RiskPipeline:
                  position_sizer: Optional[PositionSizingCalculator] = None,
                  fast_gate: Optional[RealTimeRiskGuard] = None,
                  alert_emitter: Optional[AlertEmitter] = None):
-        self.logger = create_safe_logger("RiskPipeline")  # type: ignore[assignment]
+        self.logger = get_unified_logger("RiskPipeline")  # type: ignore[assignment]
         self.risk_guard = risk_guard
         self.risk_manager = risk_manager
         self.position_sizer = position_sizer

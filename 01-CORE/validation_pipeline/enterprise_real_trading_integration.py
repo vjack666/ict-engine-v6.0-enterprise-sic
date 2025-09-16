@@ -169,11 +169,11 @@ except NameError:
 
 # Try to import core enums and logger
 try:
-    from smart_trading_logger import SmartTradingLogger
+    from protocols.unified_logging import get_unified_logger
     LOGGER_AVAILABLE = True
 except ImportError:
     LOGGER_AVAILABLE = False
-    SmartTradingLogger = None
+    get_unified_logger = None
 
 # RiskValidator opcional
 with suppress(Exception):
@@ -252,8 +252,8 @@ class EnterpriseRealTradingManagerFixed:
         }
         
         # Initialize logger
-        if LOGGER_AVAILABLE and SmartTradingLogger:
-            self.logger = SmartTradingLogger("EnterpriseRealTradingFixed")
+        if LOGGER_AVAILABLE and get_unified_logger is not None:
+            self.logger = get_unified_logger("EnterpriseRealTradingFixed")
         else:
             logging.basicConfig(level=logging.INFO)
             self.logger = logging.getLogger("EnterpriseRealTradingFixed")

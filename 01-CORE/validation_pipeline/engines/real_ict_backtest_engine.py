@@ -18,10 +18,11 @@ circulares. Si algún componente no está disponible, cae en modo
 simulado para preservar estabilidad del sistema en producción.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional, Callable
-from datetime import datetime
+from datetime import datetime, timezone
 import random
 import os
 import csv
@@ -60,7 +61,7 @@ except Exception:
 class BacktestExecutionMetrics:
     symbol: str
     timeframe: str
-    start_time: datetime = field(default_factory=datetime.utcnow)
+    start_time: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: Optional[datetime] = None
     total_candles_processed: int = 0
     simulated_latency_ms: float = 0.0
@@ -69,7 +70,7 @@ class BacktestExecutionMetrics:
     mode: str = "real"  # or "simulated"
 
     def finalize(self):
-        self.completed_at = datetime.utcnow()
+        self.completed_at = datetime.now(timezone.utc)
 
 
 class RealICTBacktestEngine:
@@ -257,28 +258,28 @@ class RealICTBacktestEngine:
                     return lower.index(name) if name in lower else None
                 ts_i = next((idx(c) for c in ('timestamp','time','date') if idx(c) is not None), None)
                 o_i, h_i, l_i, c_i, v_i = idx('open'), idx('high'), idx('low'), idx('close'), idx('volume')
-                from datetime import datetime as _dt
+                from datetime import datetime as _dt, timezone as _tz
                 def parse_ts(raw: str):
                     r = raw.strip()
                     if not r:
-                        return _dt.utcnow()
+                        return _dt.now(_tz.utc)
                     if r.isdigit() and len(r) in (10,13):
                         try:
-                            return _dt.utcfromtimestamp(int(r[:10]))
+                            return _dt.fromtimestamp(int(r[:10]), _tz.utc)
                         except Exception:
-                            return _dt.utcnow()
+                            return _dt.now(_tz.utc)
                     for fmt in ('%Y-%m-%d %H:%M:%S','%Y-%m-%dT%H:%M:%S','%Y-%m-%d %H:%M','%Y-%m-%d'):
                         try:
-                            return _dt.strptime(r, fmt)
+                            return _dt.strptime(r, fmt).replace(tzinfo=_tz.utc)
                         except Exception:
                             continue
                     try:
-                        return _dt.fromisoformat(r.replace('Z',''))
+                        return _dt.fromisoformat(r.replace('Z','')).replace(tzinfo=_tz.utc)
                     except Exception:
-                        return _dt.utcnow()
+                        return _dt.now(_tz.utc)
                 for row in rdr:
                     try:
-                        ts = parse_ts(row[ts_i]) if ts_i is not None else datetime.utcnow()
+                        ts = parse_ts(row[ts_i]) if ts_i is not None else datetime.now(timezone.utc)
                         o = float(row[o_i]) if o_i is not None else 0.0
                         h = float(row[h_i]) if h_i is not None else o
                         l = float(row[l_i]) if l_i is not None else o
@@ -299,7 +300,7 @@ class RealICTBacktestEngine:
 
     def _generate_synthetic_series(self, max_candles: int) -> List[Dict[str, Any]]:
         out: List[Dict[str, Any]] = []
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         for _ in range(max_candles):
             out.append({
                 'timestamp': now,

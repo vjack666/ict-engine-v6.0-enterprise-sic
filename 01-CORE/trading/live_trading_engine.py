@@ -28,7 +28,7 @@ import logging
 from collections import defaultdict
 
 try:
-    from ..smart_trading_logger import SmartTradingLogger
+    from protocols.unified_logging import get_unified_logger
     LOGGER_AVAILABLE = True
 except ImportError:
     try:
@@ -36,11 +36,11 @@ except ImportError:
         import sys
         import os
         sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-        from smart_trading_logger import SmartTradingLogger
+        from protocols.unified_logging import get_unified_logger
         LOGGER_AVAILABLE = True
     except ImportError:
         LOGGER_AVAILABLE = False
-        SmartTradingLogger = None
+        get_unified_logger = None
 
 try:
     import MetaTrader5 as mt5
@@ -74,10 +74,10 @@ except ImportError:
 # Central logging function
 def _safe_log(level: str, message: str, component: str = "LiveTradingEngine") -> None:
     """Función de logging segura centralizada"""
-    if LOGGER_AVAILABLE and SmartTradingLogger:
+    if LOGGER_AVAILABLE and get_unified_logger is not None:
         try:
-            logger = SmartTradingLogger()
-            getattr(logger, level, logger.info)(message, component)
+            logger = get_unified_logger(component)
+            getattr(logger, level, logger.info)(message)
         except Exception:
             pass
     else:
@@ -182,8 +182,8 @@ class LiveTradingEngine:
         self._stop_event = threading.Event()
         
         # Configurar logger
-        if LOGGER_AVAILABLE and SmartTradingLogger:
-            self.logger = SmartTradingLogger("LiveTrading")
+        if LOGGER_AVAILABLE and get_unified_logger is not None:
+            self.logger = get_unified_logger("LiveTrading")
         else:
             logging.basicConfig(level=logging.INFO)
             self.logger = logging.getLogger("LiveTrading")
@@ -473,8 +473,9 @@ class LiveTradingEngine:
             return False
         
         try:
-            # Verificar si ya está inicializado
-            if _mt5_initialize and not _mt5_initialize():
+            from real_trading.mt5_config import mt5_initialize  # type: ignore
+            # Verificar si ya está inicializado mediante wrapper central
+            if mt5_initialize and not mt5_initialize():
                 if LOGGER_AVAILABLE:
                     self.logger.error("No se pudo inicializar MT5", "LiveTrading")
                 return False
@@ -510,7 +511,7 @@ class LiveTradingEngine:
                 account_info = _mt5_account_info()
                 if account_info:
                     initial_balance = getattr(account_info, 'balance', 0.0)
-            except:
+            except Exception:
                 pass
         
         self.current_session = TradingSession(

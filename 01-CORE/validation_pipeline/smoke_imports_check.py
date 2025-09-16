@@ -17,6 +17,7 @@ Salida:
 No ejecuta lógica pesada: sólo importación. Seguro para CI / pre-run.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 import importlib, json, time, sys, traceback, importlib.util
 from typing import List, Dict, Any, Tuple
 from pathlib import Path

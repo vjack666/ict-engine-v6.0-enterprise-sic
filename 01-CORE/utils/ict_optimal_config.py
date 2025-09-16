@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """
+from protocols.unified_logging import get_unified_logger
 🎯 CONFIGURACIÓN ÓPTIMA ICT - LEYES DE MERCADO
 ==============================================
 

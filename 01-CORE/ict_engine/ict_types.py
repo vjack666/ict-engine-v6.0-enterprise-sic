@@ -23,6 +23,7 @@ Fecha: Agosto 2025
 # =============================================================================
 
 # Imports básicos estándar (seguros)
+from protocols.unified_logging import get_unified_logger
 from enum import Enum
 import time
 from datetime import datetime, time as time_obj

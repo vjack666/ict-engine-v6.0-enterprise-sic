@@ -4,6 +4,7 @@ execution_engine.py - ICT Engine v6.0 Enterprise
 Sistema de ejecución de trades automatizado
 """
 
+from protocols.unified_logging import get_unified_logger
 import time
 from dataclasses import dataclass, field
 from typing import Optional, Dict, List, Tuple, Any, Callable

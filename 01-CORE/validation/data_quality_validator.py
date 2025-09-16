@@ -5,9 +5,10 @@ Valida la calidad mínima de datos almacenados (ej. velas o métricas).
 - Detecta gap de timestamps básicos
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from typing import Dict, Any, List
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import json
 
 try:
@@ -23,7 +24,7 @@ except Exception:  # pragma: no cover
 class DataQualityValidator:
     def __init__(self, data_root: Path):
         self.data_root = data_root
-        self.logger = create_safe_logger("DataQualityValidator")
+        self.logger = get_unified_logger("DataQualityValidator")
         self._last: Dict[str, Any] = {}
 
     def _candidate_dirs(self) -> List[Path]:
@@ -35,7 +36,7 @@ class DataQualityValidator:
 
     def validate(self) -> Dict[str, Any]:
         result: Dict[str, Any] = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'status': 'OK',
             'files_checked': 0,
             'issues': [],
@@ -56,7 +57,7 @@ class DataQualityValidator:
             result['issues'].append('No recent json candle files')
             self._last = result
             return result
-        time_threshold = datetime.utcnow() - timedelta(days=2)
+        time_threshold = datetime.now(timezone.utc) - timedelta(days=2)
         for fp in latest_files:
             try:
                 stat = fp.stat()

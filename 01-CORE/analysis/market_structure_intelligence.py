@@ -23,6 +23,7 @@ Dependencies:
 - UnifiedLoggingSystem (centralizado)
 """
 
+from protocols.unified_logging import get_unified_logger
 import time
 import threading
 import importlib.util

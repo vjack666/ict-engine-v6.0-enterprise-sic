@@ -3,9 +3,10 @@ Orquesta el ciclo de vida de órdenes hacia el broker (MT5 u otros).
 Versión inicial mínima productiva.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, List, Literal
-from datetime import datetime
+from datetime import datetime, timezone
 import threading
 import uuid
 
@@ -45,7 +46,7 @@ class ExecutionEngine:
     Posteriormente se conectará al `mt5_broker_executor`.
     """
     def __init__(self):
-        self.logger = create_safe_logger("ExecutionEngine")
+        self.logger = get_unified_logger("ExecutionEngine")
         self._orders: Dict[str, TrackedOrder] = {}
         self._lock = threading.Lock()
 
@@ -53,7 +54,7 @@ class ExecutionEngine:
         if spec.volume <= 0:
             raise ExecutionError("Volume must be > 0")
         client_id = uuid.uuid4().hex
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         tracked = TrackedOrder(client_id=client_id, broker_id=None, spec=spec, status="PENDING", created_at=now, last_update=now)
         with self._lock:
             self._orders[client_id] = tracked
@@ -69,7 +70,7 @@ class ExecutionEngine:
             if order.status in ("CANCELLED", "FILLED"):
                 return False
             order.status = "CANCELLED"
-            order.last_update = datetime.utcnow()
+            order.last_update = datetime.now(timezone.utc)
         self.logger.warning(f"✋ Order {client_id} cancelled (local)", "execution")
         return True
 
@@ -84,10 +85,10 @@ class ExecutionEngine:
             order = self._orders.get(client_id)
             if not order:
                 raise OrderNotFound(client_id)
-            fill = {"time": datetime.utcnow(), "price": price, "volume": volume}
+            fill = {"time": datetime.now(timezone.utc), "price": price, "volume": volume}
             order.fills.append(fill)
             order.status = "FILLED"
-            order.last_update = datetime.utcnow()
+            order.last_update = datetime.now(timezone.utc)
         self.logger.info(f"✅ Order {client_id} filled @ {price} vol {volume}", "execution")
 
     def reconcile(self) -> Dict[str, Any]:

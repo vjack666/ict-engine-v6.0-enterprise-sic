@@ -12,11 +12,12 @@ Uso:
     avg, p95 = tracker.current_stats()
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from typing import List, Tuple, Optional, Dict, Any
 from statistics import mean
 from pathlib import Path
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 try:
     from protocols.logging_protocol import create_safe_logger, LogLevel  # type: ignore
@@ -37,7 +38,7 @@ class SlippageTracker:
         self.persist_dir = Path(persist_dir) if persist_dir else None
         if self.persist_dir:
             self.persist_dir.mkdir(parents=True, exist_ok=True)
-        self.logger = create_safe_logger("SlippageTracker", log_level=getattr(LogLevel, 'INFO', None))
+        self.logger = get_unified_logger("SlippageTracker")
 
     def record(self, symbol: str, expected_price: float, executed_price: float, pip_factor: float = 0.0001) -> float:
         try:
@@ -75,7 +76,7 @@ class SlippageTracker:
         if not self.persist_dir:
             return
         snap = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'stats': self.current_stats()
         }
         try:

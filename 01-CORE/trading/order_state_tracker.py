@@ -3,8 +3,9 @@ Seguimiento ligero de órdenes / posiciones para exposición y PnL agregado.
 Se integra sin depender aún de un broker executor completo.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from threading import RLock
 
 try:
@@ -20,7 +21,7 @@ except Exception:  # pragma: no cover
 
 class OrderStateTracker:
     def __init__(self):
-        self.logger = create_safe_logger("OrderStateTracker")
+        self.logger = get_unified_logger("OrderStateTracker")
         self._lock = RLock()
         self._positions: Dict[str, Dict[str, Any]] = {}
         self._closed: List[Dict[str, Any]] = []
@@ -32,7 +33,7 @@ class OrderStateTracker:
                 'lots': 0.0,
                 'avg_price': entry_price,
                 'direction': direction,
-                'opened_at': datetime.utcnow().isoformat(),
+                'opened_at': datetime.now(timezone.utc).isoformat(),
                 'metadata': metadata or {}
             })
             # Simple averaging (no FIFO for ahora)
@@ -52,7 +53,7 @@ class OrderStateTracker:
             pnl = (exit_price - pos['avg_price']) * pos['lots'] * (1 if pos['direction'].lower() == 'buy' else -1)
             rec = {
                 **pos,
-                'closed_at': datetime.utcnow().isoformat(),
+                'closed_at': datetime.now(timezone.utc).isoformat(),
                 'exit_price': exit_price,
                 'pnl': round(pnl, 2)
             }

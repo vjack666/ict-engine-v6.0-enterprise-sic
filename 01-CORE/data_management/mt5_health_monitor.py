@@ -10,6 +10,7 @@ Features:
 - Integration con SmartTradingLogger
 """
 
+from protocols.unified_logging import get_unified_logger
 import time
 import threading
 import logging

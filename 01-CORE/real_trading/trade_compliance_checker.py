@@ -9,6 +9,7 @@ Valida reglas de compliance previas a enviar orden:
 Devuelve estructura con resultado y razones.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass
 from typing import List, Dict, Any, Optional, Callable
 import time

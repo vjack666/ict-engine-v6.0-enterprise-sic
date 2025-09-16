@@ -6,6 +6,7 @@ Integrates with existing MT5ConnectionManager and RiskManager
 Provides comprehensive validation and safety checks for real trade execution
 """
 
+from protocols.unified_logging import get_unified_logger
 import logging
 from datetime import datetime, time
 from typing import Dict, List, Optional, Tuple, Any

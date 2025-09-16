@@ -4,6 +4,7 @@
 Optimización avanzada para procesamiento paralelo eficiente
 """
 
+from protocols.unified_logging import get_unified_logger
 import os
 import threading
 import time

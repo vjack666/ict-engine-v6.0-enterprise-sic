@@ -11,6 +11,7 @@ Autor: ICT Engine v6.0 Team
 Fecha: 2025-09-09
 """
 
+from protocols.unified_logging import get_unified_logger
 import os
 from typing import Dict, List
 

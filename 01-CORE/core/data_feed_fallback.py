@@ -13,10 +13,11 @@ API expuesta:
 - is_degraded() -> bool
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass
 from typing import Optional, Dict
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 try:
     from protocols.logging_central_protocols import create_safe_logger  # type: ignore
@@ -38,7 +39,7 @@ class FeedFallbackConfig:
 class DataFeedFallback:
     def __init__(self, config: Optional[FeedFallbackConfig] = None):
         self.config = config or FeedFallbackConfig()
-        self.logger = create_safe_logger("DataFeedFallback")
+        self.logger = get_unified_logger("DataFeedFallback")
         self._last_tick: Dict[str, float] = {}
         self._active: str = 'primary'
         self._simulation_price: float = 1.1000
@@ -92,7 +93,7 @@ class DataFeedFallback:
     def get_status(self) -> dict:
         self.evaluate()
         return {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'active': self._active,
             'degraded': self._degraded,
             'last_primary': self._last_tick.get('primary'),

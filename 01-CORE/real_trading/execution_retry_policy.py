@@ -4,6 +4,7 @@ Pequeño wrapper para reintentar ejecuciones temporales (network / busy).
 Evita reintentos agresivos con backoff incremental y jitter opcional.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass
 from typing import Callable, Any, Optional, Tuple
 import time

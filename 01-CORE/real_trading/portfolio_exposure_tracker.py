@@ -4,6 +4,7 @@ Responsable de mantener métricas agregadas de exposición por símbolo y total.
 Se apoya en eventos de ejecuciones confirmadas. Persistencia opcional JSON.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from typing import Dict, Any, Optional
 import json
 import threading

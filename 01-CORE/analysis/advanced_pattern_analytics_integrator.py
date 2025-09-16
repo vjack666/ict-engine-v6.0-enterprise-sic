@@ -33,10 +33,10 @@ SLUC_AVAILABLE = False
 
 try:
     # Importar directamente desde SmartTradingLogger para evitar problemas de firma
-    from smart_trading_logger import SmartTradingLogger
+    from protocols.unified_logging import get_unified_logger
     
     # Crear instancia global del logger
-    _global_logger = SmartTradingLogger("INTEGRATOR")
+    _global_logger = get_unified_logger("INTEGRATOR")
     
     # Funciones de logging que usan la interfaz correcta
     def log_info(message, component="CORE"): 

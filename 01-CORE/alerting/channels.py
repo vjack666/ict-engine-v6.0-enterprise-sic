@@ -1,4 +1,5 @@
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from pathlib import Path
 from typing import List, Callable, Optional, Dict, Any
 import json, time

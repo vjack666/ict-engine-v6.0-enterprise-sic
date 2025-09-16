@@ -5,6 +5,7 @@ Order Blocks Black Box Logger v6.0 Enterprise
 Sistema de logging especializado para Order Blocks detection y validation
 """
 
+from protocols.unified_logging import get_unified_logger
 import json
 import logging
 import os

@@ -28,6 +28,7 @@ Autor: ICT Engine v6.0 Enterprise Team
 Fecha: 14 Septiembre 2025
 """
 
+from protocols.unified_logging import get_unified_logger
 from typing import Union, Optional, Tuple, List, Dict, Any, Set
 from decimal import Decimal, ROUND_HALF_UP
 import re

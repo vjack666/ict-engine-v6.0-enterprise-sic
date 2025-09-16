@@ -37,7 +37,7 @@ except ImportError:  # Fallback stubs so Pylance no marque errores si falta fast
     def FastAPI(*_, **__):  # type: ignore
         return _StubApp()
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Protocol, runtime_checkable, cast
 import json
 import os
 
@@ -83,6 +83,44 @@ async def get_all():  # pragma: no cover - runtime
         except HTTPException:
             data[name.replace('.json','')] = {'error': 'not_found'}
     return JSONResponse(data)
+
+
+@app.get('/metrics/aggregator')
+async def get_aggregator_metrics():  # pragma: no cover - runtime
+    """📈 Obtener métricas del PerformanceMetricsAggregator en tiempo real"""
+    try:
+        # Import main to access performance_metrics instance
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+        
+        from main import get_performance_metrics_instance
+
+        @runtime_checkable
+        class _AggregatorLike(Protocol):
+            def get_live_metrics(self) -> Dict[str, Any]: ...
+            def get_summary_metrics(self) -> Dict[str, Any]: ...
+            def get_cumulative_metrics(self) -> Dict[str, Any]: ...
+            last_update: Any
+
+        aggregator = cast(_AggregatorLike | None, get_performance_metrics_instance())
+        if aggregator is None:
+            raise HTTPException(status_code=503, detail="PerformanceMetricsAggregator not initialized")
+            
+        # Export current metrics from aggregator
+        metrics_data = {
+            'live_metrics': aggregator.get_live_metrics(),
+            'summary_metrics': aggregator.get_summary_metrics(),
+            'cumulative_metrics': aggregator.get_cumulative_metrics(),
+            'timestamp': (aggregator.last_update.isoformat() if getattr(aggregator, 'last_update', None) else None)
+        }
+        
+        return JSONResponse(metrics_data)
+        
+    except ImportError as e:
+        raise HTTPException(status_code=503, detail=f"PerformanceMetricsAggregator not available: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting aggregator metrics: {e}")
 
 
 @app.get('/dashboard/coordinator/state')

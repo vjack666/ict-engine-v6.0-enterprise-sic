@@ -27,6 +27,7 @@ Version: 6.0 Enterprise Edition
 Last Update: 2025-09-03
 """
 
+from protocols.unified_logging import get_unified_logger
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta

@@ -4,6 +4,7 @@
 Motor de distribución inteligente de análisis para máxima eficiencia
 """
 
+from protocols.unified_logging import get_unified_logger
 import os
 import time
 import threading

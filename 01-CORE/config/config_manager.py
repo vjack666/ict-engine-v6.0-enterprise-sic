@@ -21,6 +21,7 @@ Autor: ICT Engine v6.0 Enterprise Team
 Fecha: 15 Septiembre 2025
 """
 
+from protocols.unified_logging import get_unified_logger
 import os
 import json
 import yaml
@@ -369,8 +370,27 @@ class ConfigManager:
         # Buscar variables de entorno con prefijo ICT_CONFIG_
         for env_var, value in os.environ.items():
             if env_var.startswith('ICT_CONFIG_'):
-                # Convertir ICT_CONFIG_TRADING_MAX_POSITIONS -> trading.max_positions
-                config_key = env_var[11:].lower().replace('_', '.')  # Remove ICT_CONFIG_
+                raw_key = env_var[11:]  # Remove ICT_CONFIG_
+
+                # Soportar convención de doble guion bajo para separar niveles
+                # ICT_CONFIG_TRADING__MAX_POSITIONS -> trading.max_positions
+                if '__' in raw_key:
+                    parts = [p.lower() for p in raw_key.split('__') if p]
+                    config_key = '.'.join(parts)
+                else:
+                    # Heurística: detectar secciones top-level comunes y mantener underscores internos
+                    lower = raw_key.lower()
+                    top_levels = (
+                        'trading', 'mt5', 'risk', 'dashboard', 'data', 'monitoring',
+                        'analysis', 'execution', 'real_trading_config', 'secrets'
+                    )
+                    config_key = lower
+                    for prefix in top_levels:
+                        prefix_us = prefix + '_'
+                        if lower.startswith(prefix_us):
+                            # Mapear solo el primer guion bajo a punto, conservar el resto
+                            config_key = prefix + '.' + lower[len(prefix_us):]
+                            break
                 env_overrides[config_key] = self._parse_env_value(value)
         
         if env_overrides:
@@ -469,6 +489,11 @@ class ConfigManager:
                 # Parse key path
                 parts = key_path.split('.')
                 
+                # Runtime overrides tienen máxima prioridad
+                runtime_overrides = self._config_cache.get('runtime_overrides', {})
+                if key_path in runtime_overrides:
+                    return runtime_overrides[key_path]
+
                 # Buscar en environment overrides primero
                 env_overrides = self._config_cache.get('env_overrides', {})
                 if key_path in env_overrides:

@@ -16,7 +16,7 @@ import os
 from typing import Dict, Any
 
 # Agregar path para importar desde 01-CORE
-sys.path.append(os.path.join(os.path.dirname(__file__), '01-CORE'))
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), '01-CORE'))
 
 def validate_data_management_module():
     """Validación completa del módulo data_management"""

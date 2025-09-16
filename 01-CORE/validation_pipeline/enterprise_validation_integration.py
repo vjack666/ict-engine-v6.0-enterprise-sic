@@ -2,6 +2,7 @@
 Enterprise Validation Integration - Complete System
 Integra EnterpriseRealTradingSystem con todos los analyzers
 """
+from protocols.unified_logging import get_unified_logger
 import sys
 sys.path.append('./01-CORE')
 

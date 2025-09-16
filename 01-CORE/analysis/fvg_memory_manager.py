@@ -18,6 +18,7 @@ Versión: v6.1.0-enterprise-fvg-memory
 Fecha: 4 de Septiembre 2025 - 15:10 GMT
 """
 
+from protocols.unified_logging import get_unified_logger
 import json
 import os
 from datetime import datetime, timezone, timedelta

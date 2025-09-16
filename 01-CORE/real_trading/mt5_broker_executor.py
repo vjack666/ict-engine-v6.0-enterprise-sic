@@ -13,17 +13,20 @@ La función real de envío debe integrarse con `MetaTrader5` (paquete oficial) c
 esté instalado y haya conexión a la cuenta. Si no se detecta, opera en modo simulado.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 import random
 import time
 
 try:
+    from real_trading.mt5_config import mt5_initialize  # type: ignore
     import MetaTrader5 as mt5  # type: ignore
     _MT5_AVAILABLE = True
 except Exception:
     mt5 = None  # type: ignore
+    mt5_initialize = None  # type: ignore
     _MT5_AVAILABLE = False
 
 try:
@@ -46,7 +49,7 @@ class MT5ExecutorConfig:
 class MT5BrokerExecutor:
     def __init__(self, config: Optional[MT5ExecutorConfig] = None):
         self.config = config or MT5ExecutorConfig()
-        self.logger = create_safe_logger("MT5BrokerExecutor")
+        self.logger = get_unified_logger("MT5BrokerExecutor")
         self.simulated = False
         self.connected = False
         self._init_mt5()
@@ -60,7 +63,7 @@ class MT5BrokerExecutor:
             self.simulated = True
             return
         try:
-            if not mt5.initialize():  # type: ignore
+            if not (mt5_initialize and mt5_initialize()):  # type: ignore
                 self.logger.error("Fallo initialize() - simulación activada", "EXECUTOR")
                 self.simulated = True
                 return
@@ -87,7 +90,7 @@ class MT5BrokerExecutor:
             'requested_price': price,
             'sl': sl,
             'tp': tp,
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat()
         }
 
     def send_order(self, symbol: str, action: str, volume: float, price: Optional[float], sl: Optional[float], tp: Optional[float]) -> Dict[str, Any]:
@@ -138,7 +141,7 @@ class MT5BrokerExecutor:
                 'action': action,
                 'filled_price': result.price,  # type: ignore
                 'mode': 'live',
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
         except Exception as e:
             return {'success': False, 'error': f'exception:{e}'}
@@ -157,7 +160,7 @@ class MT5BrokerExecutor:
                 'mode': 'simulated',
                 'balance': base,
                 'equity': equity,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
             self._snapshot_cache = snap; self._snapshot_ts = now
             return snap
@@ -173,7 +176,7 @@ class MT5BrokerExecutor:
                 'equity': float(getattr(info, 'equity', 0.0)),
                 'login': getattr(info, 'login', None),
                 'currency': getattr(info, 'currency', None),
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
             self._snapshot_cache = snap; self._snapshot_ts = now
             return snap

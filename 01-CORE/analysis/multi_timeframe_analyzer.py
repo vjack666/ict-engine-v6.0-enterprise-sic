@@ -19,6 +19,7 @@ Migrado: 8 de agosto, 2025
 
 # === IMPORTS ENTERPRISE SYSTEM ===
 
+from protocols.unified_logging import get_unified_logger
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta

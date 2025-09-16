@@ -10,6 +10,7 @@ Autor: ICT Engine v6.0 Enterprise Team
 Fecha: 2025-09-10
 """
 
+from protocols.unified_logging import get_unified_logger
 import threading
 from typing import Optional
 from .ict_data_manager import ICTDataManager

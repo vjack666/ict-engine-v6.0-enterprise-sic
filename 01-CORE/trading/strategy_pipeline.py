@@ -3,8 +3,9 @@ Orquesta flujo: validar entorno/datos -> evaluar riesgo -> sizing -> ejecutar.
 Depende de RiskPipeline existente y trackers opcionales.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from typing import Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 try:
     from protocols.logging_central_protocols import create_safe_logger  # type: ignore
@@ -24,7 +25,7 @@ class StrategyPipeline:
                  order_tracker: Optional[Any] = None,
                  metrics: Optional[Any] = None,
                  executor: Optional[Any] = None):
-        self.logger = create_safe_logger("StrategyPipeline")
+        self.logger = get_unified_logger("StrategyPipeline")
         self.risk_pipeline = risk_pipeline
         self.env_validator = env_validator
         self.data_validator = data_validator
@@ -33,7 +34,7 @@ class StrategyPipeline:
         self.executor = executor
 
     def process_signal(self, signal: Dict[str, Any]) -> Dict[str, Any]:
-        start_ts = datetime.utcnow()
+        start_ts = datetime.now(timezone.utc)
         decision_data: Dict[str, Any] = {
             'signal_id': signal.get('id'),
             'received_at': start_ts.isoformat(),
@@ -89,7 +90,7 @@ class StrategyPipeline:
                 entry_price=signal.get('entry_price', 0.0),
                 direction=signal.get('direction', 'buy')
             )
-        end_ts = datetime.utcnow()
+        end_ts = datetime.now(timezone.utc)
         latency_ms = (end_ts - start_ts).total_seconds() * 1000.0
         decision_data['latency_ms'] = round(latency_ms, 2)
         decision_data['status'] = 'EXECUTED'

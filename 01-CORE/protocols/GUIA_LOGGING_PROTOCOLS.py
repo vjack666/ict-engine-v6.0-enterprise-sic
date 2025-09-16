@@ -29,6 +29,7 @@ except ImportError:
     LogLevel = None
 
 # Importar logging estándar SIEMPRE
+from protocols.unified_logging import get_unified_logger
 import logging
 
 # Fallback tradicional SmartTradingLogger

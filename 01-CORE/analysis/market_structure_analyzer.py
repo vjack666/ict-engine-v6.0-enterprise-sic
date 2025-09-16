@@ -35,6 +35,7 @@ Fecha: Agosto 2025
 # ===============================
 # IMPORTS ENTERPRISE SYSTEM
 # ===============================
+from protocols.unified_logging import get_unified_logger
 import sys
 import os
 import threading

@@ -11,6 +11,7 @@ Autor: ICT Engine v6.1.0 Team
 """
 
 # Import directo desde la ubicación real
+from protocols.unified_logging import get_unified_logger
 from analysis.poi_system import *
 
 # Alias para compatibilidad

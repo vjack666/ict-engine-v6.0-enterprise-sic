@@ -16,11 +16,12 @@ Diseño eficiente:
 - Límite de muestras configurable para controlar memoria.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Protocol, runtime_checkable
 from pathlib import Path
 import json, time, os
-from datetime import datetime
+from datetime import datetime, timezone
 
 @runtime_checkable
 class _LoggerProto(Protocol):
@@ -128,7 +129,7 @@ class ExecutionMetricsRecorder:
     def _persist_live_and_summary(self) -> None:
         stats = self._compute_stats()
         live = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "orders_total": self._orders_total,
             "orders_ok": self._orders_ok,
             "orders_failed": self._orders_failed,
@@ -155,7 +156,7 @@ class ExecutionMetricsRecorder:
         self._cumulative["orders_total"] += self._orders_total
         self._cumulative["orders_ok"] += self._orders_ok
         self._cumulative["orders_failed"] += self._orders_failed
-        self._cumulative["last_update"] = datetime.utcnow().isoformat()
+        self._cumulative["last_update"] = datetime.now(timezone.utc).isoformat()
         self._atomic_write(self.config.cumulative_filename, self._cumulative)
         self.force_persist()
 

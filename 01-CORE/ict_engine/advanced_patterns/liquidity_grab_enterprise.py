@@ -19,6 +19,7 @@ Sprint: FASE 5 - Advanced Patterns
 Fecha: 03 Septiembre 2025
 """
 
+from protocols.unified_logging import get_unified_logger
 from datetime import datetime, time, timedelta
 from typing import Dict, List, Optional, Tuple, Any, TYPE_CHECKING
 from dataclasses import dataclass

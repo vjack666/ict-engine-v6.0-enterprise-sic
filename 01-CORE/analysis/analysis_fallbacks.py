@@ -62,6 +62,7 @@ Versión: v6.1.0-enterprise
 Fecha: Septiembre 2025
 """
 
+from protocols.unified_logging import get_unified_logger
 import logging
 from enum import Enum
 from typing import Any, Optional, Dict, List, Union, TYPE_CHECKING

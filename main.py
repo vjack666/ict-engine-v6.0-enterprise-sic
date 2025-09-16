@@ -188,6 +188,9 @@ class ICTEnterpriseManager:
         self.performance_metrics = None
         self.strategy_pipeline = None
         self._initialize_new_enterprise_components()
+        # Exportador de métricas JSON (opcional por entorno)
+        self.metrics_exporter = None
+        self._maybe_start_metrics_exporter()
 
     def _try_import_trade_journal(self):
         try:
@@ -238,7 +241,16 @@ class ICTEnterpriseManager:
         try:
             if self.environment_validator is None:
                 self.environment_validator = EnvironmentValidator(SYSTEM_ROOT)
-                self.environment_validator.validate()
+                env_result = self.environment_validator.validate()
+                
+                # Fail-fast si hay errores críticos de entorno
+                if env_result.get('status') == 'ERROR':
+                    error_msg = f"Entorno inválido: {env_result.get('errors', [])}"
+                    self.logger.error(error_msg)
+                    raise RuntimeError(f"Environment validation failed: {error_msg}")
+                elif env_result.get('status') == 'WARN':
+                    self.logger.warning(f"Advertencias entorno: {env_result.get('warnings', [])}")
+                    
             if self.data_quality_validator is None:
                 data_root = (SYSTEM_ROOT / '04-DATA' / 'data') if (SYSTEM_ROOT / '04-DATA' / 'data').exists() else (SYSTEM_ROOT / 'data')
                 self.data_quality_validator = DataQualityValidator(data_root if data_root.exists() else SYSTEM_ROOT)
@@ -263,6 +275,28 @@ class ICTEnterpriseManager:
                     pass
         except Exception as e:  # pragma: no cover
             self.logger.error(f"Error inicializando nuevos componentes: {e}")
+
+    def _maybe_start_metrics_exporter(self) -> None:
+        try:
+            if os.environ.get('ICT_EXPORT_METRICS', '0') not in ('1', 'true', 'True'):
+                return
+            from monitoring.metrics_json_exporter import MetricsJSONExporter  # local import
+            metrics_dir = (SYSTEM_ROOT / '04-DATA' / 'metrics')
+            interval = float(os.environ.get('ICT_EXPORT_INTERVAL', '5'))
+            if self.performance_metrics is None:
+                self.performance_metrics = self.performance_metrics or None
+            if self.performance_metrics is not None:
+                self.metrics_exporter = MetricsJSONExporter(self.performance_metrics, metrics_dir, interval)
+                self.metrics_exporter.start()
+                try:
+                    self.logger.info(f"Metrics JSON exporter iniciado en {metrics_dir}")
+                except Exception:
+                    pass
+        except Exception as e:
+            try:
+                self.logger.error(f"No se pudo iniciar el exportador de métricas: {e}")
+            except Exception:
+                pass
 
     def _load_production_configuration(self):
         """🔧 Cargar configuración optimizada para producción"""
@@ -1656,6 +1690,14 @@ if __name__ == "__main__":
         
         try:
             self.shutdown_requested = True
+
+            # Detener exportador de métricas si existe
+            if hasattr(self, 'metrics_exporter') and self.metrics_exporter:
+                try:
+                    self.metrics_exporter.stop()
+                    self.logger.info("✅ Metrics JSON exporter detenido")
+                except Exception as e:
+                    self.logger.error(f"Error deteniendo metrics exporter: {e}")
             
             # Cerrar dashboard process si existe
             if self.dashboard_process:
@@ -1905,11 +1947,25 @@ if __name__ == "__main__":
         print("="*60)
 
 # ============================================================================
+# GLOBAL INSTANCE ACCESS FOR APIS
+# ============================================================================
+
+_enterprise_manager_instance = None
+
+def get_performance_metrics_instance():
+    """Obtener instancia actual del PerformanceMetricsAggregator."""
+    global _enterprise_manager_instance
+    if _enterprise_manager_instance and hasattr(_enterprise_manager_instance, 'performance_metrics'):
+        return _enterprise_manager_instance.performance_metrics
+    return None
+
+# ============================================================================
 # FUNCIÓN PRINCIPAL ENTERPRISE
 # ============================================================================
 
 def main():
     """Función principal del sistema ICT Engine v6.0 Enterprise"""
+    global _enterprise_manager_instance
     manager = None
     try:
         print("ICT Engine v6.0 Enterprise - Inicio")
@@ -1918,6 +1974,7 @@ def main():
         # Crear instancia del sistema enterprise
         print("Creando ICTEnterpriseManager...")
         manager = ICTEnterpriseManager()
+        _enterprise_manager_instance = manager  # Store global reference
         
         # Mostrar información del sistema
         manager.show_system_info()

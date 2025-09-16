@@ -17,6 +17,7 @@ Dependencies:
 - Black Box Logger (v6.1)
 """
 
+from protocols.unified_logging import get_unified_logger
 import time
 import sys
 import threading

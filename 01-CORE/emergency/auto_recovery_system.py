@@ -17,6 +17,7 @@ Características:
 Autor: ICT Engine v6.0 Team
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 
 import asyncio
 import time
@@ -433,9 +434,10 @@ class AutoRecoverySystem:
     def _test_mt5_connection(self) -> bool:
         """Test MT5 connection"""
         try:
+            from real_trading.mt5_config import mt5_initialize  # type: ignore
             import MetaTrader5 as mt5  # type: ignore
             
-            if not mt5.initialize():  # type: ignore
+            if not mt5_initialize():  # type: ignore
                 return False
             
             account_info = mt5.account_info()  # type: ignore
@@ -454,9 +456,10 @@ class AutoRecoverySystem:
         try:
             # Check margin level
             try:
+                from real_trading.mt5_config import mt5_initialize  # type: ignore
                 import MetaTrader5 as mt5  # type: ignore
                 
-                if mt5.initialize():  # type: ignore
+                if mt5_initialize():  # type: ignore
                     account_info = mt5.account_info()  # type: ignore
                     if account_info and hasattr(account_info, 'margin_level'):
                         if account_info.margin_level < self.config['margin_critical_threshold']:
@@ -713,6 +716,7 @@ class AutoRecoverySystem:
     def _recover_mt5_connection(self) -> bool:
         """Recover MT5 connection"""
         try:
+            from real_trading.mt5_config import mt5_initialize  # type: ignore
             import MetaTrader5 as mt5  # type: ignore
             
             # Shutdown existing connection
@@ -720,7 +724,7 @@ class AutoRecoverySystem:
             time.sleep(2)
             
             # Try to reinitialize
-            if mt5.initialize():  # type: ignore
+            if mt5_initialize():  # type: ignore
                 logger.info("MT5 reconnection successful", "RECOVERY")
                 return True
             else:
@@ -790,9 +794,10 @@ class AutoRecoverySystem:
     def _recover_emergency_close_positions(self) -> bool:
         """Emergency close all positions"""
         try:
+            from real_trading.mt5_config import mt5_initialize  # type: ignore
             import MetaTrader5 as mt5  # type: ignore
             
-            if not mt5.initialize():  # type: ignore
+            if not mt5_initialize():  # type: ignore
                 return False
             
             # Get all open positions

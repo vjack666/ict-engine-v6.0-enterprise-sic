@@ -11,6 +11,7 @@ Autor: ICT Engine v6.0 Enterprise Team
 Fecha: 1 Septiembre 2025
 """
 
+from protocols.unified_logging import get_unified_logger
 import sys
 import threading
 import datetime

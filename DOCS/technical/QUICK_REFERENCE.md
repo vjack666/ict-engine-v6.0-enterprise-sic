@@ -26,13 +26,8 @@ def _setup_logger(self) -> Union[logging.Logger, Any]:
 # - Adaptador logger para SmartTradingLogger
 ```
 
-### 3. **Missing Enterprise Module** (Create new file)
-```python
-# CREATE: enterprise_tabs_manager.py
-def setup_logging(level="INFO"): pass
-def create_dashboard_app(**kwargs): pass  
-def create_ict_dashboard(**kwargs): pass
-```
+### 3. **Enterprise Tabs Manager (LISTO)**
+Implementado `enterprise_tabs_manager.py` minimal (sin UI web). No requiere acciones.
 
 ---
 
@@ -52,16 +47,8 @@ joblib>=1.3.0
 
 ## 🔧 **TYPE FIXES - QUICK PATCHES**
 
-### Web Dashboard Return Types
-```python
-# CHANGE FROM:
-def create_tab(...) -> TabObject:  # ❌
-    return tab_instance
-
-# CHANGE TO:  
-def create_tab(...) -> None:  # ✅
-    # Don't return the object
-```
+### Web Dashboard (DEPRECADO)
+`web_dashboard.py` y cualquier UI Dash/Plotly fueron retirados. Mantener stub solo para evitar fallos de import. No realizar más cambios ni reintroducir dependencias UI.
 
 ### None Assignment Fixes
 ```python
@@ -104,22 +91,8 @@ class POI:
 
 ## 🎨 **DASHBOARD COMPONENT FIXES**
 
-### HTML Components Returning None:
-```python
-# VERIFY IMPORTS:
-try:
-    from dash import html
-    DASH_AVAILABLE = True
-except ImportError:
-    html = None
-    DASH_AVAILABLE = False
-
-# SAFE COMPONENT CREATION:
-def safe_div(*args, **kwargs):
-    if html:
-        return html.Div(*args, **kwargs)
-    return {"type": "fallback_div", "args": args}
-```
+### Componentes HTML (REMOVIDOS)
+Soporte de componentes Dash eliminado. No recrear wrappers.
 
 ---
 
@@ -144,16 +117,17 @@ from machine_learning import get_unified_memory_system  # Should work
 ## 📁 **FILES TO CREATE/MODIFY**
 
 ### CREATE NEW:
-- [ ] `enterprise_tabs_manager.py` (root level)
+- [x] `enterprise_tabs_manager.py` (minimal)
 - [ ] `tests/test_config_manager.py`
-- [ ] `tests/test_enterprise_modules.py`
+- [ ] `tests/test_enterprise_tabs_manager.py`
 
-### MODIFY EXISTING:
-- [x] `01-CORE/config/config_manager.py` (logger adapter)
-- [x] `01-CORE/machine_learning/__init__.py` (fallbacks & functions)
-- [x] `01-CORE/analysis/poi_system.py` (metadata field + helpers)
-- [ ] `09-DASHBOARD/web_dashboard.py` (return types)
-- [ ] `09-DASHBOARD/metrics_api.py` (imports)
+### MODIFY EXISTING (Pendientes relevantes vigentes):
+- [x] `01-CORE/config/config_manager.py`
+- [x] `01-CORE/machine_learning/__init__.py`
+- [x] `01-CORE/analysis/poi_system.py`
+- [ ] `09-DASHBOARD/metrics_api.py` (conectar agregador métricas)
+
+El archivo `09-DASHBOARD/web_dashboard.py` queda marcado como deprecated (sin acciones futuras).
 
 ---
 

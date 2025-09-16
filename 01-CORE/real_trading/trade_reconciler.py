@@ -18,8 +18,9 @@ Dependencias suaves: TradeJournal y ejecutor con método opcional get_account_po
  que retorne lista de posiciones para facilitar pruebas.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from typing import Any, Dict, List, Optional, Callable
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 
@@ -51,7 +52,7 @@ class TradeReconciler:
             print(f"[Reconciler:{level.upper()}] {msg}")
 
     def reconcile(self) -> Dict[str, Any]:
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         result: Dict[str, Any] = {
             'timestamp': now,
             'status': 'ok',
@@ -129,7 +130,7 @@ class TradeReconciler:
 
     def persist_report(self, report: Dict[str, Any]) -> Optional[Path]:
         try:
-            filename = f"reconciliation_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
+            filename = f"reconciliation_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
             path = self.base_path / filename
             path.write_text(json.dumps(report, indent=2), encoding='utf-8')
             self._log('info', f"Reporte persistido en {path}")

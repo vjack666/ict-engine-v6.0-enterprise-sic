@@ -4,6 +4,7 @@ Ajusta dinámicamente parámetros de riesgo (lotes, max concurrent trades,
 stop multipliers) según condiciones de mercado y salud de la cuenta.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass
 from typing import Dict, Any
 

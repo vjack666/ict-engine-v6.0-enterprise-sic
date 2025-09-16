@@ -5,6 +5,7 @@ para casos donde se requiere un sizing rápido basado en riesgo fijo o
 volatilidad simple (ATR-like) sin dependencias externas.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass
 from typing import Optional, Dict, Any
 import math

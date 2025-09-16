@@ -2,6 +2,7 @@
 Centro de control para detener trading ante condiciones críticas.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, Callable
 from datetime import datetime
@@ -17,7 +18,7 @@ class KillSwitchActive(Exception): ...
 
 class KillSwitch:
     def __init__(self, on_activate: Optional[Callable[[KillSwitchTrigger], None]] = None):
-        self.logger = create_safe_logger("KillSwitch")
+        self.logger = get_unified_logger("KillSwitch")
         self._active: bool = False
         self._last_trigger: Optional[KillSwitchTrigger] = None
         self._on_activate = on_activate

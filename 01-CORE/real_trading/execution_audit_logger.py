@@ -15,6 +15,9 @@ Uso básico:
     audit.log_event(event_type="ORDER_SENT", order_id="...", symbol="EURUSD", extra={"size":1.0})
 """
 from __future__ import annotations
+import datetime
+from datetime import timezone
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -62,7 +65,7 @@ class ExecutionAuditLogger:
         if not event_type:
             return
         record = {
-            "ts": datetime.datetime.utcnow().isoformat(),
+            "ts": datetime.datetime.now(timezone.utc).isoformat(),
             "event": event_type.upper(),
             "order_id": order_id,
             "symbol": symbol,

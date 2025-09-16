@@ -20,6 +20,7 @@ Fecha: 8 de Agosto 2025 - 21:00 GMT
 """
 
 # === IMPORTS ENTERPRISE v6.0 ===
+from protocols.unified_logging import get_unified_logger
 import json
 import os
 from datetime import datetime, timezone

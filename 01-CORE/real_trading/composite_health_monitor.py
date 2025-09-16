@@ -9,6 +9,7 @@ Agrega múltiples señales de salud en un punto único:
 Objetivo: simplificar pre-check de ExecutionRouter y proveer razones estructuradas.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass
 from typing import Optional, Callable, Dict, Any, Protocol
 import time
@@ -45,7 +46,7 @@ class CompositeHealthMonitor:
         self.heartbeat_last_ts_provider = heartbeat_last_ts_provider
         self.heartbeat_alive_check = heartbeat_alive_check
         self.config = config or CompositeHealthConfig()
-        self.logger = create_safe_logger("CompositeHealth")
+        self.logger = get_unified_logger("CompositeHealth")
         self._last_eval: float = 0.0
         self._cache_result: bool = True
         self._cache_reasons: Dict[str, Any] = {}

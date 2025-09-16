@@ -15,7 +15,7 @@ import json
 import uuid
 
 # Logger centralizado
-from smart_trading_logger import SmartTradingLogger
+from protocols.unified_logging import get_unified_logger
 
 # Type-only imports para análisis estático
 if TYPE_CHECKING:
@@ -29,7 +29,7 @@ class EnterpriseValidationModuleLoader:
     """🏗️ Cargador optimizado de módulos de validación enterprise"""
     
     def __init__(self):
-        self.logger = SmartTradingLogger("enterprise_validation_loader")
+        self.logger = get_unified_logger("enterprise_validation_loader")
         self.modules: Dict[str, Any] = {}
         self.missing_dependencies: Dict[str, str] = {}
         self.enterprise_ready = False
@@ -108,7 +108,7 @@ _validation_module_loader = EnterpriseValidationModuleLoader()
 
 # Variables globales optimizadas
 ENTERPRISE_VALIDATION_AVAILABLE = _validation_module_loader.is_enterprise_ready()
-logger = SmartTradingLogger("enterprise_signal_validator")
+logger = get_unified_logger("enterprise_signal_validator")
 
 # Funciones getter optimizadas
 def get_validation_engine():

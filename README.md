@@ -12,6 +12,45 @@ python main.py
 ```
 
 ---
+## 📁 Estructura del Proyecto
+
+```
+ict-engine-v6.0-enterprise-sic/
+├── 📁 01-CORE/           # Módulos principales del sistema
+├── 📁 09-DASHBOARD/      # Sistema de dashboard terminal
+├── 📁 scripts/          # Scripts de automatización
+│   ├── activate_auto_trading.py
+│   ├── implement_real_trading.py
+│   └── enhance_market_display.py
+├── 📁 tests/            # Pruebas y validaciones
+│   ├── integrated_stress_test.py
+│   ├── stress_test_production.py
+│   └── validate_data_management.py
+├── 📁 tools/            # Utilidades auxiliares
+│   └── validate_docs.sh
+├── 📁 DOCS/             # Documentación técnica
+├── 📁 data/             # Datos del sistema
+├── main.py              # Punto de entrada principal
+└── README.md            # Este archivo
+```
+
+### 🚀 Ejemplos de Uso
+
+```bash
+# Sistema principal
+python main.py
+
+# Trading automático demo
+python scripts/activate_auto_trading.py --test
+
+# Pruebas de estrés
+python tests/integrated_stress_test.py
+
+# Validación de documentación
+bash tools/validate_docs.sh
+```
+
+---
 ## 📋 Resumen Ejecutivo
 ICT Engine v6.0 Enterprise es un sistema de trading automatizado institucional con memoria unificada, análisis multi‑patrón, dashboards duales y automatización de ejecución. Todo orquestado desde un único punto de entrada.
 
@@ -55,7 +94,7 @@ ICT Engine v6.0 Enterprise es un sistema de trading automatizado institucional c
 ### Dashboard System
 - [x] Terminal Dashboard (real-time, único activo)
 - [x] Tabs lógicas: OB / FVG / Smart Money / Market Structure (render textual)
-- [x] (El dashboard web fue eliminado para reducir dependencias y superficie operativa)
+- [x] Web dashboard (Dash/Plotly) ELIMINADO (racionales: reducir dependencias, footprint y complejidad de despliegue)
 
 ### Trading Automation
 - [x] ExecutionEngine
@@ -100,7 +139,7 @@ ICT Engine v6.0 Enterprise es un sistema de trading automatizado institucional c
 python diagnostic_real_state.py          # Estado integral
 python test_live_signals_detection.py    # Señales en vivo
 python main.py --dashboard-terminal      # Dashboard terminal
-python activate_auto_trading.py --test   # Trading automatizado demo
+python scripts/activate_auto_trading.py --test   # Trading automatizado demo
 ```
 
 ---
@@ -137,7 +176,7 @@ Incluye:
 
 ---
 ## 🗺️ Roadmap (High-Level)
-- [x] Eliminar completamente dashboard web (imports, scripts, dependencias)
+- [x] Eliminar completamente dashboard web (imports, scripts, dependencias) (CERRADO)
 - [ ] Ampliar suite de tests ML y validación cruzada
 - [ ] Integrar alertas avanzadas (notificaciones externas)
 - [ ] Optimización adicional de latencia <0.05s target

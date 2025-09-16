@@ -21,6 +21,7 @@ Autor: ICT Engine v6.0 Enterprise Team
 Fecha: 6 Septiembre 2025
 """
 
+from protocols.unified_logging import get_unified_logger
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple, Any, Union
 from dataclasses import dataclass

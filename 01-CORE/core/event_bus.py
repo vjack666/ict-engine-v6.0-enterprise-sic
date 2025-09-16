@@ -4,6 +4,7 @@ Event Bus - ICT Engine v6.0 Enterprise
 Thread-safe publicador/suscriptor ligero para desacoplar módulos.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from typing import Callable, Dict, List, Any, DefaultDict
 from collections import defaultdict
 import threading
@@ -33,7 +34,7 @@ class EventBus:
         if logger:
             self.logger = logger
         else:
-            self.logger = create_safe_logger("EventBus", log_level=getattr(LogLevel, 'INFO', None))
+            self.logger = get_unified_logger("EventBus")
         
         self._events_published = 0
         self._events_failed = 0

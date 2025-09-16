@@ -1,4 +1,5 @@
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, Callable
 from enum import Enum

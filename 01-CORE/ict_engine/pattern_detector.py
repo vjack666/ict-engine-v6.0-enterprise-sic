@@ -4,6 +4,7 @@ Sistema de detección de patrones ICT con thread-safe pandas
 """
 
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from typing import Dict, Any, Optional, List, TYPE_CHECKING
 from dataclasses import dataclass
 from datetime import datetime

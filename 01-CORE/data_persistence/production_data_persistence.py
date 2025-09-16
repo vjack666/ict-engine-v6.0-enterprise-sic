@@ -17,6 +17,7 @@ Características:
 Autor: ICT Engine v6.0 Team
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 
 import json
 import gzip

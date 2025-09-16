@@ -13,6 +13,7 @@ Características:
 - Correlación pairs analysis
 """
 
+from protocols.unified_logging import get_unified_logger
 import logging
 from typing import Dict, Any, Optional, Tuple
 from dataclasses import dataclass

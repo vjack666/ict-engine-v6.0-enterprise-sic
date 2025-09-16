@@ -12,9 +12,10 @@ Funciones:
 - Señales de violación integradas con logging central
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, Protocol, runtime_checkable
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import json, os
 
 @runtime_checkable
@@ -59,7 +60,7 @@ class PositionSnapshot:
 class RiskGuard:
     def __init__(self, config: Optional[RiskGuardConfig] = None):
         self.config = config or RiskGuardConfig()
-        self.logger = create_safe_logger("RiskGuard")
+        self.logger = get_unified_logger("RiskGuard")
         self._positions: Dict[int, PositionSnapshot] = {}
         self._day_start_balance: Optional[float] = None
         self._equity_history: list[tuple[datetime, float]] = []
@@ -71,7 +72,7 @@ class RiskGuard:
         self.logger.info(f"Risk day initialized balance={balance:.2f}", "RISK")
 
     def register_equity(self, equity: float) -> None:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         self._equity_history.append((now, equity))
         cutoff = now - timedelta(minutes=self.config.drawdown_window_minutes)
         self._equity_history = [e for e in self._equity_history if e[0] >= cutoff]
@@ -116,7 +117,7 @@ class RiskGuard:
             self.logger.error(f"Risk violations detected: {violations}", "RISK")
             self._last_violation = violations[0]
         snapshot = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'positions': pos_count,
             'exposure': exposure,
             'violations': violations

@@ -9,6 +9,7 @@ Implementaciones:
 Extensible a: MT5 ping, API REST RTT, feed de precios.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from abc import ABC, abstractmethod
 from collections import deque
 from typing import Deque, Optional
@@ -50,7 +51,7 @@ class RollingAverageSampler(LatencySampler):
         if logger:
             self.logger = logger
         else:
-            self.logger = create_safe_logger("RollingLatencySampler", log_level=getattr(LogLevel, 'INFO', None))
+            self.logger = get_unified_logger("RollingLatencySampler")
 
     def add_raw_latency_measurement(self, ms: float) -> None:
         if ms < 0:

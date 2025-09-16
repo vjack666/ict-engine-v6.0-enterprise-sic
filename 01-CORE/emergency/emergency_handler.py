@@ -14,10 +14,12 @@ import logging
 
 # Importar sistema de log central
 try:
-    from smart_trading_logger import SmartTradingLogger
+    from protocols.unified_logging import get_unified_logger
+    UNIFIED_LOGGER_AVAILABLE = True
 except ImportError:
-    print("⚠️ No se pudo importar smart_trading_logger. Usando logging estándar.")
-    SmartTradingLogger = None
+    print("⚠️ No se pudo importar get_unified_logger. Usando logging estándar.")
+    UNIFIED_LOGGER_AVAILABLE = False
+    get_unified_logger = None
 
 class EmergencyHandler:
     """🚨 Sistema de manejo automático de emergencias"""
@@ -31,9 +33,9 @@ class EmergencyHandler:
         self.logger = None
         self.use_central_logging = False
         
-        if SmartTradingLogger is not None:
+        if UNIFIED_LOGGER_AVAILABLE and get_unified_logger is not None:
             try:
-                self.logger = SmartTradingLogger("EMERGENCY_HANDLER")
+                self.logger = get_unified_logger("EMERGENCY_HANDLER")
                 self.use_central_logging = True
                 self.logger.info("🚨 Emergency Handler iniciado - usando sistema central")
             except Exception as e:

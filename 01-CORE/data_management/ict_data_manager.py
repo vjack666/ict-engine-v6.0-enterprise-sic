@@ -18,6 +18,7 @@ Versión: 1.0.0
 Fecha: 2025-08-08
 """
 
+from protocols.unified_logging import get_unified_logger
 import asyncio
 import threading  # type: ignore
         

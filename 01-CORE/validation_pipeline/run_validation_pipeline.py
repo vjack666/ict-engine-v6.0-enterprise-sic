@@ -19,6 +19,7 @@ Uso:
     python run_validation_pipeline.py --help
 """
 
+from protocols.unified_logging import get_unified_logger
 import sys
 import os
 import json

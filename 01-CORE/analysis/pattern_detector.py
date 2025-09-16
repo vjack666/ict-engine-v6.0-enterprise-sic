@@ -12,6 +12,7 @@ Fecha: Agosto 7, 2025
 Versión: v6.1.0-enterprise
 """
 
+from protocols.unified_logging import get_unified_logger
 import time
 from datetime import datetime, timedelta, time as dt_time
 from typing import Dict, List, Optional, Tuple, Any, Union, TYPE_CHECKING

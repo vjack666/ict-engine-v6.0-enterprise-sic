@@ -19,6 +19,7 @@ Integración sugerida en ExecutionRouter:
 - Al apagado -> flush() y persist_snapshot()
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 from pathlib import Path
@@ -54,7 +55,7 @@ class OrderRecord:
 class SessionStateManager:
     def __init__(self, config: Optional[SessionStateConfig] = None) -> None:
         self.config = config or SessionStateConfig()
-        self.logger = create_safe_logger("SessionStateManager")
+        self.logger = get_unified_logger("SessionStateManager")
         self._lock = threading.Lock()
         self._orders: Dict[int, OrderRecord] = {}
         self._failed: List[Dict[str, Any]] = []

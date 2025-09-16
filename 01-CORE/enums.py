@@ -12,6 +12,7 @@ Fecha: 2 Septiembre 2025
 Versión: v6.0.0-enterprise
 """
 
+from protocols.unified_logging import get_unified_logger
 from enum import Enum, auto
 from typing import List, Dict, Any
 

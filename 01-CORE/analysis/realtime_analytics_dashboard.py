@@ -17,6 +17,7 @@ Dependencies:
 - Dashboard Core Components (v6.1)
 """
 
+from protocols.unified_logging import get_unified_logger
 import time
 import threading
 import json

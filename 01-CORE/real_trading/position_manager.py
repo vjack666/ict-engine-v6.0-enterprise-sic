@@ -15,10 +15,11 @@ Notas:
 - Optimizado para consultas frecuentes en tiempo real
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass
 from typing import Dict, Optional, List, Tuple
 from threading import Lock
-from datetime import datetime
+from datetime import datetime, timezone
 
 try:
     from protocols.logging_central_protocols import create_safe_logger, LogLevel  # type: ignore
@@ -72,7 +73,7 @@ class PositionManager:
         if logger:
             self.logger = logger
         else:
-            self.logger = create_safe_logger("PositionManager", log_level=getattr(LogLevel, 'INFO', None))
+            self.logger = get_unified_logger("PositionManager")
         
         # Compatibility properties
         self.max_exposure_per_symbol = max_exposure_per_symbol
@@ -98,7 +99,7 @@ class PositionManager:
             self.logger.warning(f"Ignorando add_position volumen<=0 ticket={ticket}", "POSITION")
             return
         pos = Position(symbol=symbol, direction=direction.lower(), volume=volume, entry_price=entry_price,
-                       ticket=ticket, opened_at=datetime.utcnow())
+                       ticket=ticket, opened_at=datetime.now(timezone.utc))
         with self._lock:
             self._positions[ticket] = pos
             

@@ -92,7 +92,7 @@ def _setup_logger(self) -> logging.Logger:
 
 ---
 
-### 4. **DASHBOARD SYSTEM** (Multiple files) ✔️
+### 4. **DASHBOARD SYSTEM (Post-Deprecación Web)** ✔️
 ```python
 # ERRORES EN DASHBOARD:
 # ❌ get_tab_coordinator is possibly unbound
@@ -101,18 +101,17 @@ def _setup_logger(self) -> logging.Logger:
 ```
 
 **Archivos Afectados:**
-- `09-DASHBOARD/core/tabs/system_status_tab_enterprise.py` ✅ (Stubs & fallbacks implementados, 0 errores)
-- `09-DASHBOARD/metrics_api.py` ⏳ (Pendiente verificación FastAPI en entorno)
-- `09-DASHBOARD/web_dashboard.py` ⏳ (Normalización de creación de tabs)
+- `09-DASHBOARD/core/tabs/system_status_tab_enterprise.py` ✅ (stubs/fallbacks listos)
+- `09-DASHBOARD/metrics_api.py` ✅ (FastAPI opcional; fallback stubs si no instalado)
+- `09-DASHBOARD/web_dashboard.py` (DEPRECATED stub; no acciones futuras)
 
-**Impacto:** ALTO - User interface
+**Impacto:** Medio (UI ahora secundaria). Web UI eliminada para reducir superficie.
 **Acciones Realizadas:**
-- Fallback determinista para `html` y `dcc` con clases `MockHTML` / `MockDCC`
-- Stubs para `Input`, `Output`, `State`, `callback` evitando `None` unions
-- Guard para `get_tab_coordinator` y `register_tab`
-- Corrección sintaxis sección diagnósticos (coma faltante)
-- Eliminados >100 errores Pylance previos en el tab enterprise
-**Pendiente:** Normalizar funciones de creación en `web_dashboard.py` y validar `metrics_api`
+- Eliminada dependencia funcional en Dash/Plotly.
+- `web_dashboard.py` reducido a stub con RuntimeError clara.
+- `metrics_api.py` provee acceso a métricas si FastAPI disponible.
+- Todos los errores Pylance previos en subsistema tabs resueltos.
+**Pendiente:** Ninguno relativo a Web (cerrado definitivamente).
 
 ---
 
@@ -163,18 +162,8 @@ def _setup_logger(self) -> logging.Logger:
 - [x] No rompe inicialización
 - [x] Logging básico operativo
 
-#### **Task 1.2: Web Dashboard Type Corrections** - [ ] Pendiente (movido a refactor UI)
-**Archivos:** `09-DASHBOARD/web_dashboard.py`
-**Problema:** Return types incorrectos en tab creation functions
-```python
-# CORRECCIÓN REQUERIDA:
-def create_real_order_blocks_tab(...) -> RealOrderBlocksTab:  # ❌ Should return None
-def create_performance_tab(...) -> PerformanceTab:           # ❌ Should return None
-
-# SOLUCIÓN:
-def create_real_order_blocks_tab(...) -> None:
-def create_performance_tab(...) -> None:
-```
+#### **Task 1.2: Web Dashboard Type Corrections (ELIMINADA)**
+Eliminada al descontinuar completamente la UI web. No aplica.
 
 ---
 

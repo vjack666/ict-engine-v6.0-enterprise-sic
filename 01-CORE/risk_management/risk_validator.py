@@ -4,6 +4,7 @@
 ICT Engine v6.0 Enterprise - Sistema de validación y gestión de riesgos
 """
 
+from protocols.unified_logging import get_unified_logger
 import json
 from pathlib import Path
 from typing import Dict, List, Optional, Any

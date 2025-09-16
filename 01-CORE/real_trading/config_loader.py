@@ -9,6 +9,7 @@ Carga configuración jerárquica:
 Provee acceso seguro y tipado ligero.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from typing import Any, Dict, Optional
 from pathlib import Path
 import os
@@ -46,7 +47,7 @@ class ConfigLoader:
         if logger:
             self.logger = logger
         else:
-            self.logger = create_safe_logger("ConfigLoader", log_level=getattr(LogLevel, 'INFO', None))
+            self.logger = get_unified_logger("ConfigLoader")
         
         self._config: Dict[str, Any] = {}
         self.reload()

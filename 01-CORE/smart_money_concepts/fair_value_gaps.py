@@ -17,6 +17,7 @@ Dependencies:
 - UnifiedMemorySystem for trader intelligence
 """
 
+from protocols.unified_logging import get_unified_logger
 import time
 import sys
 import threading

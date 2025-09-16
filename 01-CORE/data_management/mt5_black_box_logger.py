@@ -9,6 +9,7 @@ Estructura de logs:
 - 05-LOGS/health_monitoring/connections/   -> Eventos de conexión/desconexión
 """
 
+from protocols.unified_logging import get_unified_logger
 import json
 import logging
 import os

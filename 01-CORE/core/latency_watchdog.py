@@ -8,10 +8,11 @@ Simula mediciones externas (p.ej. ping al broker o diferencia timestamp tick) me
 un callback inyectable. Aplica suavizado exponencial y expondrá get_current_latency_ms().
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass
 from typing import Callable, Optional
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 try:
     from protocols.logging_central_protocols import create_safe_logger  # type: ignore
@@ -34,7 +35,7 @@ class LatencyWatchdog:
     def __init__(self, sampler: Callable[[], float], config: Optional[WatchdogConfig] = None):
         self.sampler = sampler
         self.config = config or WatchdogConfig()
-        self.logger = create_safe_logger("LatencyWatchdog")
+        self.logger = get_unified_logger("LatencyWatchdog")
         self._ema_latency_ms: Optional[float] = None
         self._last_sample_time: Optional[float] = None
         self._last_raw: Optional[float] = None
@@ -77,7 +78,7 @@ class LatencyWatchdog:
             'min': min(self._samples),
             'max': max(self._samples),
             'avg': sum(self._samples)/len(self._samples),
-            'updated': datetime.utcnow().isoformat()
+            'updated': datetime.now(timezone.utc).isoformat()
         }
 
 __all__ = ['LatencyWatchdog', 'WatchdogConfig']

@@ -43,9 +43,9 @@ import subprocess
 import logging
 
 # Add project paths
-sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('01-CORE'))
-sys.path.insert(0, os.path.abspath('09-DASHBOARD'))
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('../01-CORE'))
+sys.path.insert(0, os.path.abspath('../09-DASHBOARD'))
 
 # Thresholds centralizados para ajustar criterios sin modificar lógica interna
 STRESS_THRESHOLDS: Dict[str, Any] = {

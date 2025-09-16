@@ -14,6 +14,7 @@ Módulos Centrales Integrados:
 - ICT Engine Components
 """
 
+from protocols.unified_logging import get_unified_logger
 import sys
 import os
 from datetime import datetime, timedelta

@@ -3,9 +3,10 @@
 Registro estructurado de operaciones para auditoría y análisis de performance.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 import csv
 import json
 from pathlib import Path
@@ -34,7 +35,7 @@ class TradeJournal:
     def record_open(self, symbol: str, direction: str, volume: float, entry_price: float,
                     strategy: str, tags: Optional[List[str]] = None, meta: Optional[Dict[str, Any]] = None) -> JournalEntry:
         entry = JournalEntry(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             symbol=symbol,
             direction=direction,
             volume=volume,
@@ -56,7 +57,7 @@ class TradeJournal:
             entry.pnl = (entry.entry_price - exit_price) * entry.volume
 
     def export_csv(self, filename: Optional[str] = None) -> Path:
-        filename = filename or f"journal_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+        filename = filename or f"journal_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
         path = self.base_dir / filename
         with path.open("w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
@@ -71,7 +72,7 @@ class TradeJournal:
         return path
 
     def export_json(self, filename: Optional[str] = None) -> Path:
-        filename = filename or f"journal_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
+        filename = filename or f"journal_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
         path = self.base_dir / filename
         data = []
         for e in self._entries:

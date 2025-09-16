@@ -6,6 +6,7 @@ Connects all components: Validation, Execution, Dashboard, Logging
 Provides unified interface for real trading operations
 """
 
+from protocols.unified_logging import get_unified_logger
 import json
 import asyncio
 from datetime import datetime

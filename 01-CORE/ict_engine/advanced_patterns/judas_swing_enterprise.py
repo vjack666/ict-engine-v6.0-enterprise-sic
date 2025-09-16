@@ -19,7 +19,8 @@ Sprint: FASE 5 - Advanced Patterns
 Fecha: 03 Septiembre 2025
 """
 
-from datetime import datetime, time, timedelta
+from protocols.unified_logging import get_unified_logger
+from datetime import datetime, timezone, time, timedelta
 from typing import Dict, List, Optional, Tuple, Any, TYPE_CHECKING
 from dataclasses import dataclass
 from enum import Enum
@@ -409,7 +410,7 @@ class JudasSwingDetectorEnterprise:
     def _validate_session_timing_enterprise(self) -> Tuple[float, JudasSwingType, bool]:
         """⏰ Validación de timing de sesiones enterprise"""
         try:
-            current_utc = datetime.utcnow().time()
+            current_utc = datetime.now(timezone.utc).time()
             
             # 🔍 VERIFICAR CADA VENTANA DE SESIÓN
             for session_type, (start_time, end_time) in self.session_windows.items():

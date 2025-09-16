@@ -6,6 +6,7 @@ Direct integration with MT5 API for real trading operations
 Integrates with existing RiskManager for position sizing and risk management
 """
 
+from protocols.unified_logging import get_unified_logger
 import logging
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple, Any

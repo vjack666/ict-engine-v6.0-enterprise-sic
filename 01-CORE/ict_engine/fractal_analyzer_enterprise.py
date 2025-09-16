@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 """
 🔮 FRACTAL ANALYZER ENTERPRISE - ICT ENGINE v6.2
 =================================================
@@ -44,7 +45,7 @@ if TYPE_CHECKING:
     import pandas as pd
 
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any, Tuple, Union, TypedDict
 from dataclasses import dataclass, field
 from enum import Enum
@@ -1590,7 +1591,7 @@ class FractalAnalyzerEnterprise:
                 'symbol': self.symbol,
                 'timeframe': self.timeframe,
                 'session_id': self.session_id,
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'metrics': perf,
                 'current_levels': current_levels,
                 'fractal_active': bool(self.current_fractal and self.current_fractal.valid),

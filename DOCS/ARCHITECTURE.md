@@ -141,15 +141,31 @@ Integration: MT5DataManager + UnifiedMemorySystem
 ├── ict_dashboard.py ✅ Terminal interface (único)
 ├── dashboard.py ✅ Coordinador interno
 ├── start_dashboard.py ✅ Launcher terminal
-├── web_dashboard.py (placeholder deprecado)
-├── start_web_dashboard.py (placeholder deprecado)
+├── web_dashboard.py (DEPRECATED stub)
+├── start_web_dashboard.py (DEPRECATED stub)
 └── core/
        ├── tabs/ ✅ Modular tab system (lógica reusable)
        ├── real_market_bridge.py ✅ MT5 bridge
        └── widgets/ ✅ Componentes terminal
 ```
 
-> NOTA: Todos los componentes web (servidor Dash/Plotly) han sido eliminados. Los archivos marcados como placeholder sólo evitan errores de import heredados.
+> NOTA: La interfaz web (Dash/Plotly) está oficialmente descontinuada. Stubs preservados únicamente para compatibilidad de imports. No extender, no reintroducir dependencias UI.
+
+### Deprecación Web Dashboard
+
+La arquitectura actual elimina cualquier servidor Dash/Plotly. Razones:
+- Reducción de superficie operacional y dependencias pesadas.
+- Enfoque en estabilidad core y métricas vía archivos/API ligera.
+- Simplificación de pipeline de despliegue (sin ASGI ni capa gráfica web).
+
+Reemplazos:
+- Observabilidad: logs estructurados + `metrics_api.py`.
+- Interacción: `ict_dashboard.py` (terminal) y futuras herramientas CLI.
+
+Acciones prohibidas:
+- Añadir callbacks Dash.
+- Incorporar nuevas dependencias visuales web.
+- Expandir los stubs más allá de mensajes de error claros.
 
 ## 🤖 TRADING AUTOMATION ARCHITECTURE
 
@@ -247,3 +263,72 @@ Integration: MT5DataManager + UnifiedMemorySystem
 
 **📊 Arquitectura Documentada desde Análisis Real del Código**  
 *Septiembre 2025 - ICT Engine v6.0 Enterprise*
+
+## 🧩 StrategyPipeline (Flujo de Trading)
+
+Ubicación: `01-CORE/trading/strategy_pipeline.py`
+
+- Propósito: Orquestar el flujo de decisión de trading: validación rápida de entorno/datos → evaluación de riesgo y sizing → ejecución (real o simulada) → tracking → métricas.
+- Dependencias:
+       - `risk_pipeline` (requerido): expone `evaluate_and_size(signal)` y retorna una decisión con `approved`, `lots`, `stage`, `reasons`, `correlation_score`.
+       - `env_validator` (opcional): se consulta `last_result()` para bloqueo rápido si `status == 'ERROR'`.
+       - `data_validator` (opcional): si `status == 'WARN'`, se marca `data_quality_warning` (no bloquea).
+       - `order_tracker` (opcional): registra posiciones si hubo ejecución.
+       - `metrics` (opcional): incrementa contadores y gauges.
+       - `executor` (opcional): si expone `execute_order`, realiza ejecución real.
+
+Flujo resumido:
+1. Pre-chequeo de entorno y calidad de datos (rápido, no bloqueante salvo error).
+2. `risk_pipeline.evaluate_and_size(signal)` → si no aprobado, registra rechazo y corta.
+3. Ejecución: real (vía `executor`) o simulada (placeholder sin efectos persistentes).
+4. Tracking de posición (si aplica) y registro de latencia en métricas.
+
+Métricas emitidas:
+- `risk_rejections` (contador) cuando una señal no es aprobada.
+- `signals_processed` (contador) y `last_latency_ms` (gauge) en ejecuciones exitosas.
+
+
+---
+
+## 📈 Métricas en Producción (sin servidor web)
+
+Para monitoreo en tiempo real sin servidor web, el sistema incluye un exportador de métricas en background que serializa el estado del agregador a JSON.
+
+- Componente: `01-CORE/monitoring/metrics_json_exporter.py` (clase `MetricsJSONExporter`)
+- Fuente: `PerformanceMetricsAggregator` (`01-CORE/monitoring/performance_metrics_aggregator.py`)
+- Salida: `04-DATA/metrics/`
+       - `metrics_live.json`
+       - `metrics_summary.json`
+       - `metrics_cumulative.json`
+       - `metrics_all.json` (combinado)
+
+### Activación
+
+El exportador se inicia desde `main.py` si `ICT_EXPORT_METRICS` está activo:
+
+```powershell
+$env:ICT_EXPORT_METRICS = '1'
+$env:ICT_EXPORT_INTERVAL = '5'  # opcional, segundos
+python .\main.py
+```
+
+- `ICT_EXPORT_METRICS`: habilita (`'1'`, `'true'`) o deshabilita el exportador.
+- `ICT_EXPORT_INTERVAL`: intervalo de export en segundos (mínimo 0.5; por defecto 5).
+
+La escritura es atómica para evitar archivos corruptos en lecturas concurrentes. El exportador se detiene limpiamente durante `shutdown()`.
+
+### Consumo de métricas
+
+Ejemplo rápido en Python:
+
+```python
+from pathlib import Path
+import json
+
+metrics_dir = Path('04-DATA/metrics')
+with open(metrics_dir / 'metrics_live.json', 'r', encoding='utf-8') as f:
+              live = json.load(f)
+print(live.get('counters', {}))
+```
+
+Nota: El archivo `09-DASHBOARD/metrics_api.py` (FastAPI) es opcional y no requerido para este flujo; se mantiene como utilidad futura.

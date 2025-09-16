@@ -28,6 +28,7 @@ Autor: ICT Engine v6.0 Enterprise Team
 Fecha: 14 Septiembre 2025
 """
 
+from protocols.unified_logging import get_unified_logger
 import time
 import threading
 from typing import Dict, List, Optional, Tuple, Union, Any, NamedTuple

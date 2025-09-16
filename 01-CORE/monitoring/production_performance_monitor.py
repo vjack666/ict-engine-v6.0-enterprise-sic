@@ -19,6 +19,7 @@ Autor: ICT Engine v6.0 Team - Production Module
 Fecha: 15 Septiembre 2025
 """
 
+from protocols.unified_logging import get_unified_logger
 import time
 import threading
 from datetime import datetime, timedelta

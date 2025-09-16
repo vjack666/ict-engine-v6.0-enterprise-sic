@@ -21,6 +21,7 @@ Autor: ICT Engine v6.0 Team
 Fecha: 13 Septiembre 2025
 """
 
+from protocols.unified_logging import get_unified_logger
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 import sys
@@ -28,7 +29,7 @@ import os
 
 # Importar protocolos de logging central
 try:
-    from ..protocols import setup_module_logging, LogLevel
+    from protocols import setup_module_logging, LogLevel
     _PROTOCOLS_AVAILABLE = True
     module_logger = setup_module_logging("OrderBlocksBridge", LogLevel.INFO)
 except ImportError:
@@ -50,7 +51,7 @@ def _safe_log(level: str, message: str):
 # Importar OrderBlocksBlackBox principal
 _ORDER_BLOCKS_BLACK_BOX_AVAILABLE = False
 try:
-    from ..order_blocks_logging.order_blocks_black_box import OrderBlocksBlackBox as _OrderBlocksBlackBoxMain
+    from order_blocks_logging.order_blocks_black_box import OrderBlocksBlackBox as _OrderBlocksBlackBoxMain
     _ORDER_BLOCKS_BLACK_BOX_AVAILABLE = True
     _safe_log("info", "✅ OrderBlocksBlackBox principal disponible")
 except ImportError as e:

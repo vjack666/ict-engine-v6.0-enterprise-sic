@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """State Persistence - persistencia ligera de estado trading (posiciones/exposición)."""
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from typing import Dict, Any, Optional
 from pathlib import Path
 import json
@@ -32,7 +33,7 @@ class StatePersistence:
         if logger:
             self.logger = logger
         else:
-            self.logger = create_safe_logger("StatePersistence", log_level=getattr(LogLevel, 'INFO', None))
+            self.logger = get_unified_logger("StatePersistence")
         
         self._lock = threading.RLock()
         self._last_save = 0.0

@@ -4,6 +4,7 @@
 Optimización de memoria compartida para detectores paralelos
 """
 
+from protocols.unified_logging import get_unified_logger
 import threading
 import weakref
 from typing import Dict, Any, Optional, List

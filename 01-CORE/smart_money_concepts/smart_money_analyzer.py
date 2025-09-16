@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 """
 💰 SMART MONEY CONCEPTS ANALYZER v6.0 ENTERPRISE
 ================================================

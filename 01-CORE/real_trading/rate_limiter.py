@@ -18,6 +18,7 @@ Hook para ExecutionRouter:
 Diseñado para evitar ráfagas accidentales que excedan límites de riesgo / broker.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass
 from typing import Dict, Tuple, Optional, Any
 import time, threading, json, os
@@ -44,7 +45,7 @@ class RateLimiterConfig:
 class RateLimiter:
     def __init__(self, config: Optional[RateLimiterConfig] = None) -> None:
         self.config = config or RateLimiterConfig()
-        self.logger = create_safe_logger("RateLimiter")
+        self.logger = get_unified_logger("RateLimiter")
         self._lock = threading.Lock()
         now = time.time()
         self._global_tokens = float(self.config.global_rate)

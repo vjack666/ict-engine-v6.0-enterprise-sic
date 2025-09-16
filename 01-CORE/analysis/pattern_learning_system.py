@@ -17,6 +17,7 @@ Dependencies:
 - Historical market data
 """
 
+from protocols.unified_logging import get_unified_logger
 import time
 import threading
 import json

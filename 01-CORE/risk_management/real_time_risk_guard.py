@@ -2,6 +2,7 @@
 Evalúa cada orden/señal contra límites configurados.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass
 from typing import Dict, Any, Optional
 from protocols.logging_central_protocols import create_safe_logger
@@ -21,7 +22,7 @@ class RiskEvaluationResult:
 
 class RealTimeRiskGuard:
     def __init__(self, limits: Optional[RiskLimits] = None):
-        self.logger = create_safe_logger("RealTimeRiskGuard")
+        self.logger = get_unified_logger("RealTimeRiskGuard")
         self.limits = limits or RiskLimits()
         self._open_positions: Dict[str, Dict[str, Any]] = {}
         self._daily_loss_pct = 0.0

@@ -4,6 +4,7 @@ signal_validator.py - ICT Engine v6.0 Enterprise
 Sistema de validación de señales trading
 """
 
+from protocols.unified_logging import get_unified_logger
 import time
 from dataclasses import dataclass
 from typing import Optional, Dict, List, Tuple, Any

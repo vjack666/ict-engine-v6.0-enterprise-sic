@@ -20,7 +20,7 @@ import pandas as pd
 import numpy as np
 
 # Logger centralizado
-from smart_trading_logger import SmartTradingLogger
+from protocols.unified_logging import get_unified_logger
 
 # Dependencias enterprise
 try:
@@ -52,7 +52,7 @@ class RealDataCollector:
     
     def __init__(self, config: Optional[Dict] = None):
         """Inicializar recolector usando módulos enterprise reales"""
-        self.logger = SmartTradingLogger("data_collector")
+        self.logger = get_unified_logger("data_collector")
         self.config = config or self._default_config()
         
         self.logger.info("🚀 Inicializando RealDataCollector", "data_collector")
@@ -216,7 +216,7 @@ class RealICTDataCollector(RealDataCollector):
     
     def __init__(self, config: Optional[Dict] = None):
         """Inicializar recolector ICT enterprise"""
-        self.logger = SmartTradingLogger("ict_data_collector")
+        self.logger = get_unified_logger("ict_data_collector")
         super().__init__(config)
         
         self.logger.info("🚀 RealICTDataCollector especializado inicializado", "ict_data_collector")

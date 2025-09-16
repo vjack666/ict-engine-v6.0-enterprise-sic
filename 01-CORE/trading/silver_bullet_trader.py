@@ -12,6 +12,7 @@ Ubicación: 01-CORE/trading/silver_bullet_trader.py
 Integración: main.py -> opción "Silver Bullet Auto Trading"
 """
 
+from protocols.unified_logging import get_unified_logger
 import sys
 import os
 from pathlib import Path

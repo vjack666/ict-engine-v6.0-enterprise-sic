@@ -16,6 +16,7 @@ Autor: ICT Engine v6.1.0 Enterprise Team
 Versión: v6.1.0-enterprise-clean
 """
 
+from protocols.unified_logging import get_unified_logger
 import sys
 import os
 from typing import Dict, Any, Optional, Union

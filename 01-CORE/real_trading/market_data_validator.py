@@ -26,6 +26,7 @@ Formato esperado de candles: lista de dicts con llaves mínimas:
 Optimizado para tiempo real: O(n) simple, sin dependencias pesadas.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from typing import List, Tuple, Dict, Any, Optional
 from datetime import datetime, timezone
 from statistics import mean
@@ -56,7 +57,7 @@ class MarketDataValidatorConfig:
 class MarketDataValidator:
     def __init__(self, config: Optional[MarketDataValidatorConfig] = None) -> None:
         self.config = config or MarketDataValidatorConfig()
-        self.logger = create_safe_logger("MarketDataValidator", log_level=getattr(LogLevel, 'INFO', None))
+        self.logger = get_unified_logger("MarketDataValidator")
         if self.config.max_gap_seconds < 0:
             self.config.max_gap_seconds = 0
         if self.config.stale_seconds < 10:  # evitar falsos positivos demasiado agresivos

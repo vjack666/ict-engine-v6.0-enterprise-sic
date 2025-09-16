@@ -13,9 +13,10 @@ Responsabilidades:
 Diseñado para integrarse sin bloquear el hilo principal y con bajo overhead.
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, Protocol, Callable, runtime_checkable
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import threading
 import time
 import json
@@ -156,7 +157,7 @@ class CircuitBreaker:
 
     def record_failure(self):
         with self._lock:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             self.failures.append(now)
             cutoff = now - timedelta(seconds=self.window_sec)
             self.failures = [f for f in self.failures if f >= cutoff]
@@ -165,9 +166,9 @@ class CircuitBreaker:
 
     def allow(self) -> bool:
         with self._lock:
-            if self.open_until and datetime.utcnow() < self.open_until:
+            if self.open_until and datetime.now(timezone.utc) < self.open_until:
                 return False
-            if self.open_until and datetime.utcnow() >= self.open_until:
+            if self.open_until and datetime.now(timezone.utc) >= self.open_until:
                 # reset breaker
                 self.open_until = None
                 self.failures.clear()
@@ -256,9 +257,9 @@ class ExecutionRouter:
             except Exception:
                 pass
         if _LOGLEVEL_AVAILABLE:
-            self.logger = create_safe_logger("ExecutionRouter", log_level=_DEFAULT_LOG_LEVEL)
+            self.logger = get_unified_logger("ExecutionRouter")
         else:
-            self.logger = create_safe_logger("ExecutionRouter")
+            self.logger = get_unified_logger("ExecutionRouter")
         self.breaker = CircuitBreaker(self.config.circuit_breaker_threshold,
                                       self.config.circuit_breaker_window_sec,
                                       self.config.circuit_breaker_cooldown_sec)
@@ -269,7 +270,7 @@ class ExecutionRouter:
             'orders_failed': 0,
             'last_log_ts': time.time(),
             'latency_samples': [],
-            'created': datetime.utcnow().isoformat(),
+            'created': datetime.now(timezone.utc).isoformat(),
             'history': [],  # lista de snapshots resumidos
             'blocked_reasons': {
                 'system_unhealthy': 0,
@@ -418,7 +419,7 @@ class ExecutionRouter:
 
     def place_order(self, symbol: str, action: str, volume: float, price: Optional[float] = None,
                     sl: Optional[float] = None, tp: Optional[float] = None) -> ExecutionResult:
-        start = datetime.utcnow()
+        start = datetime.now(timezone.utc)
         # --- POSITION SIZING (override volume si habilitado) ---
         if self._position_sizer and getattr(self.config, 'enable_position_sizer', False):
             try:
@@ -548,7 +549,7 @@ class ExecutionRouter:
                             except Exception:
                                 pass
                         return ExecutionResult(True, ticket=ticket, retries=attempt,
-                                               placed_at=datetime.utcnow(), extra=result)
+                                               placed_at=datetime.now(timezone.utc), extra=result)
                     last_error = result.get('error', 'unknown_error')
                     self.logger.warning(f"Executor returned failure: {last_error}", "EXECUTION")
                     if self._metrics_recorder:
@@ -717,7 +718,7 @@ class ExecutionRouter:
             'p99': _pct(0.99)
         }
         data = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'orders_total': self._metrics['orders_total'],
             'orders_ok': self._metrics['orders_ok'],
             'orders_failed': self._metrics['orders_failed'],
@@ -777,7 +778,7 @@ class ExecutionRouter:
             'p99': _pct(0.99)
         }
         summary = {
-            'generated': datetime.utcnow().isoformat(),
+            'generated': datetime.now(timezone.utc).isoformat(),
             'orders_total': self._metrics['orders_total'],
             'orders_ok': self._metrics['orders_ok'],
             'orders_failed': self._metrics['orders_failed'],
@@ -805,7 +806,7 @@ class ExecutionRouter:
         self._cumulative['orders_total'] += self._metrics['orders_total']
         self._cumulative['orders_ok'] += self._metrics['orders_ok']
         self._cumulative['orders_failed'] += self._metrics['orders_failed']
-        self._cumulative['last_update'] = datetime.utcnow().isoformat()
+        self._cumulative['last_update'] = datetime.now(timezone.utc).isoformat()
         try:
             with open(path, 'w', encoding='utf-8') as f:
                 json.dump(self._cumulative, f, ensure_ascii=False, indent=2)

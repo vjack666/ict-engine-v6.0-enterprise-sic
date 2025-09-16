@@ -11,7 +11,7 @@ import random
 from datetime import datetime
 
 # Configurar rutas
-DASHBOARD_PATH = Path(__file__).parent / "09-DASHBOARD"
+DASHBOARD_PATH = Path(__file__).parent.parent / "09-DASHBOARD"
 sys.path.insert(0, str(DASHBOARD_PATH))
 
 def enhance_market_display():

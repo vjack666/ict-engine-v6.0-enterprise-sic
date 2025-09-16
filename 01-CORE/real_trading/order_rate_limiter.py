@@ -8,6 +8,7 @@ Controla frecuencia de órdenes para evitar bursts peligrosos.
 - Métricas internas
 """
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from collections import deque
 from dataclasses import dataclass
 from typing import Deque, Dict, Tuple
@@ -60,7 +61,7 @@ class OrderRateLimiter:
         if logger:
             self.logger = logger
         else:
-            self.logger = create_safe_logger("OrderRateLimiter", log_level=getattr(LogLevel, 'INFO', None))
+            self.logger = get_unified_logger("OrderRateLimiter")
         
         self._blocked_counts = {"symbol": 0, "global": 0}
 

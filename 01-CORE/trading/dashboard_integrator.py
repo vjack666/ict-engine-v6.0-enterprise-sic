@@ -6,6 +6,7 @@ Connects the Silver Bullet Dashboard with real trading execution
 Provides real-time trade management and monitoring
 """
 
+from protocols.unified_logging import get_unified_logger
 import asyncio
 import json
 import logging

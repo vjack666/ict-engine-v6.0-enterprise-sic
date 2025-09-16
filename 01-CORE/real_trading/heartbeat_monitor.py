@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Heartbeat Monitor - detecta servicios con latido atrasado."""
 from __future__ import annotations
+from protocols.unified_logging import get_unified_logger
 from typing import Dict, Any, Optional
 import threading
 import time
@@ -30,7 +31,7 @@ class HeartbeatMonitor:
         if logger:
             self.logger = logger
         else:
-            self.logger = create_safe_logger("HeartbeatMonitor", log_level=getattr(LogLevel, 'INFO', None))
+            self.logger = get_unified_logger("HeartbeatMonitor")
 
     def beat(self, service: str) -> None:
         if not service:

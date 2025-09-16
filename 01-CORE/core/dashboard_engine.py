@@ -21,9 +21,9 @@ if str(dashboard_path) not in sys.path:
     sys.path.insert(0, str(dashboard_path))
 
 # Logger enterprise
-from smart_trading_logger import SmartTradingLogger
+from protocols.unified_logging import get_unified_logger
 
-logger = SmartTradingLogger("dashboard_bridge")
+logger = get_unified_logger("dashboard_bridge")
 
 try:
     # Import del DashboardEngine real del dashboard
@@ -43,7 +43,7 @@ class DashboardEngine:
     def __init__(self, config: Dict[str, Any]):
         """Inicializar DashboardEngine enterprise"""
         self.config = config
-        self.logger = SmartTradingLogger("dashboard_engine_proxy")
+        self.logger = get_unified_logger("dashboard_engine_proxy")
         
         if DASHBOARD_ENGINE_AVAILABLE and _DashboardEngine:
             try:

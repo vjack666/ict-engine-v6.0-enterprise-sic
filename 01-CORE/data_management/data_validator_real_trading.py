@@ -9,6 +9,7 @@ seguridad de todos los datos antes de ser usados en decisiones de trading.
 NIVEL CRÍTICO: Este módulo evita pérdidas por datos corruptos o inválidos.
 """
 
+from protocols.unified_logging import get_unified_logger
 import pandas as pd
 import numpy as np
 from datetime import datetime, timezone, timedelta
