@@ -1,42 +1,14 @@
-#!/usr/bin/env python3
-"""
-🚀 INICIADOR DASHBOARD WEB ICT ENGINE v6.0 ENTERPRISE
-===================================================
+"""Deprecated starter script: web dashboard removed.
 
-Script de inicio rápido para el dashboard web principal que integra
-todas las pestañas del sistema ICT, incluyendo la nueva pestaña Order Blocks.
-
-Uso:
-    python start_web_dashboard.py
-    
-Características:
-✅ Auto-detección de dependencias
-✅ Configuración automática del entorno
-✅ Inicio con configuración optimizada
-✅ Manejo de errores y fallbacks
-✅ Logs de inicio detallados
-
-Autor: ICT Engine v6.0 Enterprise Team
-Fecha: 12 Septiembre 2025
+This file intentionally kept as a no-op placeholder to avoid
+breakage in environments where old automation might still call it.
 """
 
-import sys
-import os
-from pathlib import Path
-import time
+def main():  # pragma: no cover
+    raise RuntimeError("start_web_dashboard deprecated and removed. Use terminal dashboard tooling.")
 
-# Configurar paths del proyecto
-current_dir = Path(__file__).parent.absolute()
-project_root = current_dir.parent
-
-# Agregar paths al sys.path
-paths_to_add = [
-    str(project_root),
-    str(project_root / "01-CORE"),
-    str(current_dir),
-    str(current_dir / "core"),
-    str(current_dir / "core" / "tabs")
-]
+if __name__ == "__main__":  # pragma: no cover
+    main()
 
 for path in paths_to_add:
     if path not in sys.path:

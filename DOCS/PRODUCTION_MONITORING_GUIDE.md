@@ -4,6 +4,15 @@
 
 Se han implementado exitosamente dos módulos críticos de monitoreo de producción que complementan el sistema existente de Health Monitor, proporcionando supervisión completa del sistema en tiempo real para cuentas reales de trading.
 
+> ✅ NOTA IMPORTANTE (UI / Dashboard)
+> A partir de la versión actual se eliminó completamente la interfaz Web (Dash/Plotly). Solo se mantiene un único "monoboard" / dashboard en terminal con estilizado (colores/CSS interno simple) suficiente para operación y monitoreo. Cualquier referencia previa a `web_dashboard.py`, `start_web_dashboard.py` o acceso vía navegador ha quedado deprecada y no debe usarse en producción.
+
+Resumen de cambios UI:
+- Eliminado: Web dashboard (servidor HTTP, tabs gráficas, dependencias Dash/Plotly)
+- Conservado: Dashboard terminal integrado (menú principal opción monitoreo y vistas en texto enriquecido)
+- Objetivo: Reducir superficie operativa, complejidad de dependencias y puntos de fallo en producción.
+- Seguridad: Sin puerto expuesto; todo monitoreo ocurre dentro del proceso controlado.
+
 ---
 
 ## 🚀 Módulos Implementados
@@ -12,13 +21,13 @@ Se han implementado exitosamente dos módulos críticos de monitoreo de producci
 **📍 Ubicación:** `01-CORE/monitoring/production_system_monitor.py`
 
 **Funcionalidades:**
-- ✅ Monitoreo de recursos del sistema (CPU, RAM, Disco)
-- ✅ Seguimiento de conexiones de red activas
-- ✅ Conteo de procesos en ejecución
-- ✅ Evaluación automática de salud del sistema
-- ✅ Sistema de alertas por umbrales configurables
-- ✅ Persistencia de métricas en archivos JSON
-- ✅ Integración completa con logging central
+- [x] Monitoreo de recursos del sistema (CPU, RAM, Disco)
+- [x] Seguimiento de conexiones de red activas
+- [x] Conteo de procesos en ejecución
+- [x] Evaluación automática de salud del sistema
+- [x] Sistema de alertas por umbrales configurables
+- [x] Persistencia de métricas en archivos JSON
+- [x] Integración completa con logging central
 
 **Estados de Salud:**
 - `EXCELLENT`: Sistema operando de forma óptima (≥90% puntuación)
@@ -30,13 +39,13 @@ Se han implementado exitosamente dos módulos críticos de monitoreo de producci
 **📍 Ubicación:** `01-CORE/monitoring/production_performance_monitor.py`
 
 **Funcionalidades:**
-- ✅ Medición de latencia en tiempo real (P95, P99, promedio)
-- ✅ Seguimiento de throughput (operaciones por segundo)
-- ✅ Tasa de error por componente
-- ✅ Análisis de performance por componente individual
-- ✅ Sistema de ventanas deslizantes para métricas
-- ✅ Alertas automáticas por degradación de performance
-- ✅ Decorador para medición automática de operaciones
+- [x] Medición de latencia en tiempo real (P95, P99, promedio)
+- [x] Seguimiento de throughput (operaciones por segundo)
+- [x] Tasa de error por componente
+- [x] Análisis de performance por componente individual
+- [x] Sistema de ventanas deslizantes para métricas
+- [x] Alertas automáticas por degradación de performance
+- [x] Decorador para medición automática de operaciones
 
 **Estados de Performance:**
 - `OPTIMAL`: Performance excelente (≥90% puntuación)
@@ -332,13 +341,13 @@ config = {
 ## ✅ Estado Actual
 
 ### ✅ **Completado Exitosamente**
-1. ✅ Production System Monitor implementado y probado
-2. ✅ Production Performance Monitor implementado y probado  
-3. ✅ Integración con main.py completada
-4. ✅ Logging central integrado en todos los módulos
-5. ✅ Menú principal actualizado con nueva opción
-6. ✅ Sistema probado sin errores de Pylance/tipo
-7. ✅ Documentación completa creada
+1. [x] Production System Monitor implementado y probado
+2. [x] Production Performance Monitor implementado y probado  
+3. [x] Integración con main.py completada
+4. [x] Logging central integrado en todos los módulos
+5. [x] Menú principal actualizado con nueva opción
+6. [x] Sistema probado sin errores de Pylance/tipo
+7. [x] Documentación completa creada
 
 ### 🚀 **Sistema Listo para Producción**
 - No hay errores de tipo/Pylance

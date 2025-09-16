@@ -117,9 +117,9 @@ Integration: MT5DataManager + UnifiedMemorySystem
 │   🌐 WEB DASHBOARD   │    │ 🖥️ TERMINAL DASH    │
 │                     │    │                     │
 │ • Dash Framework    │    │ • Textual Framework │
-│ • Plotly Charts     │    │ • Rich Console      │
-│ • Auto-refresh 0.5s │    │ • Real-time Updates │
-│ • Port 8050         │    │ • Cross-platform    │
+│ • (REMOVIDO) Plotly │    │ • Rich Console      │
+│ • (REMOVIDO) Web    │    │ • Real-time Updates │
+│ • (REMOVIDO) Port   │    │ • Cross-platform    │
 └─────────────────────┘    └─────────────────────┘
            │                           │
            └─────────┬─────────────────┘
@@ -135,17 +135,21 @@ Integration: MT5DataManager + UnifiedMemorySystem
        └─────────────────────────┘
 ```
 
-### **Files Architecture:**
+### **Files Architecture (Post-Deprecación Web):**
 ```
 09-DASHBOARD/
-├── web_dashboard.py ✅ Main web interface  
-├── ict_dashboard.py ✅ Terminal interface
-├── start_web_dashboard.py ✅ Web launcher
+├── ict_dashboard.py ✅ Terminal interface (único)
+├── dashboard.py ✅ Coordinador interno
+├── start_dashboard.py ✅ Launcher terminal
+├── web_dashboard.py (placeholder deprecado)
+├── start_web_dashboard.py (placeholder deprecado)
 └── core/
-    ├── tabs/ ✅ Modular tab system
-    ├── real_market_bridge.py ✅ MT5 bridge
-    └── widgets/ ✅ Dashboard components
+       ├── tabs/ ✅ Modular tab system (lógica reusable)
+       ├── real_market_bridge.py ✅ MT5 bridge
+       └── widgets/ ✅ Componentes terminal
 ```
+
+> NOTA: Todos los componentes web (servidor Dash/Plotly) han sido eliminados. Los archivos marcados como placeholder sólo evitan errores de import heredados.
 
 ## 🤖 TRADING AUTOMATION ARCHITECTURE
 

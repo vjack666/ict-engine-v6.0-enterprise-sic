@@ -238,8 +238,7 @@ class SystemIntegrationTester:
         
         components_loaded = {
             'main_dashboard_app_class': False,
-            'ict_dashboard_class': False,
-            'web_dashboard_class': False
+            'ict_dashboard_class': False
         }
         import_error_details = []
         # Detect ICTDashboardApp
@@ -258,14 +257,7 @@ class SystemIntegrationTester:
                 components_loaded['ict_dashboard_class'] = True
         except Exception as e:
             import_error_details.append(f'ict_dashboard: {e}')
-        # Detect ICTWebDashboard
-        try:
-            import importlib
-            web_dash_mod = importlib.import_module('web_dashboard')
-            if hasattr(web_dash_mod, 'ICTWebDashboard'):
-                components_loaded['web_dashboard_class'] = True
-        except Exception as e:
-            import_error_details.append(f'web_dashboard: {e}')
+        # Web dashboard removido intencionalmente (omitido)
         import_errors_summary = import_error_details
         
         # Test enterprise tabs manager

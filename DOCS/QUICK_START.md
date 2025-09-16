@@ -13,30 +13,21 @@ python diagnostic_real_state.py
 # Debe mostrar ✅ en la mayoría de componentes
 ```
 
-### 2️⃣ **Dashboard Web (Recomendado)**
+### 2️⃣ **Dashboard Terminal (Único Dashboard / Monoboard)**
 ```bash
-# Lanzar dashboard web principal
-python start_web_dashboard.py
-
-# Acceder en navegador: http://localhost:8050
-# Auto-refresh cada 0.5 segundos
-```
-
-### 3️⃣ **Dashboard Terminal (Alternativo)**
-```bash
-# Dashboard en terminal (Textual)
+# Dashboard en terminal (único disponible)
 python main.py --dashboard-terminal
 
-# Interface completa en consola
+# Incluye estilizado de colores (CSS interno simplificado)
 ```
 
-### 4️⃣ **Validar Conexión MT5**
+### 3️⃣ **Validar Conexión MT5**
 ```bash
 # Test conexión FTMO (debe estar MT5 abierto)
 python -c "from data_management.mt5_data_manager import MT5DataManager; mgr=MT5DataManager(); print('MT5:', mgr.get_current_data('EURUSD', 'M15', 10) is not None)"
 ```
 
-### 5️⃣ **Test Trading Automático (DEMO ONLY)**
+### 4️⃣ **Test Trading Automático (DEMO ONLY)**
 ```bash
 # IMPORTANTE: Solo en cuenta DEMO
 python activate_auto_trading.py --test --demo-only
@@ -52,11 +43,11 @@ python activate_auto_trading.py --test --demo-only
 - **Memory System:** Contexto histórico y aprendizaje
 - **Live Validation:** Comparación live vs histórico
 
-### 🖥️ **Dashboards Duales**
-- **Web Dashboard:** Interface moderna con Dash/Plotly
-- **Terminal Dashboard:** Console interface con Textual
-- **Tabs Sistema:** Order Blocks, FVG, Smart Money, Market Structure
-- **Real-time Data:** Auto-refresh y datos MT5 live
+### 🖥️ **Dashboard de Monitoreo (Terminal Único)**
+- **Terminal Dashboard:** Interfaz única en consola con resaltado y colores
+- **Tabs Lógicas (internas):** Order Blocks, FVG, Smart Money, Market Structure (render textual)
+- **Real-time Data:** Actualización periódica y métricas integradas
+- (El dashboard web fue eliminado: menor superficie de ataque, menos dependencias)
 
 ### 🤖 **Trading Automático**
 - **ExecutionEngine:** Ejecución automática de señales
@@ -105,13 +96,11 @@ pip install pandas plotly dash textual MetaTrader5
 
 ### **❌ Dashboard no carga**
 ```bash
-# Web dashboard
-python start_web_dashboard.py
-# Si falla, verificar puerto 8050 libre
-
 # Terminal dashboard
-python main.py --dashboard-terminal  
-# Si falla, verificar consola compatible
+python main.py --dashboard-terminal
+# Si falla:
+# 1. Verificar versión Python >= 3.9
+# 2. Revisar logs en 05-LOGS/application/
 ```
 
 ### **❌ Patterns no detectan**
@@ -124,11 +113,11 @@ python -c "from data_management.mt5_data_manager import MT5DataManager; print(MT
 
 ## 🎯 PRÓXIMOS PASOS
 
-1. **Explorar Dashboard Web:** Tabs Order Blocks y FVG
-2. **Revisar Logs:** Carpeta 05-LOGS/ para análisis detallado  
-3. **Configurar Alerts:** Sistema de notificaciones avanzado
-4. **Optimizar Parámetros:** Ajustar detección según estilo trading
-5. **Escalar a Real:** Solo después de validación completa en demo
+1. [x] Explorar Dashboard Terminal
+2. [x] Revisar Logs en 05-LOGS/
+3. [x] Configurar Alerts avanzados (ver DOCS/alerting/ADVANCED_ALERTS_SYSTEM.md)
+4. [ ] Optimizar parámetros de detección
+5. [ ] Escalar a real tras validación completa demo
 
 ---
 

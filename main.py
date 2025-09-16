@@ -133,8 +133,7 @@ class ICTEnterpriseManager:
         self.shutdown_requested = False
         self.real_components_loaded = False
         self.data_collector = None
-        self.dashboard_process = None
-        self.web_dashboard_process = None
+        self.dashboard_process = None  # web dashboard removido (ya no se gestiona proceso web)
         
         # Setup inicial
         self._setup_directories()
@@ -154,6 +153,7 @@ class ICTEnterpriseManager:
         
         # Componentes avanzados (se inicializan on-demand)
         self.risk_guard = None
+        self.risk_pipeline = None  # Nuevo facade de riesgo y sizing
         self.latency_watchdog = None
         self.health_monitor = None
         self.data_feed_fallback = None
@@ -166,6 +166,11 @@ class ICTEnterpriseManager:
         self.config_loader = None
         self.latency_sampler = None
         self._initialize_trading_support_components()
+        # Inicializar pipeline de riesgo (fase 1)
+        self._initialize_risk_pipeline()
+        # Subsistema avanzado de alertas (opcional)
+        self.advanced_alert_manager = None
+        self._initialize_advanced_alerting()
         # Servicios adicionales producción
         self.event_bus = None
         self.kill_switch = None
@@ -313,20 +318,99 @@ class ICTEnterpriseManager:
             
             # 💖 Health & Performance Monitor
             self.health_performance_monitor = get_health_monitor(monitoring_level)
+            self.logger.info("✅ Health & Performance monitor initialized")
+            
+            # 🔄 Sistema de Monitoreo de Producción (NUEVO)
+            self.production_system_monitor = None
+            try:
+                from monitoring.production_system_monitor import ProductionSystemMonitor
+                self.production_system_monitor = ProductionSystemMonitor()
+                self.logger.info("✅ ProductionSystemMonitor initialized")
+            except Exception as e:
+                self.logger.warning(f"Could not initialize ProductionSystemMonitor: {e}")
+            
+            # 🆘 Sistema de Recuperación Automática (NUEVO)
+            self.auto_recovery_system = None
+            try:
+                from emergency.auto_recovery_system import AutoRecoverySystem
+                self.auto_recovery_system = AutoRecoverySystem()
+                self.logger.info("✅ AutoRecoverySystem initialized")
+            except Exception as e:
+                self.logger.warning(f"Could not initialize AutoRecoverySystem: {e}")
+            
+            # 🚨 Sistema de Integración de Alertas (NUEVO)
+            self.alert_integration_system = None
+            try:
+                from alerting.alert_integration_system import AlertIntegrationSystem
+                self.alert_integration_system = AlertIntegrationSystem()
+                self.logger.info("✅ AlertIntegrationSystem initialized")
+            except Exception as e:
+                self.logger.warning(f"Could not initialize AlertIntegrationSystem: {e}")
+            
+            # 🔗 Conectar sistemas entre sí
+            self._connect_production_systems()
             
             # Configurar health checks específicos para nuestros componentes
             self._setup_custom_health_checks()
             
-            # Iniciar monitoreo
-            self.health_performance_monitor.start()
-            self.logger.info("✅ Health & Performance monitor started with configuration")
+            # Iniciar monitoreo si está disponible
+            if self.health_performance_monitor:
+                self.health_performance_monitor.start()
+                self.logger.info("✅ Health & Performance monitor started with configuration")
+                
+                # Registrar callbacks de alertas
+                self.health_performance_monitor.add_alert_callback(self._handle_health_alert)
             
-            # Registrar callbacks de alertas
-            self.health_performance_monitor.add_alert_callback(self._handle_health_alert)
+            self.logger.info("🏭 Production modules initialization complete")
             
         except Exception as e:
             self.logger.error(f"Error initializing production modules: {e}")
+            import traceback
+            traceback.print_exc()
             # Continuar con fallbacks
+    
+    def _connect_production_systems(self):
+        """Conectar los nuevos sistemas de producción entre sí"""
+        try:
+            # Conectar AlertIntegrationSystem con otros sistemas
+            if self.alert_integration_system:
+                if self.production_system_monitor:
+                    self.alert_integration_system.connect_system_monitor(self.production_system_monitor)
+                    self.logger.info("✓ Alert integration connected to system monitor")
+                
+                if self.auto_recovery_system:
+                    self.alert_integration_system.connect_auto_recovery(self.auto_recovery_system)
+                    self.logger.info("✓ Alert integration connected to auto recovery")
+                
+                # Iniciar la integración de alertas
+                if hasattr(self.alert_integration_system, 'start_integration'):
+                    self.alert_integration_system.start_integration()
+                    self.logger.info("✓ Alert integration system started")
+            
+            # Configurar callbacks de recuperación
+            if self.auto_recovery_system:
+                # Agregar callback para notificar sobre intentos de recuperación
+                def recovery_callback(attempt):
+                    self.logger.info(f"Recovery attempt: {attempt.action_name} for {attempt.failure_type}")
+                
+                self.auto_recovery_system.add_recovery_callback(recovery_callback)
+                
+                # Agregar callback para notificar fallos detectados
+                def failure_callback(failure_type, details):
+                    self.logger.warning(f"Failure detected: {failure_type} - {details}")
+                
+                self.auto_recovery_system.add_failure_callback(failure_callback)
+                self.logger.info("✓ Auto recovery callbacks configured")
+                    
+            # Iniciar monitoreo automáticamente si está disponible
+            if self.production_system_monitor and hasattr(self.production_system_monitor, 'start_monitoring'):
+                self.production_system_monitor.start_monitoring()
+                self.logger.info("✓ Production system monitoring started")
+                
+        except Exception as e:
+            self.logger.error(f"Error connecting production systems: {e}")
+            import traceback
+            traceback.print_exc()
     
     def _setup_custom_health_checks(self):
         """Configurar health checks personalizados para el sistema"""
@@ -544,11 +628,52 @@ class ICTEnterpriseManager:
             except Exception as e:
                 self.logger.error(f"No se pudo crear OrderRateLimiter: {e}")
 
-        if AlertDispatcher and not self.alert_dispatcher:
+        # Adaptador: si existe AdvancedAlertManager preferimos usarlo en lugar del AlertDispatcher legacy
+        if not self.alert_dispatcher:
             try:
-                self.alert_dispatcher = AlertDispatcher(logger=self.logger)  # type: ignore
-            except Exception as e:
-                self.logger.error(f"No se pudo crear AlertDispatcher: {e}")
+                from alerting import get_advanced_alert_manager  # type: ignore
+                _adv_mgr = get_advanced_alert_manager()
+                class _AlertAdapter:
+                    def __init__(self, mgr, logger):
+                        self._mgr = mgr
+                        self._logger = logger
+                    def add_callback(self, cb):
+                        try:
+                            self._mgr.add_callback(cb)
+                        except Exception:
+                            pass
+                    # Métodos shortcut mapeados a categorías/ severidades coherentes
+                    def dispatch_circuit_breaker(self, symbol, failure_count):
+                        self._mgr.record_alert("circuit_breaker", "high", f"Circuit breaker activated for {symbol}", symbol, {"failure_count": failure_count})
+                        return True
+                    def dispatch_order_failure(self, symbol, error, details):
+                        meta = dict(details or {})
+                        meta['error'] = error
+                        self._mgr.record_alert("order_failure", "medium", f"Order failed for {symbol}: {error}", symbol, meta)
+                        return True
+                    def dispatch_risk_block(self, symbol, reason, risk_metrics):
+                        self._mgr.record_alert("risk_block", "high", f"Risk block activated for {symbol}: {reason}", symbol, risk_metrics or {})
+                        return True
+                    def dispatch_system_health(self, component, status, metrics):
+                        sev = "critical" if status in ("down", "unhealthy") else "medium"
+                        meta = dict(metrics or {})
+                        meta['component'] = component
+                        meta['status'] = status
+                        self._mgr.record_alert("system_health", sev, f"System health alert for {component}: {status}", None, meta)
+                        return True
+                    def dispatch_rate_limit_hit(self, symbol, limit_type):
+                        self._mgr.record_alert("rate_limit", "medium", f"Rate limit hit for {symbol}: {limit_type}", symbol, {"limit_type": limit_type})
+                        return True
+                self.alert_dispatcher = _AlertAdapter(_adv_mgr, self.logger)  # type: ignore
+                self.logger.info("AlertAdapter (AdvancedAlertManager) inicializado")
+            except Exception:
+                # fallback a legacy solo si disponible
+                if AlertDispatcher:
+                    try:
+                        self.alert_dispatcher = AlertDispatcher(logger=self.logger)  # type: ignore
+                        self.logger.info("Legacy AlertDispatcher inicializado (fallback)")
+                    except Exception as e:
+                        self.logger.error(f"No se pudo crear AlertDispatcher: {e}")
 
         if ConfigLoader and not self.config_loader:
             try:
@@ -586,6 +711,98 @@ class ICTEnterpriseManager:
                 self.logger.info("Hook de pre-orden (exposure/rate) registrado")
             except Exception as e:
                 self.logger.error(f"No se pudo registrar hook pre-orden: {e}")
+
+    def _initialize_risk_pipeline(self) -> None:
+        """Configurar RiskPipeline reutilizando componentes existentes sin duplicar lógica."""
+        try:
+            from risk_management.risk_pipeline import RiskPipeline  # type: ignore
+            from risk_management.real_time_risk_guard import RealTimeRiskGuard  # type: ignore
+            from risk_management.position_sizing import PositionSizingCalculator  # type: ignore
+            # RiskManager es opcional; solo importar si está disponible
+            try:
+                from risk_management.risk_manager import RiskManager  # type: ignore
+            except Exception:
+                RiskManager = None  # type: ignore
+
+            if self.risk_pipeline is None:
+                risk_manager = None
+                if 'RiskManager' in locals() and RiskManager is not None:
+                    try:
+                        risk_manager = RiskManager(mode='live')  # type: ignore
+                    except Exception as e:
+                        self.logger.warning(f"RiskManager no disponible: {e}")
+                        risk_manager = None
+
+                # Adaptador simple para AdvancedAlertManager como emitter
+                alert_emitter = None
+                if self.advanced_alert_manager is not None:
+                    class _AlertEmitterAdapter:
+                        def __init__(self, mgr): self._mgr = mgr
+                        def emit(self, **kwargs):
+                            try:
+                                self._mgr.record_alert(
+                                    category=kwargs.get('channel', 'risk'),
+                                    severity=kwargs.get('level', 'info'),
+                                    message=kwargs.get('message', ''),
+                                    meta={k: v for k, v in kwargs.items() if k not in {'level','message','channel'}},
+                                )
+                            except Exception:
+                                pass
+                    alert_emitter = _AlertEmitterAdapter(self.advanced_alert_manager)
+
+                try:
+                    rt_fast_gate = RealTimeRiskGuard()  # type: ignore
+                except Exception:
+                    rt_fast_gate = None  # type: ignore
+                try:
+                    sizing_calc = PositionSizingCalculator()  # type: ignore
+                except Exception:
+                    sizing_calc = None  # type: ignore
+
+                try:
+                    self.risk_pipeline = RiskPipeline(
+                        risk_guard=self.risk_guard,
+                        risk_manager=risk_manager,
+                        position_sizer=sizing_calc,
+                        fast_gate=rt_fast_gate,
+                        alert_emitter=alert_emitter
+                    )
+                    self.logger.info("RiskPipeline inicializado (fase 1)")
+                except Exception as e:
+                    self.logger.error(f"No se pudo crear RiskPipeline: {e}")
+        except Exception as e:
+            try:
+                self.logger.warning(f"RiskPipeline no disponible: {e}")
+            except Exception:
+                pass
+
+    def _initialize_advanced_alerting(self):
+        """Intentar activar el AdvancedAlertManager si el paquete está disponible."""
+        try:
+            from alerting import get_advanced_alert_manager  # type: ignore
+            self.advanced_alert_manager = get_advanced_alert_manager()
+            # Registrar callback de validación (noop) para asegurar fan-out ya está activo en dispatcher
+            if self.alert_dispatcher:
+                try:
+                    self.alert_dispatcher.add_callback(lambda _evt: None)  # type: ignore
+                except Exception:
+                    pass
+            self.logger.info("AdvancedAlertManager inicializado")
+            # Emitir alerta informativa inicial
+            try:
+                self.advanced_alert_manager.record_alert(
+                    category="system",
+                    severity="low",
+                    message="Advanced alerting subsystem activo",
+                    meta={"component": "startup"}
+                )
+            except Exception:
+                pass
+        except Exception as e:
+            try:
+                self.logger.warning(f"Advanced alerting no disponible: {e}")
+            except Exception:
+                pass
 
     def _initialize_production_services(self):
         try:
@@ -661,6 +878,87 @@ class ICTEnterpriseManager:
                     pass
             except Exception as e:
                 self.logger.error(f"No se pudo restaurar estado: {e}")
+
+                # ======================================================================
+                # RISK PIPELINE INTEGRATION HELPERS
+                # ======================================================================
+                def evaluate_signal(self, signal_ctx: Dict[str, Any]) -> Dict[str, Any]:
+                    """Evaluar una señal de trading usando RiskPipeline y devolver decisión estructurada.
+
+                    signal_ctx campos esperados (flexible):
+                        symbol, entry_price, stop_loss, risk_percent, account_balance, account_equity,
+                        poi_quality, smart_money_signal, session, open_positions (lista posiciones dict)
+                    """
+                    if not self.risk_pipeline:
+                        return {'approved': False, 'reasons': ['risk_pipeline_unavailable']}
+                    try:
+                        decision = self.risk_pipeline.evaluate_and_size(signal_ctx)  # type: ignore
+                        result = {
+                            'approved': decision.approved,
+                            'reasons': decision.reasons,
+                            'lots': decision.lots,
+                            'risk_pct': decision.risk_pct,
+                            'stage': decision.stage,
+                            'correlation_score': decision.correlation_score,
+                            'exposure': decision.exposure,
+                            'ict_factors': decision.ict_factors,
+                            'sizing_metadata': decision.sizing_metadata,
+                        }
+                        if not decision.approved and self.advanced_alert_manager:
+                            try:
+                                self.advanced_alert_manager.record_alert(
+                                    category="risk",
+                                    severity="medium" if decision.stage != 'risk_guard' else 'high',
+                                    message=f"Señal rechazada stage={decision.stage} reasons={decision.reasons}",
+                                    meta={'symbol': signal_ctx.get('symbol'), 'stage': decision.stage}
+                                )
+                            except Exception:
+                                pass
+                        return result
+                    except Exception as e:
+                        self.logger.error(f"evaluate_signal error: {e}")
+                        return {'approved': False, 'reasons': ['pipeline_exception']}
+
+                def attempt_execution_from_signal(self, signal_ctx: Dict[str, Any]) -> Dict[str, Any]:
+                    """Convenience: evalúa señal y si aprueba intenta enviar orden vía ExecutionRouter.
+                    Devuelve dict con resultado unificado.
+                    """
+                    decision = self.evaluate_signal(signal_ctx)
+                    if not decision.get('approved'):
+                        return {'executed': False, 'decision': decision}
+                    if not self.execution_router:
+                        return {'executed': False, 'decision': decision, 'error': 'execution_router_unavailable'}
+                    symbol = signal_ctx.get('symbol')
+                    action = signal_ctx.get('action', 'buy').lower()
+                    entry_price = signal_ctx.get('entry_price')
+                    stop_loss = signal_ctx.get('stop_loss')
+                    tp = signal_ctx.get('take_profit')
+                    lots = decision.get('lots', 0.0) or 0.0
+                    if lots <= 0:
+                        return {'executed': False, 'decision': decision, 'error': 'invalid_lots'}
+                    try:
+                        # ExecutionRouter espera volume en unidades (puede ser lots si broker executor lo interpreta así)
+                        res = self.execution_router.place_order(symbol, 'buy' if action == 'buy' else 'sell', lots, entry_price, stop_loss, tp)  # type: ignore
+                        success = bool(getattr(res, 'success', False) if res is not None else False)
+                        if success and self.advanced_alert_manager:
+                            try:
+                                self.advanced_alert_manager.record_alert(
+                                    category="execution",
+                                    severity="low",
+                                    message=f"Orden enviada {symbol} lots={lots}",
+                                    meta={'symbol': symbol, 'lots': lots}
+                                )
+                            except Exception:
+                                pass
+                        return {
+                            'executed': success,
+                            'decision': decision,
+                            'ticket': getattr(res, 'ticket', None) if res else None,
+                            'error': getattr(res, 'error', None) if res else None
+                        }
+                    except Exception as e:
+                        self.logger.error(f"attempt_execution_from_signal error: {e}")
+                        return {'executed': False, 'decision': decision, 'error': 'execution_exception'}
         
     def _setup_directories(self):
         """Crear directorios necesarios"""
@@ -761,6 +1059,7 @@ class ICTEnterpriseManager:
         # Componentes legacy/existentes
         legacy_components = [
             ("RiskGuard", self.risk_guard),
+            ("RiskPipeline", self.risk_pipeline),
             ("LatencyWatchdog", self.latency_watchdog),
             ("DataFeedFallback", self.data_feed_fallback),
             ("ExecutionRouter", self.execution_router),
@@ -909,111 +1208,7 @@ class ICTEnterpriseManager:
             import traceback
             traceback.print_exc()
     
-    def run_web_dashboard_with_real_data(self):
-        """Iniciar Web Dashboard con análisis real en navegador"""
-        self.logger.info("🌐 INICIANDO WEB DASHBOARD CON ANÁLISIS REAL...")
-        print("\n[WEB] 🌐 INICIANDO WEB DASHBOARD CON ANÁLISIS REAL...")
-        print("=" * 60)
-        
-        try:
-            # Asegurar que los componentes están inicializados
-            if not self.real_components_loaded:
-                self.logger.info("Inicializando componentes reales para web dashboard")
-                print("[INFO] Inicializando componentes reales...")
-                self.initialize_real_components()
-            
-            # Verificar estado del data collector
-            print("[WEB] Verificando sistema de análisis real...")
-            
-            if hasattr(self, 'data_collector') and self.data_collector:
-                print("[OK] ✓ Sistema de análisis real disponible")
-                print("    - Order Blocks detection: ACTIVO")
-                print("    - Smart Money Concepts: ACTIVO")
-                print("    - Logging en tiempo real: ACTIVO")
-            else:
-                print("[WARN] Sistema básico - Iniciando con datos simulados")
-            
-            # Cargar el web dashboard
-            web_dashboard_script = DASHBOARD_PATH / "start_web_dashboard.py"
-            
-            if web_dashboard_script.exists():
-                self.logger.info(f"Ejecutando web dashboard desde: {web_dashboard_script}")
-                print("[WEB] 🚀 Iniciando servidor web dashboard...")
-                
-                # Configurar variables de entorno
-                env = os.environ.copy()
-                env['PYTHONPATH'] = os.pathsep.join([
-                    str(SYSTEM_ROOT),
-                    str(CORE_PATH),
-                    str(DASHBOARD_PATH)
-                ])
-                env['ICT_WEB_DASHBOARD_MODE'] = 'real_analysis'
-                
-                print("[WEB] 📊 Configurando servidor web...")
-                print("[WEB] 🌐 URL: http://127.0.0.1:8050")
-                print("[WEB] 💡 El dashboard se abrirá automáticamente en tu navegador")
-                print("[WEB] 🔄 Order Blocks actualizándose cada 500ms")
-                print("[WEB] ⚠️  Presiona Ctrl+C para detener el servidor")
-                
-                # Usar Popen para control del proceso web
-                self.web_dashboard_process = subprocess.Popen(
-                    [sys.executable, str(web_dashboard_script)], 
-                    cwd=str(DASHBOARD_PATH),
-                    env=env,
-                    text=True,
-                    bufsize=1,
-                    universal_newlines=True
-                )
-                
-                print(f"[WEB] 📊 Servidor web iniciado con PID: {self.web_dashboard_process.pid}")
-                print("[WEB] 🎯 Accede a: http://127.0.0.1:8050 en tu navegador")
-                print("[WEB] 💰 Order Blocks Tab disponible con datos en tiempo real")
-                
-                try:
-                    # Esperar a que termine el proceso web
-                    result_code = self.web_dashboard_process.wait()
-                    
-                except KeyboardInterrupt:
-                    print("\n[WEB] ⚠️ Interrupción detectada - cerrando servidor web...")
-                    try:
-                        self.web_dashboard_process.terminate()
-                        self.web_dashboard_process.wait(timeout=5)
-                        result_code = 0
-                    except subprocess.TimeoutExpired:
-                        print("[WEB] 🔧 Forzando cierre del servidor...")
-                        self.web_dashboard_process.kill()
-                        self.web_dashboard_process.wait()
-                        result_code = -1
-                
-                print(f"[WEB] ✅ Servidor web cerrado con código: {result_code}")
-                
-                if result_code == 0:
-                    print("\n[OK] ✅ WEB DASHBOARD CERRADO EXITOSAMENTE")
-                    print("[INFO] 🔄 Regresando al menú principal...")
-                    print("="*60)
-                    print("[SUCCESS] 🏁 SESIÓN WEB DASHBOARD COMPLETADA")
-                    print("   ✅ Servidor web cerrado correctamente")
-                    print("   🔄 Control devuelto al menú principal")
-                    print("   🟢 Sistema listo para nueva operación")
-                    print("="*60)
-                    print("\n[PRODUCCIÓN] 🚀 Menú principal se mostrará en 3 segundos...")
-                    time.sleep(3)
-                else:
-                    print(f"\n[WARN] ⚠️ Servidor web finalizó con código: {result_code}")
-                    print("[INFO] 🔄 Regresando al menú principal...")
-                    time.sleep(2)
-                    
-            else:
-                print("[X] No se encontró start_web_dashboard.py")
-                print(f"[TOOL] Verificar ruta: {web_dashboard_script}")
-                
-        except KeyboardInterrupt:
-            print("\n[WEB] ⚠️ Servidor web cerrado por el usuario")
-        except Exception as e:
-            self.logger.error(f"Error ejecutando web dashboard: {e}")
-            print(f"[X] Error ejecutando web dashboard: {e}")
-            import traceback
-            traceback.print_exc()
+    # run_web_dashboard_with_real_data removido (web dashboard deprecado)
     
     def run_silver_bullet_trading(self):
         """🔫 Ejecutar Silver Bullet Auto Trading"""
@@ -1345,31 +1540,25 @@ if __name__ == "__main__":
             self.logger.info(f"Silver Bullet trader ya existe: {silver_bullet_path}")
 
     def main_menu(self):
-        """Menú principal con opciones de Web Dashboard y Dashboard Terminal"""
+        """Menú principal (web dashboard eliminado)"""
         while True:
             print("\n" + "="*70)
             print("ICT ENGINE v6.0 ENTERPRISE - TRADING REAL")
             print("="*70)
-            print("1. 🌐 [WEB DASHBOARD] Análisis Real - Navegador Web")
-            print("2. 🖥️  [DASHBOARD TERMINAL] Dashboard Convencional")
-            print("3. 🔫 [SILVER BULLET] Auto Trading Silver Bullet")
-            print("4. 📊 [MONITOREO] Sistema de Monitoreo de Producción")
-            print("5. ❌ [SALIR] Cerrar Sistema")
+            print("1. 🖥️  [DASHBOARD TERMINAL] Dashboard Convencional")
+            print("2. 🔫 [SILVER BULLET] Auto Trading Silver Bullet")
+            print("3. 📊 [MONITOREO] Sistema de Monitoreo de Producción")
+            print("4. ❌ [SALIR] Cerrar Sistema")
             print("="*70)
-            print("💡 Opción 1: Dashboard web moderno con Order Blocks en tiempo real")
-            print("💡 Opción 2: Dashboard tradicional en ventana de terminal")
-            print("🔫 Opción 3: Trading automático de patrones Silver Bullet")
-            print("📊 Opción 4: Monitoreo completo del sistema en producción")
+            print("💡 Opción 1: Dashboard tradicional en ventana de terminal")
+            print("🔫 Opción 2: Trading automático de patrones Silver Bullet")
+            print("📊 Opción 3: Monitoreo completo del sistema en producción")
             print("="*70)
             
             try:
-                choice = input("\n[TARGET] Selecciona una opción (1-5): ").strip()
+                choice = input("\n[TARGET] Selecciona una opción (1-4): ").strip()
                 
                 if choice == "1":
-                    print("\n🌐 [WEB DASHBOARD] Iniciando dashboard web con análisis real...")
-                    self.run_web_dashboard_with_real_data()
-                    
-                elif choice == "2":
                     if not self.real_components_loaded:
                         print("\n[INFO] Inicializando componentes reales...")
                         self.initialize_real_components()
@@ -1381,16 +1570,16 @@ if __name__ == "__main__":
                     time.sleep(1.5)
                     self.run_dashboard_with_real_data()
                     
-                elif choice == "3":
+                elif choice == "2":
                     print("\n🔫 [SILVER BULLET] Iniciando sistema de auto trading...")
                     self.run_silver_bullet_trading()
                     
-                elif choice == "4":
+                elif choice == "3":
                     print("\n📊 [MONITOREO] Iniciando sistema de monitoreo de producción...")
                     self.run_production_monitoring()
                     input("\nPresiona ENTER para continuar...")
                     
-                elif choice == "5":
+                elif choice == "4":
                     print("\n[EXIT] Cerrando sistema de trading...")
                     break
                     
@@ -1407,12 +1596,10 @@ if __name__ == "__main__":
                 
             # Pausa antes de mostrar el menú de nuevo
             if choice == "1":
-                print("\n" + "="*80)
+                print("\n" + "="*60)
                 print("🔄 RETORNANDO AL MENÚ PRINCIPAL")
-                print("="*80)
-                print("⚡ [PRODUCCIÓN] Regresando automáticamente al menú...")
-                time.sleep(2)  # Pausa breve para que el usuario vea el mensaje
-                print("\n" + "🔄 " + "="*78)
+                print("="*60)
+                time.sleep(1.5)
     
     def shutdown(self):
         """🛑 Cerrar sistema limpiamente"""
@@ -1431,14 +1618,31 @@ if __name__ == "__main__":
                     if self.dashboard_process.poll() is None:
                         self.dashboard_process.kill()
             
-            # Cerrar web dashboard process si existe
-            if self.web_dashboard_process:
+            # web dashboard ya eliminado
+            
+            # 🔄 Cerrar nuevos sistemas de producción
+            if hasattr(self, 'production_system_monitor') and self.production_system_monitor:
                 try:
-                    self.web_dashboard_process.terminate()
-                    self.web_dashboard_process.wait(timeout=2)
-                except:
-                    if self.web_dashboard_process.poll() is None:
-                        self.web_dashboard_process.kill()
+                    if hasattr(self.production_system_monitor, 'stop_monitoring'):
+                        self.production_system_monitor.stop_monitoring()
+                    self.logger.info("✅ ProductionSystemMonitor stopped")
+                except Exception as e:
+                    self.logger.error(f"Error stopping ProductionSystemMonitor: {e}")
+            
+            if hasattr(self, 'alert_integration_system') and self.alert_integration_system:
+                try:
+                    if hasattr(self.alert_integration_system, 'stop_integration'):
+                        self.alert_integration_system.stop_integration()
+                    self.logger.info("✅ AlertIntegrationSystem stopped")
+                except Exception as e:
+                    self.logger.error(f"Error stopping AlertIntegrationSystem: {e}")
+            
+            if hasattr(self, 'auto_recovery_system') and self.auto_recovery_system:
+                try:
+                    # AutoRecoverySystem no necesita shutdown especial, pero loggeamos el cierre
+                    self.logger.info("✅ AutoRecoverySystem shutdown")
+                except Exception as e:
+                    self.logger.error(f"Error in AutoRecoverySystem shutdown: {e}")
             
             # Cerrar componentes críticos
             if hasattr(self, 'data_collector') and self.data_collector:

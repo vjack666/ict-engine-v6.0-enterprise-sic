@@ -1,3 +1,5 @@
 {"ts": "2025-09-15T18:46:12.688960", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}
 {"ts": "2025-09-15T22:04:29.853703", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}
 {"ts": "2025-09-15T22:35:00.946626", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}
+{"ts": "2025-09-16T00:45:12.709132", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}
+{"ts": "2025-09-16T14:26:00.986228", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}

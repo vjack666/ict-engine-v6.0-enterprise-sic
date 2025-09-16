@@ -295,6 +295,45 @@ class ProtocolValidator:
         
         return report
 
+def create_production_logger(module_name: str, log_level: LogLevel = LogLevel.INFO, enable_file_logging: bool = True) -> EnterpriseLoggerProtocol:
+    """
+    Crear logger optimizado para producción con manejo robusto de errores
+    
+    Args:
+        module_name: Nombre del módulo
+        log_level: Nivel de logging
+        enable_file_logging: Habilitar logging a archivo
+        
+    Returns:
+        Logger que cumple con EnterpriseLoggerProtocol
+    """
+    try:
+        # Intentar usar SmartTradingLogger primero
+        import sys
+        import os
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        core_path = os.path.dirname(current_dir)
+        if core_path not in sys.path:
+            sys.path.insert(0, core_path)
+            
+        from smart_trading_logger import SmartTradingLogger
+        return SmartTradingLogger(module_name)
+        
+    except ImportError:
+        try:
+            # Fallback a setup_module_logging
+            return setup_module_logging(module_name, log_level)
+        except Exception:
+            # Último fallback
+            logger = logging.getLogger(module_name)
+            logger.setLevel(logging.INFO)
+            if not logger.handlers:
+                handler = logging.StreamHandler()
+                formatter = logging.Formatter(f'[%(name)s] %(levelname)s: %(message)s')
+                handler.setFormatter(formatter)
+                logger.addHandler(handler)
+            return FallbackLogger(logger)
+
 # Exportaciones del protocolo
 __all__ = [
     'LoggingProtocols',
@@ -306,5 +345,6 @@ __all__ = [
     'ProtocolValidator',
     'setup_module_logging',
     'create_safe_logger',
+    'create_production_logger',
     'with_enterprise_logging'
 ]

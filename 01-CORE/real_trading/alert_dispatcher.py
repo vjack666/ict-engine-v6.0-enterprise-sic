@@ -38,6 +38,26 @@ except Exception:
     class LogLevel:  # type: ignore
         INFO = "INFO"
 
+# Integración opcional con subsistema avanzado
+get_advanced_alert_manager = None
+AdvancedAlertManager = None
+
+try:
+    from alerting.manager import AdvancedAlertManager
+    
+    # Try to import the function
+    try:
+        from alerting.manager import get_advanced_alert_manager
+        _ADV_ENABLED = True
+    except ImportError:
+        _ADV_ENABLED = False
+    
+    ALERT_SYSTEMS_AVAILABLE = True
+except ImportError:
+    _ADV_ENABLED = False
+    get_advanced_alert_manager = None  # type: ignore
+    ALERT_SYSTEMS_AVAILABLE = False
+
 
 class AlertSeverity(Enum):
     """Severidad de la alerta."""
@@ -362,11 +382,38 @@ class AlertDispatcher:
     
     def _notify_callbacks(self, event: AlertEvent) -> None:
         """Notifica a todos los callbacks registrados."""
+        # Fan-out callbacks registrados
         for callback in self._callbacks:
             try:
                 callback(event)
             except Exception as e:
                 self.logger.error(f"Alert callback failed: {e}", "CALLBACK")
+        # Fan-out opcional al AdvancedAlertManager (no duplica lógica de rate ni dedup aquí)
+        if _ADV_ENABLED and get_advanced_alert_manager is not None:
+            try:
+                mgr = get_advanced_alert_manager()
+                mgr.record_alert(
+                    category=event.category,
+                    severity=event.severity,
+                    message=event.message,
+                    symbol=event.symbol,
+                    meta=event.details or {}
+                )
+            except Exception as e:  # pragma: no cover
+                self.logger.error(f"Advanced alert fan-out failed: {e}", "ADV_ALERT")
+        elif ALERT_SYSTEMS_AVAILABLE and AdvancedAlertManager is not None:
+            try:
+                mgr = AdvancedAlertManager()
+                if hasattr(mgr, 'record_alert'):
+                    mgr.record_alert(
+                        category=event.category,
+                        severity=event.severity,
+                        message=event.message,
+                        symbol=event.symbol,
+                        meta=event.details or {}
+                    )
+            except Exception as e:  # pragma: no cover
+                self.logger.error(f"Direct alert manager failed: {e}", "ADV_ALERT")
     
     # Legacy compatibility method
     def dispatch(self, severity: str, category: str, message: str, meta: Optional[Dict[str, Any]] = None) -> AlertEvent:
