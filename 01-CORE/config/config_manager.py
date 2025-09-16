@@ -499,19 +499,31 @@ class ConfigManager:
                 if key_path in env_overrides:
                     return env_overrides[key_path]
                 
-                # Buscar en configuración específica del entorno
+                # Buscar en archivos en orden de prioridad explícito
+                # 1) YAML específico del entorno
                 env_config_key = f"{self.environment.value}.yaml"
                 if env_config_key in self._config_cache:
                     value = self._get_nested_value(self._config_cache[env_config_key], parts)
                     if value is not None:
                         return value
-                
-                # Buscar en configuración base
-                for config_key, config_data in self._config_cache.items():
-                    if config_key.startswith(('base.', 'trading.', 'real_trading_config.')):
-                        value = self._get_nested_value(config_data, parts)
-                        if value is not None:
-                            return value
+
+                # 2) trading.json (sobre-escribe base para claves de trading)
+                if "trading.json" in self._config_cache:
+                    value = self._get_nested_value(self._config_cache["trading.json"], parts)
+                    if value is not None:
+                        return value
+
+                # 3) real_trading_config.json
+                if "real_trading_config.json" in self._config_cache:
+                    value = self._get_nested_value(self._config_cache["real_trading_config.json"], parts)
+                    if value is not None:
+                        return value
+
+                # 4) base.yaml (menor prioridad)
+                if "base.yaml" in self._config_cache:
+                    value = self._get_nested_value(self._config_cache["base.yaml"], parts)
+                    if value is not None:
+                        return value
                 
                 # Si no se encuentra y es requerido
                 if required:
@@ -578,6 +590,78 @@ class ConfigManager:
         except Exception as e:
             self.logger.error(f"Error setting config '{key_path}': {e}")
             raise ConfigurationError(f"Failed to set config '{key_path}': {e}")
+    
+    def get_config(self) -> Dict[str, Any]:
+        """
+        📋 Obtener toda la configuración como diccionario
+        
+        Returns:
+            Dict con toda la configuración disponible
+        """
+        try:
+            with self._lock:
+                # Combinar todas las configuraciones en orden de prioridad
+                result = {}
+                
+                # Base configs first
+                for config_key, config_data in self._config_cache.items():
+                    if config_key not in ['env_overrides', 'runtime_overrides']:
+                        if isinstance(config_data, dict):
+                            result.update(config_data)
+                
+                # Environment overrides
+                env_overrides = self._config_cache.get('env_overrides', {})
+                for key_path, value in env_overrides.items():
+                    self._set_nested_value(result, key_path.split('.'), value)
+                
+                # Runtime overrides (highest priority)
+                runtime_overrides = self._config_cache.get('runtime_overrides', {})
+                for key_path, value in runtime_overrides.items():
+                    self._set_nested_value(result, key_path.split('.'), value)
+                
+                return result
+                
+        except Exception as e:
+            self.logger.error(f"Error getting config: {e}")
+            return {}
+    
+    def save(self) -> None:
+        """
+        💾 Guardar configuración actual a archivos
+        
+        Persiste todas las configuraciones runtime al disco
+        """
+        try:
+            with self._lock:
+                runtime_overrides = self._config_cache.get('runtime_overrides', {})
+                
+                if not runtime_overrides:
+                    self.logger.info("No runtime overrides to save")
+                    return
+                
+                # Guardar cada override
+                for key_path, value in runtime_overrides.items():
+                    self._persist_config(key_path, value)
+                
+                # Recargar configuraciones después de guardar
+                self.reload_all()
+                
+                self.logger.info(f"💾 Saved {len(runtime_overrides)} configuration changes")
+                
+        except Exception as e:
+            self.logger.error(f"Error saving config: {e}")
+            raise ConfigurationError(f"Failed to save configuration: {e}")
+    
+    def _set_nested_value(self, data: Dict[str, Any], parts: List[str], value: Any) -> None:
+        """🔧 Establecer valor anidado en diccionario"""
+        current = data
+        for part in parts[:-1]:
+            if part not in current:
+                current[part] = {}
+            elif not isinstance(current[part], dict):
+                current[part] = {}
+            current = current[part]
+        current[parts[-1]] = value
     
     def _persist_config(self, key_path: str, value: Any):
         """💾 Persistir configuración a archivo"""

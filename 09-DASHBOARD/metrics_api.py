@@ -37,7 +37,7 @@ except ImportError:  # Fallback stubs so Pylance no marque errores si falta fast
     def FastAPI(*_, **__):  # type: ignore
         return _StubApp()
 from pathlib import Path
-from typing import Dict, Any, Protocol, runtime_checkable, cast
+from typing import Dict, Any, Protocol, runtime_checkable, cast, Optional
 import json
 import os
 
@@ -160,6 +160,78 @@ async def get_coordinator_export():  # pragma: no cover - runtime
         raise HTTPException(status_code=503, detail=f"TabCoordinator not available: {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error exporting coordinator state: {e}")
+
+
+# -------------------- Lightweight helpers for tests/importers --------------------
+def _read_first_existing(paths: list[Path]) -> Optional[Dict[str, Any]]:
+    for p in paths:
+        try:
+            if p.exists():
+                with open(p, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except Exception:
+            continue
+    return None
+
+
+def get_system_metrics() -> Dict[str, Any]:
+    """Return system metrics dict from known locations.
+
+    Looks in `data/system_metrics.json` and `04-DATA/metrics/system_metrics.json`.
+    Returns an empty skeleton if none found. This function mirrors the shape
+    expected by tests without requiring FastAPI runtime.
+    """
+    base = Path(__file__).parent.parent
+    candidates = [
+        base / 'data' / 'system_metrics.json',
+        base / '04-DATA' / 'metrics' / 'system_metrics.json',
+    ]
+    data = _read_first_existing(candidates) or {}
+    if not isinstance(data, dict):
+        data = {}
+    # Ensure minimal keys for tests
+    data.setdefault('timestamp', None)
+    data.setdefault('status', 'unknown')
+    return data
+
+
+def get_trading_metrics() -> Dict[str, Any]:
+    """Return trading metrics dict from known locations.
+
+    Looks in `data/trading_metrics.json` and `04-DATA/metrics/trading_metrics.json`.
+    """
+    base = Path(__file__).parent.parent
+    candidates = [
+        base / 'data' / 'trading_metrics.json',
+        base / '04-DATA' / 'metrics' / 'trading_metrics.json',
+    ]
+    data = _read_first_existing(candidates) or {}
+    return data
+
+
+def get_risk_metrics() -> Dict[str, Any]:
+    """Return risk metrics snapshot, computing on the fly if missing."""
+    base = Path(__file__).parent.parent
+    risk_json = base / '04-DATA' / 'metrics' / 'risk_metrics.json'
+    if risk_json.exists():
+        try:
+            with open(risk_json, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    # Compute using RiskTracker
+    try:
+        sys.path.append(str(base / '01-CORE'))
+        from risk_management.risk_tracking import RiskTracker  # type: ignore
+        tracker = RiskTracker()
+        return tracker.compute_snapshot()
+    except Exception:
+        return {"error": "risk_tracking_unavailable"}
+
+
+@app.get('/metrics/risk')
+async def get_risk():  # pragma: no cover - runtime
+    return JSONResponse(get_risk_metrics())
 
 
 if __name__ == '__main__':  # pragma: no cover

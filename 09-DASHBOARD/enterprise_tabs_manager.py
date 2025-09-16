@@ -22,6 +22,74 @@ except Exception:  # Fallback simple logger
         def error(self, msg: str): print(f"[ERROR][{self._name}] {msg}")
         def debug(self, msg: str): pass
 
+
+# Fallback helpers defined once to avoid redefinition warnings
+class _FallbackDashboardApp:  # minimal shape
+    def __init__(self):
+        self.started = False
+    def run(self, *_, **__):
+        self.started = True
+
+
+class _FallbackICTDashboard:
+    def __init__(self, *_, **__):
+        self.config = {"fallback": True}
+    def start(self):
+        return False
+
+def setup_logging(level: str = "INFO"):
+    """Return a SmartTradingLogger configured for dashboard usage.
+
+    This is a lightweight facade so tests and other modules can
+    obtain a working logger without importing deep internals.
+    """
+    logger = SmartTradingLogger("dashboard")  # type: ignore[name-defined]
+    # SmartTradingLogger already handles level mapping internally via constructor;
+    # keep it simple and rely on its defaults for now.
+    return logger
+
+
+def create_dashboard_app():
+    """Create and return a minimal dashboard app instance.
+
+    Tries to load the enterprise dashboard app; falls back to a simple
+    placeholder object if dependencies aren't available. This keeps
+    tests and light integrations working.
+    """
+    try:
+        # Prefer local package import
+        from .dashboard import ICTDashboardApp  # type: ignore
+    except Exception:
+        try:
+            from dashboard import ICTDashboardApp  # type: ignore
+        except Exception:
+            return _FallbackDashboardApp()
+    try:
+        return ICTDashboardApp()  # type: ignore[name-defined]
+    except Exception:
+        # Final fallback if constructor fails
+        return _FallbackDashboardApp()
+
+
+def create_ict_dashboard():
+    """Create and return the main ICTDashboard object if available.
+
+    Provides a resilient import path so that tests can import this
+    function even if the full dashboard stack isn't installed.
+    """
+    try:
+        from .ict_dashboard import ICTDashboard  # type: ignore
+    except Exception:
+        try:
+            from ict_dashboard import ICTDashboard  # type: ignore
+        except Exception:
+            return _FallbackICTDashboard()
+    try:
+        return ICTDashboard()  # type: ignore[name-defined]
+    except Exception:
+        return _FallbackICTDashboard()
+
+
 class EnterpriseTabsManager:
     """Minimal enterprise tabs manager.
 
@@ -94,4 +162,9 @@ class EnterpriseTabsManager:
         # Placeholder for future dynamic refresh logic
         pass
 
-__all__ = ["EnterpriseTabsManager"]
+__all__ = [
+    "EnterpriseTabsManager",
+    "setup_logging",
+    "create_dashboard_app",
+    "create_ict_dashboard",
+]

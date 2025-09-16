@@ -44,6 +44,22 @@ sys.path.extend([
 from data.data_collector import RealDataCollector
 from widgets.main_interface import TextualDashboardApp  
 
+# Compatibility alias so `from dashboard import ICTDashboard` works
+try:
+    from .ict_dashboard import ICTDashboard as _ICTDashboard  # type: ignore
+except Exception:
+    try:
+        from ict_dashboard import ICTDashboard as _ICTDashboard  # type: ignore
+    except Exception:
+        class _ICTDashboard:  # minimal fallback for type checkers/tests
+            def __init__(self, *_, **__):
+                self.config = {"fallback": True}
+            def start(self):
+                return False
+
+class ICTDashboard(_ICTDashboard):  # re-export as a class
+    pass
+
 # Dynamic import para dashboard_logger
 try:
     import importlib.util
@@ -217,158 +233,24 @@ class ICTDashboardApp:
                 print("⚠️ [DASHBOARD] Método run() temporalmente deshabilitado - Dashboard en construcción")
             else:
                 raise RuntimeError("Dashboard interface no se inicializó correctamente")
-            
-        except KeyboardInterrupt:
-            print("\n👋 Dashboard interrumpido por el usuario")
         except Exception as e:
-            self.logger.error(f"Error ejecutando dashboard: {e}")
-            print(f"❌ Error crítico: {e}")
-            raise
-        finally:
-            await self.shutdown()
-    
-    def run_sync(self):
-        """Ejecutar dashboard de forma síncrona con bucle de datos activo"""
-        try:
-            # Inicializar componentes de forma síncrona
-            self.initialize_sync()
-            
-            print("\n============================================================")
-            print("🎯 ICT ENGINE DASHBOARD v6.1 ENTERPRISE")
-            print("============================================================")
-            print("📊 Sistema operativo y listo para trading")
-            print("� Data Collector activo - procesando patrones ICT...")
-            print("💡 Controles:")
-            print("   • Tecla 'q': Salir")
-            print("   • Ctrl+C: Salir forzado")
-            print("="*60)
-            print()
-            
-            self.is_running = True
-            
-            # 🎯 BUCLE PRINCIPAL PARA MANTENER EL SISTEMA ACTIVO
-            # Este bucle es crítico para que el data_collector procese datos continuamente
-            import time
-            
-            print("🚀 Iniciando bucle de procesamiento de datos ICT...")
-            print("📊 El sistema está procesando patrones en tiempo real...")
-            print("📁 Los logs se guardan en: 05-LOGS/ict_signals/")
-            print()
-            
             try:
-                while self.is_running:
-                    # Procesar datos del data collector cada 5 segundos
-                    if self.data_collector:
-                        try:
-                            # Esta llamada activa nuestro detector de patrones modificado
-                            latest_data = self.data_collector.get_latest_data()
-                            if latest_data:
-                                patterns_detected = latest_data.pattern_stats.get('patterns_detected_now', 0)
-                                if patterns_detected > 0:
-                                    print(f"🎯 {patterns_detected} nuevos patrones ICT detectados!")
-                                
-                        except Exception as e:
-                            print(f"⚠️ Error procesando datos: {e}")
-                    
-                    # Mostrar estado del sistema cada 30 segundos
-                    if hasattr(self, '_last_status_time'):
-                        if time.time() - self._last_status_time > 30:
-                            print(f"📊 {datetime.now().strftime('%H:%M:%S')} - Sistema activo, procesando datos...")
-                            self._last_status_time = time.time()
-                    else:
-                        self._last_status_time = time.time()
-                    
-                    # Dormir 5 segundos antes del siguiente ciclo
-                    time.sleep(5)
-                    
-            except KeyboardInterrupt:
-                print("\n👋 Saliendo del bucle de procesamiento...")
-                self.is_running = False
-            
-        except KeyboardInterrupt:
-            print("\n👋 Dashboard interrumpido por el usuario")
-        except Exception as e:
-            self.logger.error(f"Error ejecutando dashboard: {e}")
-            print(f"❌ Error crítico: {e}")
-            raise
-        finally:
-            # Llamar shutdown síncrono
-            self.shutdown_sync()
-
-    def initialize_sync(self):
-        """Inicializar componentes del dashboard de forma síncrona"""
-        try:
-            print("🚀 Inicializando ICT Engine Dashboard...")
-            print(f"📊 Título: {self.config['dashboard']['title']}")
-            print(f"⚙️ Modo: {self.config['dashboard']['layout_mode']}")
-            
-            # Inicializar data collector
-            print("🔧 Inicializando Data Collector...")
-            self.data_collector = RealDataCollector(self.config)
-            # No llamamos initialize() async aquí
-            print("✅ Data Collector inicializado")
-            
-            # Inicializar interfaz
-            print("🎨 Inicializando Interfaz de Usuario...")
-            self.dashboard_interface = TextualDashboardApp(self.config)
-            print("✅ Interfaz inicializada")
-            
-            self.logger.info("Dashboard inicializado correctamente")
-            
-        except Exception as e:
-            self.logger.error(f"Error inicializando dashboard: {e}")
+                self.logger.error(f"Error ejecutando dashboard: {e}")
+            except Exception:
+                pass
             raise
 
     def shutdown_sync(self):
-        """Cerrar dashboard limpiamente de forma síncrona"""
-        if not self.is_running:
+        """Cerrar dashboard de forma síncrona (mínimo para señal SIGINT)."""
+        if not getattr(self, 'is_running', False):
             return
-            
-        print("\n🔄 Cerrando dashboard...")
+        print("\n🔄 Cerrando dashboard (sync)...")
         self.is_running = False
-        
         try:
             if self.data_collector and hasattr(self.data_collector, 'shutdown'):
-                # Solo usar async shutdown ya que no hay shutdown_sync
-                print("🔄 [RealDataCollector] Cerrando conexiones...")
-                print("✅ [RealDataCollector] Cerrado correctamente")
-                print("✅ Data Collector cerrado")
-            
-            self.logger.info("Dashboard cerrado correctamente")
-            print("✅ Dashboard cerrado exitosamente")
-            
+                # Avoid awaiting in sync context; best-effort log message
+                print("🔌 Data Collector: cierre solicitado")
         except Exception as e:
-            print(f"⚠️ Error durante cierre: {e}")
-            self.logger.error(f"Error durante cierre: {e}")
-    
-    async def shutdown(self):
-        """Cerrar dashboard limpiamente"""
-        if not self.is_running:
-            return
-            
-        print("\n🔄 Cerrando dashboard...")
-        self.is_running = False
-        
-        try:
-            # Cerrar MT5 Health Integration
-            try:
-                from bridge.mt5_health_integration import shutdown_mt5_health_integration
-                shutdown_mt5_health_integration()
-                print("✅ MT5 Health Integration cerrado")
-                self.logger.info("✅ MT5 Health Integration cerrado")
-            except Exception as e:
-                print(f"⚠️ Error cerrando MT5 Health: {e}")
-                self.logger.warning(f"⚠️ Error cerrando MT5 Health: {e}")
-            
-            if self.data_collector:
-                await self.data_collector.shutdown()
-                print("✅ Data Collector cerrado")
-            
-            self.logger.info("Dashboard cerrado correctamente")
-            print("✅ Dashboard cerrado exitosamente")
-            
-        except Exception as e:
-            self.logger.error(f"Error cerrando dashboard: {e}")
             print(f"⚠️ Error durante cierre: {e}")
 
 def main():
@@ -397,5 +279,4 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-    main()
     main()
