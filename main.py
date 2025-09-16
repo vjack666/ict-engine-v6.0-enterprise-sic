@@ -181,6 +181,13 @@ class ICTEnterpriseManager:
         # Reconciliación de operaciones
         self.trade_reconciler: Optional['TradeReconciler'] = None  # forward ref string
         self._initialize_reconciler()
+        # Nuevos módulos de validación / estrategia / métricas
+        self.environment_validator = None
+        self.data_quality_validator = None
+        self.order_state_tracker = None
+        self.performance_metrics = None
+        self.strategy_pipeline = None
+        self._initialize_new_enterprise_components()
 
     def _try_import_trade_journal(self):
         try:
@@ -215,6 +222,47 @@ class ICTEnterpriseManager:
             self.trade_reconciler = reconciler_cls(journal, _positions_provider, logger=self.logger)  # type: ignore[arg-type]
         except Exception as e:
             self.logger.error(f"No se pudo crear TradeReconciler: {e}")
+
+    def _initialize_new_enterprise_components(self) -> None:
+        """Inicializar validadores de entorno/datos, agregador de métricas y pipeline de estrategia."""
+        try:
+            from validation.environment_validator import EnvironmentValidator  # type: ignore
+            from validation.data_quality_validator import DataQualityValidator  # type: ignore
+            from monitoring.performance_metrics_aggregator import PerformanceMetricsAggregator  # type: ignore
+            from trading.order_state_tracker import OrderStateTracker  # type: ignore
+            from trading.strategy_pipeline import StrategyPipeline  # type: ignore
+        except Exception as e:  # pragma: no cover
+            self.logger.warning(f"Component imports incompletos nuevos: {e}")
+            return
+        # Instanciar validadores sólo una vez
+        try:
+            if self.environment_validator is None:
+                self.environment_validator = EnvironmentValidator(SYSTEM_ROOT)
+                self.environment_validator.validate()
+            if self.data_quality_validator is None:
+                data_root = (SYSTEM_ROOT / '04-DATA' / 'data') if (SYSTEM_ROOT / '04-DATA' / 'data').exists() else (SYSTEM_ROOT / 'data')
+                self.data_quality_validator = DataQualityValidator(data_root if data_root.exists() else SYSTEM_ROOT)
+                self.data_quality_validator.validate()
+            if self.performance_metrics is None:
+                self.performance_metrics = PerformanceMetricsAggregator()
+            if self.order_state_tracker is None:
+                self.order_state_tracker = OrderStateTracker()
+            # Strategy pipeline (requiere risk_pipeline si ya montada)
+            if self.risk_pipeline and self.strategy_pipeline is None:
+                self.strategy_pipeline = StrategyPipeline(
+                    risk_pipeline=self.risk_pipeline,
+                    env_validator=self.environment_validator,
+                    data_validator=self.data_quality_validator,
+                    order_tracker=self.order_state_tracker,
+                    metrics=self.performance_metrics,
+                    executor=None  # Placeholder hasta que exista ejecutor real
+                )
+                try:
+                    self.logger.info("StrategyPipeline inicializado")
+                except Exception:
+                    pass
+        except Exception as e:  # pragma: no cover
+            self.logger.error(f"Error inicializando nuevos componentes: {e}")
 
     def _load_production_configuration(self):
         """🔧 Cargar configuración optimizada para producción"""

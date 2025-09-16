@@ -342,7 +342,17 @@ class ProductionCoordinator:
                 self._stop_components(emergency)
                 
                 # Final cleanup
-                self._executor.shutdown(wait=not emergency, timeout=5.0 if emergency else 30.0)
+                # ThreadPoolExecutor.shutdown in stdlib does not accept 'timeout'; emulate timed wait for emergency
+                if emergency:
+                    self._executor.shutdown(wait=False)
+                    # Emulate a bounded wait loop for up to 5 seconds
+                    import time as _t
+                    end = _t.time() + 5.0
+                    while _t.time() < end and len(getattr(self._executor, '_threads', [])) > 0:
+                        _t.sleep(0.05)
+                else:
+                    # Graceful full wait
+                    self._executor.shutdown(wait=True)
                 
                 self._transition_state(SystemState.STOPPED)
                 

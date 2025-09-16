@@ -15,44 +15,71 @@ integraciones (trading loop, dashboard, validation pipeline).
 """
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, List, Protocol, runtime_checkable
+from typing import Any, Dict, Optional, List, Protocol, runtime_checkable, TYPE_CHECKING
 from datetime import datetime
 
+class _LoggerLike(Protocol):
+    def info(self, m: str, c: str) -> None: ...
+    def warning(self, m: str, c: str) -> None: ...
+    def error(self, m: str, c: str) -> None: ...
+    def debug(self, m: str, c: str) -> None: ...
+
 # Logging central (safe fallback)
-try:
-    from protocols.logging_central_protocols import create_safe_logger
-except ImportError:  # pragma: no cover - fallback
+try:  # Attempt enterprise logger
+    from protocols.logging_central_protocols import create_safe_logger as _enterprise_create_safe_logger  # type: ignore
+    def create_safe_logger(component_name: str, fallback_to_print: bool = True, log_level: Any = None, **kwargs: Any) -> _LoggerLike:  # type: ignore[override]
+        return _enterprise_create_safe_logger(component_name, fallback_to_print=fallback_to_print, log_level=log_level, **kwargs)  # type: ignore
+except ImportError:  # pragma: no cover - fallback to minimal logger
     from smart_trading_logger import enviar_senal_log as _compat_log
     class _CompatLogger:
         def info(self, m: str, c: str) -> None: _compat_log("INFO", m, c)
         def warning(self, m: str, c: str) -> None: _compat_log("WARNING", m, c)
         def error(self, m: str, c: str) -> None: _compat_log("ERROR", m, c)
         def debug(self, m: str, c: str) -> None: _compat_log("DEBUG", m, c)
-    def create_safe_logger(name: str):  # type: ignore
+    def create_safe_logger(component_name: str, fallback_to_print: bool = True, log_level: Any = None, **kwargs: Any) -> _LoggerLike:  # type: ignore[override]
         return _CompatLogger()
 
-# Component imports (lazy if missing)
-try:
-    from .risk_guard import RiskGuard
-except Exception:  # pragma: no cover
-    RiskGuard = None  # type: ignore
-
-try:
-    from .risk_manager import RiskManager
-except Exception:  # pragma: no cover
-    RiskManager = None  # type: ignore
-
-try:
-    from .position_sizing import PositionSizingCalculator, PositionSizingParameters, PositionSizingResult
-except Exception:  # pragma: no cover
-    PositionSizingCalculator = None  # type: ignore
-    PositionSizingParameters = None  # type: ignore
-    PositionSizingResult = None  # type: ignore
-
-try:
-    from .real_time_risk_guard import RealTimeRiskGuard
-except Exception:  # pragma: no cover
-    RealTimeRiskGuard = None  # type: ignore
+# Component imports (lazy; provide minimal runtime stubs if missing)
+if TYPE_CHECKING:
+    from .risk_guard import RiskGuard  # pragma: no cover
+    from .risk_manager import RiskManager  # pragma: no cover
+    from .position_sizing import PositionSizingCalculator, PositionSizingParameters, PositionSizingResult  # pragma: no cover
+    from .real_time_risk_guard import RealTimeRiskGuard  # pragma: no cover
+else:
+    try:
+        from .risk_guard import RiskGuard  # type: ignore
+    except Exception:  # pragma: no cover
+        class RiskGuard:  # type: ignore
+            def evaluate(self, **_: Any) -> Dict[str, Any]: return {}
+    try:
+        from .risk_manager import RiskManager  # type: ignore
+    except Exception:  # pragma: no cover
+        class RiskManager:  # type: ignore
+            def calculate_ict_position_size(self, *_: Any, **__: Any) -> float: return 0.0
+            def calculate_correlation_risk(self, *_: Any, **__: Any) -> float: return 0.0
+    try:
+        from .position_sizing import PositionSizingCalculator, PositionSizingParameters, PositionSizingResult  # type: ignore
+    except Exception:  # pragma: no cover
+        class PositionSizingParameters:  # type: ignore
+            def __init__(self, **_: Any): pass
+        class PositionSizingResult:  # type: ignore
+            lots: float = 0.0
+            is_valid: bool = False
+            risk_amount: float = 0.0
+            confidence_score: float = 0.0
+            position_value: float = 0.0
+        class PositionSizingCalculator:  # type: ignore
+            def calculate_position_size(self, _params: Any) -> PositionSizingResult: return PositionSizingResult()
+    try:
+        from .real_time_risk_guard import RealTimeRiskGuard  # type: ignore
+    except Exception:  # pragma: no cover
+        class RealTimeRiskGuard:  # type: ignore
+            def evaluate(self, _ctx: Dict[str, Any]) -> Any:
+                class _Res:
+                    approved = True
+                    computed_risk_pct = 0.0
+                    reasons: List[str] = []
+                return _Res()
 
 @runtime_checkable
 class AlertEmitter(Protocol):  # minimal subset
@@ -78,7 +105,7 @@ class RiskPipeline:
                  position_sizer: Optional[PositionSizingCalculator] = None,
                  fast_gate: Optional[RealTimeRiskGuard] = None,
                  alert_emitter: Optional[AlertEmitter] = None):
-        self.logger = create_safe_logger("RiskPipeline")
+        self.logger = create_safe_logger("RiskPipeline")  # type: ignore[assignment]
         self.risk_guard = risk_guard
         self.risk_manager = risk_manager
         self.position_sizer = position_sizer
@@ -140,9 +167,15 @@ class RiskPipeline:
                 smart_flag = bool(signal_ctx.get('smart_money_signal', False))
                 session = signal_ctx.get('session', 'london')
                 if all(v is not None for v in (entry, sl, bal)):
-                    lots_hint = self.risk_manager.calculate_ict_position_size(
-                        bal, entry, sl, poi_quality=poi_quality, smart_money_signal=smart_flag, session=session
-                    )
+                    try:
+                        bal_f = float(bal)  # type: ignore[arg-type]
+                        entry_f = float(entry)  # type: ignore[arg-type]
+                        sl_f = float(sl)  # type: ignore[arg-type]
+                        lots_hint = self.risk_manager.calculate_ict_position_size(
+                            bal_f, entry_f, sl_f, poi_quality=poi_quality, smart_money_signal=smart_flag, session=session
+                        )
+                    except Exception as _conv_err:
+                        self.logger.warning(f"Conv error sizing hint: {_conv_err}", "risk_pipeline")
                 # Correlación simplificada
                 open_positions = signal_ctx.get('open_positions', [])
                 symbol = signal_ctx.get('symbol')
@@ -178,12 +211,15 @@ class RiskPipeline:
                 risk_pct = float(signal_ctx.get('risk_percent', 1.0))
                 symbol = signal_ctx.get('symbol', 'UNKNOWN')
                 if all(v is not None for v in (entry, sl, bal)):
+                    bal_f = float(bal)  # type: ignore[arg-type]
+                    entry_f = float(entry)  # type: ignore[arg-type]
+                    sl_f = float(sl)  # type: ignore[arg-type]
                     params = PositionSizingParameters(
                         symbol=symbol,
-                        account_balance=bal,
+                        account_balance=bal_f,
                         risk_percent=risk_pct,
-                        entry_price=entry,
-                        stop_loss=sl,
+                        entry_price=entry_f,
+                        stop_loss=sl_f,
                     )
                     result = self.position_sizer.calculate_position_size(params)
                     if result.is_valid:

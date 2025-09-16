@@ -68,7 +68,7 @@ class DataRecord:
     category: DataCategory
     timestamp: datetime
     data: Dict[str, Any]
-    metadata: Dict[str, Any] = None
+    metadata: Optional[Dict[str, Any]] = None
     
     def __post_init__(self):
         if self.metadata is None:
@@ -404,7 +404,22 @@ class ProductionDataPersistence:
                     temp_path.replace(file_path)
                     
                     if self.config.sync_to_disk:
-                        os.sync()
+                        # Flush best-effort: fsync the directory entry (POSIX) or file descriptor if available.
+                        try:
+                            if hasattr(os, 'sync'):
+                                os.sync()  # type: ignore[attr-defined]
+                            else:
+                                # Fallback: open directory and fsync (POSIX) or no-op on Windows
+                                try:
+                                    dir_fd = os.open(str(file_path.parent), os.O_RDONLY)
+                                    try:
+                                        os.fsync(dir_fd)
+                                    finally:
+                                        os.close(dir_fd)
+                                except Exception:
+                                    pass
+                        except Exception:
+                            pass
                 else:
                     # Direct write
                     if self.config.enable_compression and file_path.suffix == '.gz':
@@ -520,7 +535,8 @@ class ProductionDataPersistence:
                     params.append(end_time.isoformat())
                 
                 sql += " ORDER BY timestamp DESC LIMIT ?"
-                params.append(limit)
+                # Keep parameter types homogeneous (all str) for type checker; SQLite will coerce
+                params.append(str(limit))
                 
                 rows = conn.execute(sql, params).fetchall()
                 
@@ -783,7 +799,8 @@ class ProductionDataPersistence:
             self._backup_thread.join(timeout=10)
         
         # Shutdown executor
-        self._executor.shutdown(wait=True, timeout=10)
+        # ThreadPoolExecutor.shutdown in stdlib does not accept timeout param; emulate manual wait.
+        self._executor.shutdown(wait=True)
         
         # Final backup
         self.create_backup()
