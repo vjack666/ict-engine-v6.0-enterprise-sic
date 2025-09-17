@@ -22,28 +22,27 @@ Uso rápido:
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Dict, Any, List, Tuple, Optional, Callable
 from pathlib import Path
 from datetime import datetime
 import json
 import os
 
+_make_logger: Callable[[], Any]
 try:
     from protocols.logging_protocol import ProductionCentralLogger, EnterpriseLoggingConfig, LogLevel
-    def _get_logger():
-        return ProductionCentralLogger(EnterpriseLoggingConfig(
-            component_name="RISK_TRACKING",
-            log_level=LogLevel.INFO,
-            enable_file_logging=True,
-        ))
+    _make_logger = lambda: ProductionCentralLogger(EnterpriseLoggingConfig(
+        component_name="RISK_TRACKING",
+        log_level=LogLevel.INFO,
+        enable_file_logging=True,
+    ))
 except Exception:
     class _StubLogger:
         def info(self, msg: str, *_, **__): print(f"[INFO][RISK] {msg}")
         def warning(self, msg: str, *_, **__): print(f"[WARN][RISK] {msg}")
         def error(self, msg: str, *_, **__): print(f"[ERROR][RISK] {msg}")
         def debug(self, msg: str, *_, **__): pass
-    def _get_logger():
-        return _StubLogger()
+    _make_logger = lambda: _StubLogger()
 
 
 DATA_DIRS = [
@@ -65,7 +64,7 @@ class RiskChecklistItem:
 
 class RiskTracker:
     def __init__(self, target_min_gain: float = 10.0, target_max_gain: float = 30.0):
-        self.logger = _get_logger()
+        self.logger = _make_logger()
         self.target_min_gain = target_min_gain
         self.target_max_gain = target_max_gain
 

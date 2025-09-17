@@ -40,6 +40,7 @@ from pathlib import Path
 from typing import Dict, Any, Protocol, runtime_checkable, cast, Optional
 import json
 import os
+import sys
 
 METRICS_DIR = Path(os.environ.get('ICT_METRICS_DIR', Path(__file__).parent.parent / '04-DATA' / 'metrics'))
 
