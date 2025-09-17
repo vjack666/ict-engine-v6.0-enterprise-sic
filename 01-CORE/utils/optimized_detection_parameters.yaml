@@ -1,0 +1,204 @@
+# 🎯 OPTIMIZED DETECTION PARAMETERS - ICT Engine v6.0 Enterprise
+# ===============================================================
+# Parámetros optimizados basados en análisis de rendimiento y precisión
+# Actualizado: Septiembre 2025
+
+# 📊 ORDER BLOCKS DETECTION OPTIMIZATION
+order_blocks:
+  # Parámetros básicos optimizados
+  min_confidence: 65.0              # Incrementado de 55 a 65 para reducir falsos positivos
+  lookback_period: 15               # Reducido de 20 a 15 para mejor performance
+  max_distance_pips: 25             # Reducido de 30 a 25 para mayor precisión
+  volume_threshold: 1.5             # Incrementado de 1.2 a 1.5 para mejor filtrado
+  
+  # Nuevos parámetros de optimización
+  strength_multiplier: 1.2          # Factor para amplificar señales fuertes
+  confluence_bonus: 0.15            # Bonus de confianza por confluencias (+15%)
+  session_priority_bonus: 0.10     # Bonus para killzones (+10%)
+  
+  # Filtros avanzados
+  filters:
+    min_body_size_pips: 8           # Tamaño mínimo del cuerpo de vela
+    min_wick_ratio: 0.3             # Ratio mínimo de mecha vs cuerpo
+    max_age_bars: 50                # Máximo de barras para considerar un OB válido
+    volume_confirmation: true       # Requiere confirmación por volumen
+
+# 🔄 CHOCH DETECTION OPTIMIZATION
+choch:
+  # Confianza y umbrales
+  base_confidence: 70.0             # Incrementado de default para mayor precision
+  min_swing_size_pips: 15           # Tamaño mínimo de swing para CHoCH válido
+  trend_confirmation_bars: 5        # Barras necesarias para confirmar cambio de tendencia
+  
+  # Factores de peso por timeframe
+  timeframe_weights:
+    H4: 1.0                         # Peso base para H4
+    M15: 0.8                        # Reducido para M15
+    M5: 0.6                         # Menor peso para M5
+  
+  # Validaciones adicionales
+  validation:
+    require_volume_spike: true      # Requiere pico de volumen en ruptura
+    min_break_distance_pips: 5      # Distancia mínima de ruptura
+    structure_alignment_bonus: 0.20 # Bonus por alineación multi-timeframe
+
+# 📈 BOS DETECTION OPTIMIZATION  
+bos:
+  # Parámetros de detección
+  min_confidence: 75.0              # Mayor confianza requerida para BOS
+  swing_detection_window: 5         # Ventana para detectar swing points
+  break_confirmation_pips: 3        # Pips mínimos para confirmar ruptura
+  
+  # Filtros de calidad
+  quality_filters:
+    min_momentum_pips: 10           # Momentum mínimo post-ruptura
+    volume_increase_threshold: 1.3  # Incremento de volumen requerido
+    retest_tolerance_pips: 2        # Tolerancia para retests
+
+# 💎 FVG DETECTION OPTIMIZATION
+fair_value_gaps:
+  # Configuración básica optimizada
+  min_gap_size_pips: 3.0            # Incrementado de 2.0 para reducir ruido
+  max_gap_size_pips: 50.0           # Límite superior para gaps válidos
+  fill_tolerance_pips: 1.0          # Tolerancia para considerar gap "filled"
+  
+  # Adaptación por condiciones de mercado
+  market_conditions:
+    high_volatility:
+      min_gap_size_multiplier: 1.5  # Incrementar umbral en alta volatilidad
+      confidence_adjustment: -0.1   # Reducir confianza por volatilidad
+    
+    low_volatility:
+      min_gap_size_multiplier: 0.7  # Reducir umbral en baja volatilidad
+      confidence_adjustment: 0.1    # Incrementar confianza por estabilidad
+    
+    trending_market:
+      strength_multiplier: 1.3      # Incrementar fuerza en mercado tendencial
+      
+    ranging_market:
+      strength_multiplier: 0.8      # Reducir fuerza en mercado lateral
+
+# 🎯 SMART MONEY CONCEPTS OPTIMIZATION
+smart_money:
+  # Detección de manipulación
+  manipulation:
+    min_fake_breakout_pips: 8       # Tamaño mínimo de fake breakout
+    reversal_confirmation_pips: 12  # Confirmación de reversal post-manipulación
+    
+  # Análisis de liquidez
+  liquidity:
+    sweep_detection_pips: 5         # Distancia para detectar liquidity sweep
+    accumulation_zone_pips: 15      # Tamaño de zona de acumulación
+    
+  # Flujo institucional
+  institutional_flow:
+    min_order_size_threshold: 2.0   # Múltiplo de volumen promedio
+    flow_confirmation_bars: 3       # Barras para confirmar flujo
+
+# ⚡ PERFORMANCE OPTIMIZATION
+performance:
+  # Límites de procesamiento
+  max_patterns_per_symbol: 10       # Máximo de patrones por símbolo
+  analysis_timeout_seconds: 30      # Timeout para análisis por símbolo
+  memory_usage_limit_mb: 512        # Límite de memoria por análisis
+  
+  # Cache y persistencia
+  cache:
+    pattern_ttl_minutes: 15         # TTL para patrones en cache
+    enable_lazy_loading: true       # Carga perezosa de datos históricos
+    max_cache_size_mb: 256          # Tamaño máximo de cache
+  
+  # Filtros de performance
+  filters:
+    skip_low_confidence: true       # Omitir patrones de baja confianza
+    min_relevance_score: 0.6        # Score mínimo de relevancia
+    prioritize_recent_patterns: true # Priorizar patrones recientes
+
+# 🔧 VALIDATION AND QUALITY CONTROL
+validation:
+  # Niveles de validación
+  validation_level: "STANDARD"       # MINIMAL, STANDARD, STRICT
+  
+  # Métricas de calidad
+  quality_metrics:
+    min_pattern_accuracy: 0.70      # Precisión mínima requerida (70%)
+    max_false_positive_rate: 0.20   # Tasa máxima de falsos positivos (20%)
+    target_precision: 0.80          # Precisión objetivo (80%)
+    target_recall: 0.75             # Recall objetivo (75%)
+  
+  # Backtesting validation
+  backtest:
+    min_sample_size: 100            # Mínimo de muestras para validación
+    lookback_days: 30               # Días de lookback para validación
+    cross_validation_folds: 5       # Folds para cross-validation
+
+# 🚨 ALERT OPTIMIZATION
+alerting:
+  # Umbrales de alertas
+  thresholds:
+    high_confidence: 85.0           # Confianza alta para alertas inmediatas
+    medium_confidence: 70.0         # Confianza media para alertas normales
+    low_confidence: 55.0            # Confianza baja para alertas informativas
+  
+  # Filtros de spam
+  anti_spam:
+    min_time_between_alerts: 300    # Mínimo 5 minutos entre alertas similares
+    max_alerts_per_hour: 12         # Máximo 12 alertas por hora
+    duplicate_detection: true       # Detectar alertas duplicadas
+
+# 📊 MONITORING AND METRICS
+monitoring:
+  # Métricas clave
+  key_metrics:
+    - "detection_accuracy"
+    - "false_positive_rate" 
+    - "processing_time"
+    - "memory_usage"
+    - "pattern_count"
+  
+  # Intervalos de reportes
+  reporting:
+    live_metrics_interval: 60       # Actualizar métricas cada minuto
+    summary_report_interval: 3600   # Reporte resumen cada hora
+    performance_log_interval: 300   # Log de performance cada 5 minutos
+
+# 🎯 SYMBOL-SPECIFIC OPTIMIZATIONS
+symbol_overrides:
+  # Majors - Mayor liquidez, parámetros estándar
+  majors:
+    symbols: ["EURUSD", "GBPUSD", "USDJPY", "USDCHF"]
+    confidence_bonus: 0.05
+    min_gap_size_pips: 2.5
+  
+  # Minors - Menor liquidez, parámetros ajustados
+  minors:
+    symbols: ["EURGBP", "EURJPY", "GBPJPY"]
+    confidence_penalty: 0.05
+    min_gap_size_pips: 4.0
+  
+  # Exotics - Baja liquidez, parámetros conservadores
+  exotics:
+    symbols: ["USDTRY", "USDZAR", "USDMXN"]
+    confidence_penalty: 0.10
+    min_gap_size_pips: 6.0
+    volume_threshold: 2.0
+
+# 🔄 ADAPTIVE PARAMETERS
+adaptive:
+  # Ajuste automático basado en performance
+  auto_adjustment:
+    enabled: true
+    adjustment_interval_hours: 24   # Ajustar parámetros cada 24 horas
+    max_adjustment_percent: 0.20    # Máximo 20% de ajuste por periodo
+  
+  # Condiciones de mercado
+  market_regime_detection:
+    enabled: true
+    volatility_lookback_days: 5
+    trend_strength_threshold: 0.6
+  
+  # Learning from performance
+  machine_learning:
+    enabled: false                  # Deshabilitado por defecto
+    model_update_frequency: "weekly"
+    min_training_samples: 1000
