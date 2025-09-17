@@ -1,0 +1,9 @@
+{
+  "timestamp": "20250917_122207",
+  "optimization_level": "conservative",
+  "configurations": {
+    "base.yaml": "C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\01-CORE\\config\\backups\\base.yaml_20250917_122207.backup",
+    "production.yaml": "C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\01-CORE\\config\\backups\\production.yaml_20250917_122207.backup",
+    "development.yaml": "C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\01-CORE\\config\\backups\\development.yaml_20250917_122207.backup"
+  }
+}

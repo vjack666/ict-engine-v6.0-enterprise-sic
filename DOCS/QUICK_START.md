@@ -116,7 +116,7 @@ python -c "from data_management.mt5_data_manager import MT5DataManager; print(MT
 1. [x] Explorar Dashboard Terminal
 2. [x] Revisar Logs en 05-LOGS/
 3. [x] Configurar Alerts avanzados (ver DOCS/alerting/ADVANCED_ALERTS_SYSTEM.md)
-4. [ ] Optimizar parámetros de detección
+4. [x] Optimizar parámetros de detección ✅ **COMPLETADO** - Ver DOCS/PARAMETER_OPTIMIZATION_SUMMARY.md
 5. [ ] Escalar a real tras validación completa demo
 
 ---

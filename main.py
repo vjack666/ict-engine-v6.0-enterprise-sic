@@ -66,6 +66,17 @@ except ImportError as e:
     print(f"⚠️  Production modules not available: {e}")
     PRODUCTION_MODULES_AVAILABLE = False
 
+# Imports de los nuevos módulos de producción integrada
+try:
+    from production.production_system_manager import ProductionSystemManager
+    from production.realtime_data_processor import RealTimeDataProcessor
+    from production.production_system_integrator import ProductionSystemIntegrator
+    PRODUCTION_INTEGRATION_MODULES_AVAILABLE = True
+    print("✅ Production integration modules loaded successfully")
+except ImportError as e:
+    print(f"⚠️  Production integration modules not available: {e}")
+    PRODUCTION_INTEGRATION_MODULES_AVAILABLE = False
+
 # Clase fallback para SmartTradingLogger
 class BasicLogger:
     """Logger básico como fallback"""
@@ -191,6 +202,12 @@ class ICTEnterpriseManager:
         # Exportador de métricas JSON (opcional por entorno)
         self.metrics_exporter = None
         self._maybe_start_metrics_exporter()
+        
+        # 🏭 NUEVOS MÓDULOS DE PRODUCCIÓN INTEGRADA
+        self.production_system_manager = None
+        self.realtime_data_processor = None
+        self.production_system_integrator = None
+        self._initialize_production_integration_modules()
 
     def _try_import_trade_journal(self):
         try:
@@ -297,6 +314,195 @@ class ICTEnterpriseManager:
                 self.logger.error(f"No se pudo iniciar el exportador de métricas: {e}")
             except Exception:
                 pass
+
+    def _initialize_production_integration_modules(self):
+        """🏭 Inicializar módulos de integración de producción"""
+        if not PRODUCTION_INTEGRATION_MODULES_AVAILABLE:
+            self.logger.warning("Production integration modules not available - running without integrated modules")
+            return
+        
+        try:
+            from production.production_system_manager import ProductionSystemManager
+            from production.realtime_data_processor import RealTimeDataProcessor
+            from production.production_system_integrator import ProductionSystemIntegrator
+            
+            # 🎛️ Production System Manager (Central manager for all production components)
+            if not self.production_system_manager:
+                try:
+                    config = {}
+                    if self.production_config:
+                        config = {
+                            'profile': self.production_config.profile.value,
+                            'broker_type': self.production_config.broker_type.value,
+                            'market_condition': self.production_config.market_condition.value,
+                            'rate_limits': {
+                                'orders_per_second': self.production_config.rate_limit.orders_per_second,
+                                'orders_per_minute': self.production_config.rate_limit.orders_per_minute,
+                                'concurrent_orders': self.production_config.rate_limit.concurrent_orders
+                            }
+                        }
+                    
+                    self.production_system_manager = ProductionSystemManager(config)
+                    self.logger.info("✅ ProductionSystemManager initialized")
+                    
+                    # Start the manager
+                    self.production_system_manager.start()
+                    self.logger.info("✅ ProductionSystemManager started")
+                    
+                except Exception as e:
+                    self.logger.error(f"Error initializing ProductionSystemManager: {e}")
+            
+            # 📊 Realtime Data Processor
+            if not self.realtime_data_processor:
+                try:
+                    processor_config = {
+                        'symbols': ['EURUSD', 'GBPUSD', 'USDCAD', 'AUDUSD', 'USDJPY'],
+                        'timeframes': ['M1', 'M5', 'M15', 'H1'],
+                        'buffer_size': 1000,
+                        'max_history': 5000
+                    }
+                    
+                    self.realtime_data_processor = RealTimeDataProcessor(processor_config)
+                    self.logger.info("✅ RealtimeDataProcessor initialized")
+                    
+                    # Start processing
+                    self.realtime_data_processor.start()
+                    self.logger.info("✅ RealtimeDataProcessor started")
+                    
+                except Exception as e:
+                    self.logger.error(f"Error initializing RealtimeDataProcessor: {e}")
+            
+            # 🔗 Production System Integrator
+            if not self.production_system_integrator:
+                try:
+                    # Prepare components for integration
+                    components = {
+                        'data_processor': self.realtime_data_processor,
+                        'system_manager': self.production_system_manager,
+                        'execution_router': self.execution_router,
+                        'risk_pipeline': self.risk_pipeline,
+                        'position_manager': self.position_manager,
+                        'alert_dispatcher': self.alert_dispatcher,
+                        'health_monitor': self.health_performance_monitor
+                    }
+                    
+                    integrator_config = {
+                        'enable_auto_trading': False,  # Start in safe mode
+                        'enable_risk_management': True,
+                        'enable_position_tracking': True,
+                        'enable_alert_integration': True,
+                        'production_mode': True
+                    }
+                    
+                    self.production_system_integrator = ProductionSystemIntegrator(
+                        components, integrator_config
+                    )
+                    self.logger.info("✅ ProductionSystemIntegrator initialized")
+                    
+                    # Initialize integration
+                    self.production_system_integrator.initialize()
+                    self.logger.info("✅ ProductionSystemIntegrator integration complete")
+                    
+                except Exception as e:
+                    self.logger.error(f"Error initializing ProductionSystemIntegrator: {e}")
+            
+            # Connect all production modules
+            self._connect_production_integration_modules()
+            
+            self.logger.info("🏭 Production integration modules initialization complete")
+            
+        except Exception as e:
+            self.logger.error(f"Error initializing production integration modules: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _connect_production_integration_modules(self):
+        """Connect production integration modules with each other and existing systems"""
+        try:
+            # Connect data processor to system manager
+            if self.production_system_manager and self.realtime_data_processor:
+                self.production_system_manager.register_data_source(
+                    'realtime_processor', self.realtime_data_processor
+                )
+                self.logger.info("✓ Data processor connected to system manager")
+            
+            # Connect system integrator callbacks
+            if self.production_system_integrator:
+                # Add data callback
+                if self.realtime_data_processor:
+                    def data_callback(symbol, timeframe, tick_data):
+                        try:
+                            self.production_system_integrator.process_market_data(
+                                symbol, timeframe, tick_data
+                            )
+                        except Exception as e:
+                            self.logger.error(f"Error in data callback: {e}")
+                    
+                    self.realtime_data_processor.add_callback(data_callback)
+                    self.logger.info("✓ Data callback connected to integrator")
+                
+                # Add system health callback
+                if self.production_system_manager:
+                    def health_callback(component, status, metrics):
+                        try:
+                            self.production_system_integrator.handle_system_event(
+                                'health_update', {
+                                    'component': component,
+                                    'status': status,
+                                    'metrics': metrics
+                                }
+                            )
+                        except Exception as e:
+                            self.logger.error(f"Error in health callback: {e}")
+                    
+                    self.production_system_manager.add_health_callback(health_callback)
+                    self.logger.info("✓ Health callback connected to integrator")
+            
+            # Connect to existing systems
+            if self.health_performance_monitor and self.production_system_manager:
+                # Register production components for health monitoring
+                def check_production_systems():
+                    try:
+                        manager_ok = self.production_system_manager.is_healthy()
+                        processor_ok = (
+                            self.realtime_data_processor.is_running() 
+                            if self.realtime_data_processor else True
+                        )
+                        integrator_ok = (
+                            self.production_system_integrator.is_initialized() 
+                            if self.production_system_integrator else True
+                        )
+                        
+                        overall_ok = manager_ok and processor_ok and integrator_ok
+                        status_msg = f"Manager: {'OK' if manager_ok else 'FAIL'}, "
+                        status_msg += f"Processor: {'OK' if processor_ok else 'FAIL'}, "
+                        status_msg += f"Integrator: {'OK' if integrator_ok else 'FAIL'}"
+                        
+                        return overall_ok, status_msg
+                    except Exception as e:
+                        return False, f"Health check error: {e}"
+                
+                # Register health check
+                try:
+                    from monitoring import HealthCheck
+                    production_health_check = HealthCheck(
+                        name="production_integration",
+                        check_function=check_production_systems,
+                        interval_seconds=60.0,
+                        critical=True
+                    )
+                    
+                    self.health_performance_monitor.register_health_check(production_health_check)
+                    self.logger.info("✓ Production integration health check registered")
+                except Exception as e:
+                    self.logger.error(f"Error registering production health check: {e}")
+            
+            self.logger.info("🔗 Production integration modules connected successfully")
+            
+        except Exception as e:
+            self.logger.error(f"Error connecting production integration modules: {e}")
+            import traceback
+            traceback.print_exc()
 
     def _load_production_configuration(self):
         """🔧 Cargar configuración optimizada para producción"""
@@ -1138,6 +1344,13 @@ class ICTEnterpriseManager:
             ("HealthMonitor", self.health_performance_monitor),
         ]
         
+        # Nuevos módulos de integración de producción
+        production_integration_components = [
+            ("ProductionSystemManager", self.production_system_manager),
+            ("RealtimeDataProcessor", self.realtime_data_processor),
+            ("ProductionSystemIntegrator", self.production_system_integrator),
+        ]
+        
         # Componentes legacy/existentes
         legacy_components = [
             ("RiskGuard", self.risk_guard),
@@ -1170,6 +1383,36 @@ class ICTEnterpriseManager:
                         state = "ON " if ref else "OFF"
                 elif hasattr(ref, 'is_running'):
                     state = "ON " if ref.is_running else "OFF"
+                else:
+                    state = "ON "
+            else:
+                state = "OFF"
+            print(f"{name:20s}: {state}")
+        
+        print("\n🔗 MÓDULOS DE INTEGRACIÓN DE PRODUCCIÓN:")
+        print("-"*52)
+        for name, ref in production_integration_components:
+            if ref is not None:
+                # Verificar estado específico de cada módulo
+                if hasattr(ref, 'is_running') and hasattr(ref.is_running, '__call__'):
+                    try:
+                        state = "ON " if ref.is_running() else "OFF"
+                    except:
+                        state = "ON " if ref else "OFF"
+                elif hasattr(ref, 'is_running'):
+                    state = "ON " if ref.is_running else "OFF"
+                elif hasattr(ref, 'is_initialized') and hasattr(ref.is_initialized, '__call__'):
+                    try:
+                        state = "ON " if ref.is_initialized() else "OFF"
+                    except:
+                        state = "ON " if ref else "OFF"
+                elif hasattr(ref, 'is_initialized'):
+                    state = "ON " if ref.is_initialized else "OFF"
+                elif hasattr(ref, 'is_healthy') and hasattr(ref.is_healthy, '__call__'):
+                    try:
+                        state = "ON " if ref.is_healthy() else "OFF"
+                    except:
+                        state = "ON " if ref else "OFF"
                 else:
                     state = "ON "
             else:
@@ -1734,6 +1977,31 @@ if __name__ == "__main__":
                 except Exception as e:
                     self.logger.error(f"Error in AutoRecoverySystem shutdown: {e}")
             
+            # 🔄 Cerrar nuevos módulos de integración de producción
+            if hasattr(self, 'production_system_integrator') and self.production_system_integrator:
+                try:
+                    if hasattr(self.production_system_integrator, 'shutdown'):
+                        self.production_system_integrator.shutdown()
+                    self.logger.info("✅ ProductionSystemIntegrator stopped")
+                except Exception as e:
+                    self.logger.error(f"Error stopping ProductionSystemIntegrator: {e}")
+            
+            if hasattr(self, 'realtime_data_processor') and self.realtime_data_processor:
+                try:
+                    if hasattr(self.realtime_data_processor, 'stop'):
+                        self.realtime_data_processor.stop()
+                    self.logger.info("✅ RealtimeDataProcessor stopped")
+                except Exception as e:
+                    self.logger.error(f"Error stopping RealtimeDataProcessor: {e}")
+            
+            if hasattr(self, 'production_system_manager') and self.production_system_manager:
+                try:
+                    if hasattr(self.production_system_manager, 'stop'):
+                        self.production_system_manager.stop()
+                    self.logger.info("✅ ProductionSystemManager stopped")
+                except Exception as e:
+                    self.logger.error(f"Error stopping ProductionSystemManager: {e}")
+            
             # Cerrar componentes críticos
             if hasattr(self, 'data_collector') and self.data_collector:
                 try:
@@ -1842,6 +2110,55 @@ if __name__ == "__main__":
                 except Exception as e:
                     metrics['production_validator'] = {'error': str(e)}
             
+            # 🏭 Production Integration Modules Metrics
+            if self.production_system_manager:
+                try:
+                    manager_metrics = {}
+                    if hasattr(self.production_system_manager, 'get_metrics'):
+                        manager_metrics = self.production_system_manager.get_metrics()
+                    elif hasattr(self.production_system_manager, 'get_status'):
+                        manager_metrics = self.production_system_manager.get_status()
+                    else:
+                        manager_metrics = {
+                            'status': 'running' if hasattr(self.production_system_manager, 'is_healthy') and self.production_system_manager.is_healthy() else 'unknown'
+                        }
+                    metrics['production_system_manager'] = manager_metrics
+                except Exception as e:
+                    metrics['production_system_manager'] = {'error': str(e)}
+            
+            if self.realtime_data_processor:
+                try:
+                    processor_metrics = {}
+                    if hasattr(self.realtime_data_processor, 'get_metrics'):
+                        processor_metrics = self.realtime_data_processor.get_metrics()
+                    elif hasattr(self.realtime_data_processor, 'get_status'):
+                        processor_metrics = self.realtime_data_processor.get_status()
+                    else:
+                        processor_metrics = {
+                            'status': 'running' if hasattr(self.realtime_data_processor, 'is_running') and self.realtime_data_processor.is_running() else 'unknown',
+                            'processed_symbols': len(getattr(self.realtime_data_processor, 'symbols', [])),
+                            'active_timeframes': len(getattr(self.realtime_data_processor, 'timeframes', []))
+                        }
+                    metrics['realtime_data_processor'] = processor_metrics
+                except Exception as e:
+                    metrics['realtime_data_processor'] = {'error': str(e)}
+            
+            if self.production_system_integrator:
+                try:
+                    integrator_metrics = {}
+                    if hasattr(self.production_system_integrator, 'get_metrics'):
+                        integrator_metrics = self.production_system_integrator.get_metrics()
+                    elif hasattr(self.production_system_integrator, 'get_status'):
+                        integrator_metrics = self.production_system_integrator.get_status()
+                    else:
+                        integrator_metrics = {
+                            'status': 'initialized' if hasattr(self.production_system_integrator, 'is_initialized') and self.production_system_integrator.is_initialized() else 'unknown',
+                            'connected_components': len(getattr(self.production_system_integrator, 'components', {})),
+                        }
+                    metrics['production_system_integrator'] = integrator_metrics
+                except Exception as e:
+                    metrics['production_system_integrator'] = {'error': str(e)}
+            
             # System Resource Usage
             try:
                 import psutil
@@ -1862,14 +2179,25 @@ if __name__ == "__main__":
                 ('DataRateLimiter', self.data_rate_limiter),
                 ('MainRateLimiter', self.main_rate_limiter),
                 ('HealthMonitor', self.health_performance_monitor),
+                ('ProductionSystemManager', self.production_system_manager),
+                ('RealtimeDataProcessor', self.realtime_data_processor),
+                ('ProductionSystemIntegrator', self.production_system_integrator),
             ]
             
             metrics['components_status'] = {}
             for name, component in production_components:
                 if component:
                     try:
-                        if hasattr(component, 'is_running'):
+                        if hasattr(component, 'is_running') and hasattr(component.is_running, '__call__'):
+                            status = 'running' if component.is_running() else 'stopped'
+                        elif hasattr(component, 'is_running'):
                             status = 'running' if component.is_running else 'stopped'
+                        elif hasattr(component, 'is_initialized') and hasattr(component.is_initialized, '__call__'):
+                            status = 'initialized' if component.is_initialized() else 'not_initialized'
+                        elif hasattr(component, 'is_initialized'):
+                            status = 'initialized' if component.is_initialized else 'not_initialized'
+                        elif hasattr(component, 'is_healthy') and hasattr(component.is_healthy, '__call__'):
+                            status = 'healthy' if component.is_healthy() else 'unhealthy'
                         else:
                             status = 'active'
                     except:

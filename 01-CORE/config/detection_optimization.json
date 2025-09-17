@@ -1,0 +1,12 @@
+{
+  "detection_optimization": {
+    "enabled": true,
+    "level": "conservative",
+    "max_patterns_per_symbol": 10,
+    "analysis_timeout_seconds": 30,
+    "validation_level": "STANDARD",
+    "min_pattern_accuracy": 0.7,
+    "live_metrics_interval": 60,
+    "applied_at": "2025-09-17T12:22:07.044816"
+  }
+}

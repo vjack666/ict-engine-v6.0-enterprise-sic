@@ -1,0 +1,11 @@
+{
+  "manipulation_detection": true,
+  "liquidity_analysis": true,
+  "institutional_flow_analysis": true,
+  "min_fake_breakout_pips": 8,
+  "reversal_confirmation_pips": 12,
+  "sweep_detection_pips": 5,
+  "accumulation_zone_pips": 15,
+  "min_order_size_threshold": 2.0,
+  "flow_confirmation_bars": 3
+}

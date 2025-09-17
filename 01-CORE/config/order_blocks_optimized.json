@@ -1,0 +1,6 @@
+{
+  "lookback_period": 15,
+  "max_distance_pips": 25,
+  "min_confidence": 65.0,
+  "volume_threshold": 1.5
+}

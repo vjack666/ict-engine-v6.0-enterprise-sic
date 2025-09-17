@@ -1,0 +1,128 @@
+# 🧪 ICT ENGINE v6.0 ENTERPRISE - DEVELOPMENT CONFIGURATION
+# ========================================================
+# Configuración específica para entorno de desarrollo
+
+# 📊 TRADING CONFIGURATION (Development overrides)
+trading:
+  # Configuración más permisiva para desarrollo
+  max_positions: 10
+  max_daily_trades: 100
+  risk_per_trade: 0.01  # 1% por operación (seguro para testing)
+  
+  # Order blocks - configuración para testing
+  order_blocks:
+    min_size_pips: 5   # Más permisivo para ver más datos
+    max_age_hours: 48  # Más tiempo para análisis
+    detection_timeframes: ["M1", "M5", "M15", "M30", "H1", "H4"]  # Todos los timeframes
+
+# 🔌 MT5 CONNECTION (Development)
+mt5:
+  connection:
+    timeout: 120000  # 2 minutes (más tiempo para debug)
+    retries: 2       # Menos reintentos
+    retry_delay: 10  # Más tiempo para debug
+  
+  # Demo server por defecto
+  # Puede ser sobrescrito con variables de entorno
+
+# 🎯 RISK MANAGEMENT (Development)
+risk:
+  # Límites más permisivos para desarrollo
+  emergency_drawdown_limit: 0.20  # 20% (permisivo para testing)
+  max_consecutive_losses: 10      # Más pérdidas para análisis
+  daily_loss_limit: 0.10         # 10% (permisivo)
+  
+  position_sizing:
+    method: "fixed_risk"
+    max_position_size: 0.1  # Posiciones pequeñas para testing
+
+# 📈 DASHBOARD CONFIGURATION (Development)
+dashboard:
+  refresh_interval: 2000  # 2 seconds (más rápido para desarrollo)
+  
+  charts:
+    max_candles: 2000      # Más datos para análisis
+    update_interval: 500   # 500ms (muy rápido)
+
+# 📝 LOGGING CONFIGURATION (Development)
+logging:
+  level: "DEBUG"  # Máximo detalle para desarrollo
+  
+  rotation:
+    max_size_mb: 200    # Archivos más grandes para desarrollo
+    backup_count: 3     # Menos backups
+  
+  # Todos los logs habilitados para desarrollo
+  categories:
+    trading: true
+    mt5: true
+    dashboard: true
+    order_blocks: true
+    patterns: true
+    risk: true
+    system: true
+
+# 🔧 SYSTEM CONFIGURATION (Development)
+system:
+  performance:
+    cache_ttl_seconds: 60   # 1 minute (menos cache para ver cambios)
+    max_memory_usage_mb: 2048  # Más memoria para desarrollo
+    cleanup_interval_minutes: 30  # Menos frecuente
+  
+  health:
+    check_interval_seconds: 60  # Menos frecuente
+    alert_thresholds:
+      cpu_percent: 95       # Muy permisivo
+      memory_percent: 95    # Muy permisivo
+      disk_percent: 95      # Muy permisivo
+  
+  persistence:
+    backup_interval_hours: 12  # Menos frecuente
+    retention_days: 7         # Menos retención
+
+# 🚨 ALERTS CONFIGURATION (Development)
+alerts:
+  channels:
+    console: true       # Habilitado para desarrollo
+    file: true
+    dashboard: true
+    email: false        # Deshabilitado para desarrollo
+  
+  # Todos los tipos habilitados para ver todo
+  types:
+    order_block_detected: true
+    pattern_confirmed: true
+    risk_threshold_exceeded: true
+    system_error: true
+    mt5_connection_lost: true
+
+# 🧪 DEVELOPMENT SPECIFIC
+development:
+  # Configuraciones específicas de desarrollo
+  debug_mode: true
+  verbose_output: true
+  
+  # Testing features
+  simulate_market_data: false
+  mock_mt5_connection: false
+  
+  # Performance profiling
+  enable_profiling: true
+  profile_slow_queries: true
+  
+  # Hot reload
+  hot_reload: true
+  watch_file_changes: true
+
+# 🔧 TESTING CONFIGURATION
+testing:
+  # Configuración para tests
+  test_data_path: "tests/data/"
+  mock_responses: true
+  
+  # Test timeouts
+  default_timeout: 30
+  slow_test_timeout: 120
+  
+  # Coverage
+  minimum_coverage: 80

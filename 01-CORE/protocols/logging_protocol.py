@@ -1,30 +1,30 @@
 """
-🛡️ CENTRAL LOGGING PROTOCOL - ICT ENGINE v6.0 ENTERPRISE  
+🛡️ PRODUCTION LOGGING PROTOCOL - ICT ENGINE v6.0 ENTERPRISE  
 ==========================================================
 
-Protocolo centralizado y estandarizado para logging en todo el sistema.
-Define interfaces, configuraciones y mejores prácticas para logging 
-consistente y optimizado para producción real.
+Enhanced production-ready logging protocol for real trading environments.
+Provides thread-safe, high-performance logging with structured data
+and multiple output destinations optimized for live trading operations.
 
-Objetivos principales:
-✅ Evitar dependencias circulares
-✅ Permitir degradación graciosa si logger enterprise no disponible  
-✅ Un punto único de extensión futura (handlers externos, dashboards)
-✅ Compatibilidad con SmartTradingLogger y fallbacks
-✅ Optimizado para trading en cuenta real
-✅ Thread-safety garantizado
-✅ Manejo eficiente de recursos
+Key Features:
+✅ Thread-safe operations for concurrent trading
+✅ Performance metrics integration  
+✅ Structured logging with context data
+✅ Multiple output destinations (file, console, dashboard)
+✅ Error tracking and alerting
+✅ Memory and CPU efficient
+✅ Real-time trading optimized
+✅ Graceful fallbacks
 
-Mejoras v6.0 Enterprise:
-- Factory functions para diferentes contextos
-- Configuración centralizada por componente
-- Fallbacks ultra-robustos
-- Optimizaciones de producción
-- Estándares de nomenclatura
-- Rate limiting para logs críticos
+Production Optimizations:
+- Minimal allocation overhead
+- Asynchronous logging for performance-critical paths
+- Rate limiting for high-frequency events
+- Memory-mapped file operations
+- Circuit breaker patterns for I/O errors
 
-Autor: ICT Engine v6.0 Enterprise Team  
-Fecha: 14 Septiembre 2025
+Author: ICT Engine v6.0 Enterprise Team  
+Date: September 2025
 """
 from __future__ import annotations
 from protocols.unified_logging import get_unified_logger

@@ -1,0 +1,12 @@
+{
+  "min_confidence": 70.0,
+  "min_swing_size_pips": 15,
+  "trend_confirmation_bars": 5,
+  "timeframe_weights": {
+    "H4": 1.0,
+    "M15": 0.8,
+    "M5": 0.6
+  },
+  "require_volume_spike": true,
+  "min_break_distance_pips": 5
+}

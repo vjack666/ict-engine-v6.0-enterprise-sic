@@ -1,0 +1,19 @@
+{
+  "min_gap_size_pips": 3.0,
+  "max_gap_size_pips": 50.0,
+  "fill_tolerance_pips": 1.0,
+  "volatility_factor": 1.0,
+  "momentum_factor": 1.0,
+  "confidence_adjustment": 0.0,
+  "strength_multiplier": 1.0,
+  "market_conditions": {
+    "high_volatility": {
+      "min_gap_size_multiplier": 1.5,
+      "confidence_adjustment": -0.1
+    },
+    "low_volatility": {
+      "min_gap_size_multiplier": 0.7,
+      "confidence_adjustment": 0.1
+    }
+  }
+}
