@@ -1,5 +1,6 @@
 param(
-    [switch]$SkipStress
+    [switch]$SkipStress,
+    [int]$TimeoutSec = 600
 )
 
 Set-StrictMode -Version Latest
@@ -42,7 +43,7 @@ function Invoke-Step {
     }
 
     Write-Header $Name
-    "[RUN] $Name -> $RelPath" | Tee-Object -FilePath $logFile -Append | Out-Null
+    "[RUN] $Name -> $RelPath" | Tee-Object -FilePath $logFile -Append
 
     # Determine Python executable preference
     $pythonExe = "$Env:LOCALAPPDATA\Programs\Python\Python313\python.exe"
@@ -62,19 +63,34 @@ function Invoke-Step {
     $tmpOut = [System.IO.Path]::GetTempFileName()
     $tmpErr = [System.IO.Path]::GetTempFileName()
     try {
-        $proc = Start-Process -FilePath $pythonExe -ArgumentList $args -NoNewWindow -Wait -PassThru -RedirectStandardOutput $tmpOut -RedirectStandardError $tmpErr
-        Get-Content -Path $tmpOut -Encoding UTF8 | Tee-Object -FilePath $logFile -Append | Out-Null
-        Get-Content -Path $tmpErr -Encoding UTF8 | Tee-Object -FilePath $logFile -Append | Out-Null
-        $exit = $proc.ExitCode
+        $proc = Start-Process -FilePath $pythonExe -ArgumentList $args -NoNewWindow -PassThru -RedirectStandardOutput $tmpOut -RedirectStandardError $tmpErr
+        $waited = $true
+        try {
+            Wait-Process -Id $proc.Id -Timeout $TimeoutSec -ErrorAction Stop
+        } catch {
+            $waited = $false
+        }
+
+        if (-not $waited) {
+            try { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue } catch {}
+            "[TIMEOUT] $Name exceeded ${TimeoutSec}s" | Tee-Object -FilePath $logFile -Append
+            $exit = 124
+        } else {
+            $exit = $proc.ExitCode
+        }
+
+        # Append outputs to log and echo to console
+        if (Test-Path $tmpOut) { Get-Content -Path $tmpOut -Encoding UTF8 | Tee-Object -FilePath $logFile -Append }
+        if (Test-Path $tmpErr) { Get-Content -Path $tmpErr -Encoding UTF8 | Tee-Object -FilePath $logFile -Append }
     } finally {
         Remove-Item -Path $tmpOut,$tmpErr -ErrorAction SilentlyContinue
     }
 
     if ($exit -eq 0) {
-        "[OK] $Name (exit=$exit)" | Tee-Object -FilePath $logFile -Append | Out-Null
+        "[OK] $Name (exit=$exit)" | Tee-Object -FilePath $logFile -Append
         return $true
     } else {
-        "[FAIL] $Name (exit=$exit)" | Tee-Object -FilePath $logFile -Append | Out-Null
+        "[FAIL] $Name (exit=$exit)" | Tee-Object -FilePath $logFile -Append
         return $false
     }
 }
