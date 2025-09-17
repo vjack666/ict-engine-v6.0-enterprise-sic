@@ -61,6 +61,16 @@ class EmergencyConfig:
     recovery_cooldown: int = 3600              # 1 hora cooldown después stop
     enable_weekend_stop: bool = True           # Parar durante fines semana
     enable_news_stop: bool = True              # Parar durante high impact news
+    
+    # Technical monitoring thresholds
+    max_terminal_response_ms: float = 5000.0   # 5s max response time
+    max_data_age_seconds: float = 60.0         # 1 min max data age
+    max_failed_orders: int = 3                 # Max failed orders before alert
+    
+    # Market condition thresholds  
+    max_volatility_threshold: float = 3.0      # Max volatility index
+    max_price_gap_pips: float = 50.0          # Max price gap in pips
+    avoid_weekend_trading: bool = True         # Avoid weekend trading
 
 @dataclass 
 class AccountHealth:
@@ -75,6 +85,11 @@ class AccountHealth:
     open_positions: int = 0
     last_trade_result: Optional[str] = None
     last_update: datetime = field(default_factory=datetime.now)
+    
+    # Technical health indicators
+    failed_orders_count: int = 0
+    volatility_index: float = 0.0
+    max_price_gap: float = 0.0
 
 @dataclass
 class EmergencyAlert:
@@ -292,10 +307,34 @@ class EmergencyStopSystem:
     
     def _check_technical_issues(self) -> bool:
         """Verifica problemas técnicos"""
-        # TODO: Implement technical health checks
-        # - MT5 terminal response time
-        # - Data feed quality
-        # - Order execution issues
+        try:
+            # Check MT5 terminal response time
+            if self.mt5_manager:
+                start_time = time.time()
+                terminal_info = self.mt5_manager.get_terminal_info()
+                response_time = (time.time() - start_time) * 1000  # ms
+                
+                if response_time > self.config.max_terminal_response_ms:
+                    self.logger.warning(f"MT5 terminal slow response: {response_time:.1f}ms")
+                    return True
+                
+                # Check data feed quality - last tick age
+                if hasattr(terminal_info, 'last_tick_time'):
+                    tick_age = time.time() - terminal_info.last_tick_time
+                    if tick_age > self.config.max_data_age_seconds:
+                        self.logger.warning(f"Stale data feed: {tick_age:.1f}s old")
+                        return True
+                
+                # Check order execution health
+                if hasattr(self.account_health, 'failed_orders_count'):
+                    if self.account_health.failed_orders_count > self.config.max_failed_orders:
+                        self.logger.warning(f"Too many failed orders: {self.account_health.failed_orders_count}")
+                        return True
+                        
+        except Exception as e:
+            self.logger.error(f"Technical health check error: {e}")
+            return True  # Error = technical issue
+            
         return False
     
     def _check_connection_health(self) -> bool:
@@ -313,11 +352,37 @@ class EmergencyStopSystem:
     
     def _check_market_conditions(self) -> bool:
         """Verifica condiciones mercado extremas"""
-        # TODO: Implement market conditions monitoring
-        # - Volatility spikes
-        # - Gap events  
-        # - Weekend trading
-        # - News events
+        try:
+            # Check for volatility spikes
+            if hasattr(self.account_health, 'volatility_index'):
+                if self.account_health.volatility_index > self.config.max_volatility_threshold:
+                    self.logger.warning(f"Extreme volatility detected: {self.account_health.volatility_index}")
+                    return True
+            
+            # Check for gap events (price jumps > threshold)
+            if hasattr(self.account_health, 'max_price_gap'):
+                if self.account_health.max_price_gap > self.config.max_price_gap_pips:
+                    self.logger.warning(f"Large price gap detected: {self.account_health.max_price_gap} pips")
+                    return True
+            
+            # Check for weekend trading (should be avoided)
+            current_time = datetime.now()
+            if current_time.weekday() >= 5:  # Saturday=5, Sunday=6
+                if self.config.avoid_weekend_trading:
+                    self.logger.warning("Weekend trading detected")
+                    return True
+            
+            # Check for major news events (if news calendar available)
+            if hasattr(self, 'news_calendar') and self.news_calendar:
+                upcoming_events = self.news_calendar.get_high_impact_events(minutes_ahead=30)
+                if upcoming_events:
+                    self.logger.warning(f"High impact news events in 30 minutes: {len(upcoming_events)}")
+                    return True
+                    
+        except Exception as e:
+            self.logger.error(f"Market conditions check error: {e}")
+            return True  # Error = assume dangerous conditions
+            
         return False
     
     def _update_emergency_level(self):
@@ -364,6 +429,10 @@ class EmergencyStopSystem:
         self.logger.critical(f"Actions Taken: {', '.join(actions_taken)}")
         
         # TODO: Send notifications (email, Telegram, etc.)
+        try:
+            self._send_emergency_notification(alert)
+        except Exception as e:
+            self.logger.error(f"Failed to send emergency notification: {e}")
     
     def _execute_emergency_actions(self, reason: StopReason) -> List[str]:
         """Ejecuta acciones emergencia automáticas"""
@@ -397,12 +466,49 @@ class EmergencyStopSystem:
             return False
             
         try:
-            # TODO: Implement with actual MT5DataManager
-            # positions = self.mt5_manager.get_positions()
-            # for position in positions:
-            #     self.mt5_manager.close_position(position['ticket'])
-            return True
-        except:
+            import MetaTrader5 as mt5  # type: ignore
+            
+            # Get all open positions
+            positions = mt5.positions_get()
+            if positions is None:
+                return True  # No positions to close
+            
+            closed_count = 0
+            for position in positions:
+                # Determine action (opposite of position type)
+                action = mt5.TRADE_ACTION_DEAL
+                if position.type == mt5.POSITION_TYPE_BUY:
+                    order_type = mt5.ORDER_TYPE_SELL
+                else:
+                    order_type = mt5.ORDER_TYPE_BUY
+                
+                # Create close request
+                request = {
+                    "action": action,
+                    "symbol": position.symbol,
+                    "volume": position.volume,
+                    "type": order_type,
+                    "position": position.ticket,
+                    "deviation": 20,
+                    "comment": "EMERGENCY_CLOSE"
+                }
+                
+                # Execute close order
+                result = mt5.order_send(request)
+                if result.retcode == mt5.TRADE_RETCODE_DONE:
+                    closed_count += 1
+                    self.logger.info(f"Emergency closed position {position.ticket}")
+                else:
+                    self.logger.error(f"Failed to close position {position.ticket}: {result.comment}")
+            
+            self.logger.info(f"Emergency close completed: {closed_count}/{len(positions)} positions closed")
+            return closed_count == len(positions)
+            
+        except ImportError:
+            self.logger.error("MT5 not available for position closing")
+            return False
+        except Exception as e:
+            self.logger.error(f"Error closing positions: {e}")
             return False
     
     def _cancel_all_orders(self) -> bool:
@@ -411,12 +517,38 @@ class EmergencyStopSystem:
             return False
             
         try:
-            # TODO: Implement with actual MT5DataManager  
-            # orders = self.mt5_manager.get_orders()
-            # for order in orders:
-            #     self.mt5_manager.cancel_order(order['ticket'])
-            return True
-        except:
+            import MetaTrader5 as mt5  # type: ignore
+            
+            # Get all pending orders
+            orders = mt5.orders_get()
+            if orders is None:
+                return True  # No orders to cancel
+            
+            cancelled_count = 0
+            for order in orders:
+                # Create cancel request
+                request = {
+                    "action": mt5.TRADE_ACTION_REMOVE,
+                    "order": order.ticket,
+                    "comment": "EMERGENCY_CANCEL"
+                }
+                
+                # Execute cancel order
+                result = mt5.order_send(request)
+                if result.retcode == mt5.TRADE_RETCODE_DONE:
+                    cancelled_count += 1
+                    self.logger.info(f"Emergency cancelled order {order.ticket}")
+                else:
+                    self.logger.error(f"Failed to cancel order {order.ticket}: {result.comment}")
+            
+            self.logger.info(f"Emergency cancel completed: {cancelled_count}/{len(orders)} orders cancelled")
+            return cancelled_count == len(orders)
+            
+        except ImportError:
+            self.logger.error("MT5 not available for order cancellation")
+            return False
+        except Exception as e:
+            self.logger.error(f"Error cancelling orders: {e}")
             return False
     
     def manual_emergency_stop(self, reason: str = "Manual intervention"):
@@ -496,18 +628,99 @@ class EmergencyStopSystem:
     
     def _get_open_positions_count(self) -> int:
         """Cuenta posiciones abiertas"""
-        # TODO: Implement actual count
-        return 0
+        try:
+            import MetaTrader5 as mt5  # type: ignore
+            
+            positions = mt5.positions_get()
+            return len(positions) if positions is not None else 0
+            
+        except ImportError:
+            self.logger.warning("MT5 not available for position count")
+            return 0
+        except Exception as e:
+            self.logger.error(f"Error counting positions: {e}")
+            return 0
     
     def _calculate_daily_pnl(self) -> float:
         """Calcula P&L diario"""
-        # TODO: Implement actual calculation
-        return 0.0
+        try:
+            import MetaTrader5 as mt5  # type: ignore
+            from datetime import datetime, time
+            
+            # Get today's date range
+            today = datetime.now().date()
+            start_of_day = datetime.combine(today, time.min)
+            
+            # Get deals from today
+            deals = mt5.history_deals_get(start_of_day, datetime.now())
+            if deals is None:
+                return 0.0
+            
+            # Calculate total P&L for today
+            daily_pnl = 0.0
+            for deal in deals:
+                if hasattr(deal, 'profit'):
+                    daily_pnl += deal.profit
+                    
+            return daily_pnl
+            
+        except ImportError:
+            self.logger.warning("MT5 not available for P&L calculation")
+            return 0.0
+        except Exception as e:
+            self.logger.error(f"Error calculating daily P&L: {e}")
+            return 0.0
     
     def _update_consecutive_trades(self):
         """Actualiza contador trades consecutivos"""
-        # TODO: Implement based on recent trade history
-        pass
+        try:
+            import MetaTrader5 as mt5  # type: ignore
+            from datetime import datetime, timedelta
+            
+            # Get recent deals (last 24 hours)
+            yesterday = datetime.now() - timedelta(days=1)
+            deals = mt5.history_deals_get(yesterday, datetime.now())
+            
+            if deals is None or len(deals) == 0:
+                return
+            
+            # Sort deals by time (newest first)
+            sorted_deals = sorted(deals, key=lambda x: x.time, reverse=True)
+            
+            # Count consecutive wins/losses from most recent
+            consecutive_losses = 0
+            consecutive_wins = 0
+            
+            for deal in sorted_deals:
+                if hasattr(deal, 'profit') and deal.profit != 0:  # Only count actual trades, not balance operations
+                    if deal.profit < 0:  # Loss
+                        if consecutive_wins == 0:  # Still counting losses
+                            consecutive_losses += 1
+                        else:
+                            break  # Hit a win, stop counting losses
+                    elif deal.profit > 0:  # Win
+                        if consecutive_losses == 0:  # Still counting wins
+                            consecutive_wins += 1
+                        else:
+                            break  # Hit a loss, stop counting wins
+            
+            # Update account health
+            self.account_health.consecutive_losses = consecutive_losses
+            self.account_health.consecutive_wins = consecutive_wins
+            
+            # Set last trade result
+            if len(sorted_deals) > 0 and hasattr(sorted_deals[0], 'profit'):
+                if sorted_deals[0].profit > 0:
+                    self.account_health.last_trade_result = "WIN"
+                elif sorted_deals[0].profit < 0:
+                    self.account_health.last_trade_result = "LOSS"
+                else:
+                    self.account_health.last_trade_result = "NEUTRAL"
+            
+        except ImportError:
+            self.logger.warning("MT5 not available for trade history analysis")
+        except Exception as e:
+            self.logger.error(f"Error updating consecutive trades: {e}")
     
     def _get_stop_message(self, reason: StopReason) -> str:
         """Genera mensaje parada según razón"""
@@ -533,11 +746,92 @@ class EmergencyStopSystem:
     def _save_emergency_state(self):
         """Guarda estado emergencia a disco"""
         try:
-            state = self.get_health_report()
-            # TODO: Save to file or database
-            self.logger.info("Emergency state saved")
+            state = {
+                'timestamp': datetime.now().isoformat(),
+                'emergency_level': self.emergency_level.value,
+                'stop_reason': self.stop_reason.value if self.stop_reason else None,
+                'is_trading_enabled': self.is_trading_enabled,
+                'account_health': {
+                    'current_balance': self.account_health.current_balance,
+                    'current_drawdown': self.account_health.current_drawdown,
+                    'daily_pnl': self.account_health.daily_pnl,
+                    'consecutive_losses': self.account_health.consecutive_losses,
+                    'open_positions': self.account_health.open_positions
+                },
+                'config': {
+                    'max_drawdown_percent': self.config.max_drawdown_percent,
+                    'max_consecutive_losses': self.config.max_consecutive_losses,
+                    'daily_loss_limit': self.config.daily_loss_limit
+                }
+            }
+            
+            # Save to emergency state file
+            emergency_file = "04-DATA/state/emergency_state.json"
+            import os
+            os.makedirs(os.path.dirname(emergency_file), exist_ok=True)
+            
+            with open(emergency_file, 'w') as f:
+                json.dump(state, f, indent=2)
+                
+            self.logger.info(f"Emergency state saved to {emergency_file}")
         except Exception as e:
             self.logger.error(f"Failed to save emergency state: {str(e)}")
+    
+    def _send_emergency_notification(self, alert: EmergencyAlert):
+        """Envía notificación de emergencia"""
+        try:
+            # Log critical alert
+            self.logger.critical(f"🚨 EMERGENCY ALERT 🚨")
+            self.logger.critical(f"Level: {alert.level.value.upper()}")
+            self.logger.critical(f"Reason: {alert.reason.value}")
+            self.logger.critical(f"Message: {alert.message}")
+            self.logger.critical(f"Actions: {', '.join(alert.actions_taken)}")
+            
+            # TODO: Implement additional notification methods
+            # - Email notification
+            # - Telegram bot message  
+            # - SMS alert
+            # - Discord webhook
+            # - Phone call via Twilio
+            
+            # For now, just ensure critical logging
+            notification_summary = {
+                'timestamp': alert.timestamp.isoformat(),
+                'level': alert.level.value,
+                'reason': alert.reason.value,
+                'message': alert.message,
+                'account_balance': alert.account_health.current_balance,
+                'drawdown': alert.account_health.current_drawdown,
+                'actions_taken': alert.actions_taken
+            }
+            
+            # Save notification to emergency log
+            emergency_log_file = "05-LOGS/emergency/emergency_notifications.json"
+            import os
+            os.makedirs(os.path.dirname(emergency_log_file), exist_ok=True)
+            
+            # Append to notifications log
+            try:
+                with open(emergency_log_file, 'r') as f:
+                    notifications = json.load(f)
+            except (FileNotFoundError, json.JSONDecodeError):
+                notifications = []
+            
+            notifications.append(notification_summary)
+            
+            # Keep only last 100 notifications
+            if len(notifications) > 100:
+                notifications = notifications[-100:]
+            
+            with open(emergency_log_file, 'w') as f:
+                json.dump(notifications, f, indent=2)
+            
+        except Exception as e:
+            self.logger.error(f"Failed to send emergency notification: {e}")
+            # Fallback - at least print to console
+            print(f"🚨 EMERGENCY: {alert.message}")
+            print(f"Level: {alert.level.value} | Reason: {alert.reason.value}")
+            print(f"Actions: {', '.join(alert.actions_taken)}")
 
 
 # Ejemplo uso:

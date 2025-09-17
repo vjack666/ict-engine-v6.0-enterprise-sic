@@ -101,23 +101,9 @@ except ImportError:
     def log_debug(message, component="CORE"): print(f"[{component}] DEBUG: {message}")  # type: ignore
     def get_unified_memory_system(): return None  # type: ignore
     
-    class SmartTradingLogger:  # type: ignore
-        """Fallback SmartTradingLogger"""
-        def __init__(self, name="FallbackLogger"):
-            self.name = name
-        def info(self, message): print(f"[{self.name}] INFO: {message}")
-        def warning(self, message): print(f"[{self.name}] WARNING: {message}")
-        def error(self, message): print(f"[{self.name}] ERROR: {message}")
-        def debug(self, message): print(f"[{self.name}] DEBUG: {message}")
-    
-    class UnifiedLoggingSystem:  # type: ignore
-        """Fallback UnifiedLoggingSystem"""
-        def __init__(self, name="FallbackSystem"):
-            self.name = name
-        def info(self, message): print(f"[{self.name}] INFO: {message}")
-        def warning(self, message): print(f"[{self.name}] WARNING: {message}")
-        def error(self, message): print(f"[{self.name}] ERROR: {message}")
-        def debug(self, message): print(f"[{self.name}] DEBUG: {message}")
+    # Eliminar clases duplicadas - usar el SmartTradingLogger principal
+    SmartTradingLogger = None  # type: ignore
+    UnifiedLoggingSystem = None  # type: ignore
     
     def create_unified_logger(name="FallbackLogger"):  # type: ignore
         return UnifiedLoggingSystem(name)

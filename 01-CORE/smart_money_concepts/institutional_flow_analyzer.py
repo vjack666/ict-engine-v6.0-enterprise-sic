@@ -33,18 +33,25 @@ from typing import Dict, List, Optional, Any, Tuple, Union
 from enum import Enum
 from dataclasses import dataclass
 
-# Core imports
+# Core imports - Fixed circular import
 try:
-    from .smart_money_analyzer import SmartMoneyAnalyzer, SmartMoneySession, InstitutionalFlow
     from ..smart_trading_logger import SmartTradingLogger
     CORE_AVAILABLE = True
 except ImportError as e:
     print(f"⚠️ Core dependencies not available: {e}")
-    SmartMoneyAnalyzer = None
     SmartTradingLogger = None
-    SmartMoneySession = None
-    InstitutionalFlow = None
     CORE_AVAILABLE = False
+
+# Evitar importaciones circulares - imports dinámicos
+def _get_smart_money_classes():
+    """Get SmartMoney classes dynamically to avoid circular imports"""
+    try:
+        from .smart_money_analyzer import SmartMoneySession, InstitutionalFlow
+        return SmartMoneySession, InstitutionalFlow
+    except ImportError:
+        return None, None
+
+SmartMoneySession, InstitutionalFlow = _get_smart_money_classes()
 
 
 class KillzoneStatus(Enum):
@@ -99,11 +106,13 @@ class InstitutionalFlowAnalyzer:
         Args:
             logger: Sistema de logging (opcional)
         """
-        if not CORE_AVAILABLE or not SmartMoneyAnalyzer:
+        # Dynamic import to avoid circular imports
+        try:
+            from .smart_money_analyzer import SmartMoneyAnalyzer
+            self.analyzer = SmartMoneyAnalyzer(logger=logger)
+        except ImportError:
             raise RuntimeError("SmartMoneyAnalyzer requerido para InstitutionalFlowAnalyzer")
             
-        # Core components
-        self.analyzer = SmartMoneyAnalyzer(logger=logger)
         self.logger = logger or SmartTradingLogger("InstitutionalFlowAnalyzer") if SmartTradingLogger else None
         
         # Historical data cache

@@ -59,10 +59,8 @@ try:
     from ..smart_trading_logger import SmartTradingLogger  # type: ignore
 except ImportError:
     import logging
-    class SmartTradingLogger:
-        @staticmethod
-        def get_logger(name: str):
-            return logging.getLogger(name)
+    # Fallback - usar logging estándar si no está disponible
+    SmartTradingLogger = None
 
 @dataclass
 class TradingLimits:
@@ -106,8 +104,8 @@ class TradeValidator:
         self.risk_manager = RiskManager()
         
         # Initialize logger correctly
-        if hasattr(SmartTradingLogger, 'get_logger'):
-            self.logger = SmartTradingLogger.get_logger(__name__)
+        if SmartTradingLogger is not None:
+            self.logger = SmartTradingLogger(__name__)
         else:
             self.logger = logging.getLogger(__name__)
         

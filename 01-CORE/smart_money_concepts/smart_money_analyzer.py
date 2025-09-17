@@ -52,19 +52,39 @@ else:
     DataFrameType = Any
 
 # 🏗️ ENTERPRISE ARCHITECTURE v6.0 - Thread-safe pandas
-try:
-    from data_management.advanced_candle_downloader import _pandas_manager
-    from analysis.unified_memory_system import get_unified_memory_system
-    from smart_trading_logger import SmartTradingLogger
-    UNIFIED_MEMORY_AVAILABLE = True
-except ImportError:
-    print("⚠️ Thread-safe pandas manager no disponible - usando fallback")
-    _pandas_manager = None
-    UNIFIED_MEMORY_AVAILABLE = False
-    def get_unified_memory_system() -> Optional[Any]:
-        """Fallback para testing cuando UnifiedMemorySystem no está disponible"""
-        return None
-    SmartTradingLogger = Any
+# Lazy imports para evitar circularidad
+_pandas_manager = None
+UNIFIED_MEMORY_AVAILABLE = False
+SmartTradingLogger = None
+
+def _get_dependencies():
+    """Get dependencies lazily to avoid circular imports"""
+    global _pandas_manager, UNIFIED_MEMORY_AVAILABLE, SmartTradingLogger
+    
+    if _pandas_manager is None:
+        try:
+            from data_management.advanced_candle_downloader import _pandas_manager as pm
+            _pandas_manager = pm
+        except ImportError:
+            _pandas_manager = None
+    
+    if not UNIFIED_MEMORY_AVAILABLE:
+        try:
+            from analysis.unified_memory_system import get_unified_memory_system
+            UNIFIED_MEMORY_AVAILABLE = True
+        except ImportError:
+            def get_unified_memory_system() -> Optional[Any]:
+                """Fallback para testing cuando UnifiedMemorySystem no está disponible"""
+                return None
+    
+    if SmartTradingLogger is None:
+        try:
+            from smart_trading_logger import SmartTradingLogger as STL
+            SmartTradingLogger = STL
+        except ImportError:
+            SmartTradingLogger = Any
+    
+    return _pandas_manager, get_unified_memory_system, SmartTradingLogger
 
 
 class SmartMoneySession(Enum):
@@ -194,16 +214,24 @@ class SmartMoneyAnalyzer:
         """Inicializa el Smart Money Analyzer v6.0 con UnifiedMemorySystem v6.1"""
         print("💰 Inicializando Smart Money Concepts Analyzer v6.0 Enterprise...")
         
+        # Load dependencies lazily to avoid circular imports
+        _get_dependencies()
+        
         # ✅ REGLA #4: Sistema centralizado de logs obligatorio
         self.logger = logger or self._create_fallback_logger()
         
         # 🧠 INTEGRACIÓN UNIFIED MEMORY SYSTEM v6.1
         if UNIFIED_MEMORY_AVAILABLE:
-            self.unified_memory = get_unified_memory_system()
-            if self.unified_memory:
-                self._log_info("✅ UnifiedMemorySystem v6.1 integrado exitosamente en Smart Money Analyzer")
-            else:
-                self._log_warning("⚠️ UnifiedMemorySystem no inicializado - usando análisis local")
+            try:
+                from analysis.unified_memory_system import get_unified_memory_system
+                self.unified_memory = get_unified_memory_system()
+                if self.unified_memory:
+                    self._log_info("✅ UnifiedMemorySystem v6.1 integrado exitosamente en Smart Money Analyzer")
+                else:
+                    self._log_warning("⚠️ UnifiedMemorySystem no inicializado - usando análisis local")
+                    self.unified_memory = None
+            except ImportError:
+                self._log_warning("⚠️ UnifiedMemorySystem no disponible - modo local")
                 self.unified_memory = None
         else:
             self._log_warning("⚠️ UnifiedMemorySystem no disponible - modo local")

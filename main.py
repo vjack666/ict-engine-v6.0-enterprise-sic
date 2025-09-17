@@ -28,13 +28,35 @@ DATA_PATH = SYSTEM_ROOT / "04-DATA"
 LOGS_PATH = SYSTEM_ROOT / "05-LOGS"
 DASHBOARD_PATH = SYSTEM_ROOT / "09-DASHBOARD"
 DOCUMENTATION_PATH = SYSTEM_ROOT / "03-DOCUMENTATION"
+SCRIPTS_PATH = SYSTEM_ROOT / "scripts"
 
 # Configurar el path de Python
 if str(CORE_PATH) not in sys.path:
     sys.path.insert(0, str(CORE_PATH))
+if str(SCRIPTS_PATH) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_PATH))
 
 # ============================================================================
-# IMPORTS CON CARGA SEGURA
+# SISTEMA DE MEMORIA OPTIMIZADO
+# ============================================================================
+print("🧠 Inicializando sistema de memoria optimizado...")
+
+# Inicializar gestión de memoria automática
+try:
+    from ict_memory_manager import start_ict_memory_management, get_memory_status
+    MEMORY_MANAGER = start_ict_memory_management()
+    print("✅ ICT Memory Manager activo - sistema optimizado automáticamente")
+    
+    # Mostrar estado inicial
+    initial_status = get_memory_status()
+    print(f"📊 Memoria inicial: {initial_status['system_memory']['rss_mb']:.1f}MB ({initial_status['system_memory']['percent']:.1f}%)")
+    
+except ImportError as e:
+    print(f"⚠️ Memory Manager no disponible: {e}")
+    MEMORY_MANAGER = None
+
+# ============================================================================
+# IMPORTS CON CARGA SEGURA Y LAZY LOADING
 # ============================================================================
 
 def safe_import_from_path(file_path, class_name, fallback_name=None):
@@ -52,6 +74,17 @@ def safe_import_from_path(file_path, class_name, fallback_name=None):
             return getattr(module, class_name, None)
     except Exception:
         return None
+
+# Lazy imports para módulos pesados
+def get_smart_money_analyzer():
+    """Lazy loading para SmartMoneyAnalyzer (65MB)"""
+    try:
+        from lazy_loader import get_lazy_smart_money_analyzer
+        return get_lazy_smart_money_analyzer()
+    except ImportError:
+        # Fallback a import directo
+        from smart_money_concepts.smart_money_analyzer import SmartMoneyAnalyzer
+        return SmartMoneyAnalyzer()
 
 # Imports de los nuevos módulos optimizados
 try:

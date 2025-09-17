@@ -12,6 +12,7 @@ Autor: ICT Engine v6.1.0 Team
 
 from protocols.unified_logging import get_unified_logger
 import logging
+import os
 import sys
 import json
 import time
@@ -19,6 +20,93 @@ import hashlib
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List, Union, Type, Protocol, runtime_checkable
+from logging.handlers import RotatingFileHandler, QueueHandler, QueueListener
+import queue
+import threading
+import atexit
+
+# ================= GLOBAL QUEUE LOGGING INFRA =================
+_GLOBAL_LOG_QUEUE: Optional[queue.Queue] = None
+_GLOBAL_QUEUE_LISTENER: Optional[QueueListener] = None
+_GLOBAL_QUEUE_HANDLERS: List[logging.Handler] = []
+_GLOBAL_QUEUE_LOCK = threading.Lock()
+
+def _get_env_int(key: str, default: int) -> int:
+    try:
+        return int(os.environ.get(key, str(default)))
+    except Exception:
+        return default
+
+def _get_env_bool(key: str, default: bool) -> bool:
+    val = os.environ.get(key)
+    if val is None:
+        return default
+    val_lower = val.strip().lower()
+    return val_lower in {"1", "true", "yes", "on"}
+
+def _shutdown_queue_listener() -> None:
+    global _GLOBAL_QUEUE_LISTENER
+    if _GLOBAL_QUEUE_LISTENER is not None:
+        try:
+            _GLOBAL_QUEUE_LISTENER.stop()
+        except Exception:
+            pass
+        _GLOBAL_QUEUE_LISTENER = None
+
+atexit.register(_shutdown_queue_listener)
+
+def _register_handlers_with_global_queue(*handlers: Optional[logging.Handler]) -> QueueHandler:
+    """Registrar handlers en un QueueListener global y devolver QueueHandler.
+    Acepta cualquier número de handlers (pueden ser None)."""
+    global _GLOBAL_LOG_QUEUE, _GLOBAL_QUEUE_LISTENER, _GLOBAL_QUEUE_HANDLERS
+    with _GLOBAL_QUEUE_LOCK:
+        if _GLOBAL_LOG_QUEUE is None:
+            _GLOBAL_LOG_QUEUE = queue.Queue(-1)
+
+        # Construir nuevo conjunto de handlers evitando duplicados
+        new_handlers: List[logging.Handler] = list(_GLOBAL_QUEUE_HANDLERS)
+        for h in handlers:
+            if h is not None and all(h is not eh for eh in new_handlers):
+                new_handlers.append(h)
+
+        # Si hubo cambios, reiniciar listener con la lista actualizada
+        if (len(new_handlers) != len(_GLOBAL_QUEUE_HANDLERS)) or _GLOBAL_QUEUE_LISTENER is None:
+            if _GLOBAL_QUEUE_LISTENER is not None:
+                try:
+                    _GLOBAL_QUEUE_LISTENER.stop()
+                except Exception:
+                    pass
+            _GLOBAL_QUEUE_HANDLERS = new_handlers
+            _GLOBAL_QUEUE_LISTENER = QueueListener(_GLOBAL_LOG_QUEUE, *(_GLOBAL_QUEUE_HANDLERS), respect_handler_level=True)
+            _GLOBAL_QUEUE_LISTENER.start()
+
+        return QueueHandler(_GLOBAL_LOG_QUEUE)
+
+# ================ FORMATTERS ======================
+class JSONLineFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        ts = datetime.fromtimestamp(record.created).isoformat()
+        msg = record.getMessage()
+        component = None
+        clean_msg = msg
+        if isinstance(msg, str) and msg.startswith('['):
+            end = msg.find(']')
+            if end > 1:
+                component = msg[1:end]
+                clean_msg = msg[end+2:] if len(msg) > end+2 else ''
+        data = {
+            'ts': ts,
+            'level': record.levelname,
+            'logger': record.name,
+            'component': component,
+            'message': clean_msg,
+        }
+        try:
+            return json.dumps(data, ensure_ascii=False)
+        except Exception:
+            return '{"ts":"%s","level":"%s","logger":"%s","component":%s,"message":"%s"}' % (
+                ts, record.levelname, record.name, json.dumps(component) if component else 'null', clean_msg.replace('"','\\"')
+            )
 
 # Protocolo para configuración de logging mode
 @runtime_checkable
@@ -41,28 +129,11 @@ class DefaultLoggingModeConfig:
         return any(silent_comp in component_lower for silent_comp in silent_components)
         
         
-    # ================= ENTERPRISE LOGGER CLASSES =================
-    class SmartTradingLogger:
-        def __init__(self, name: str = "SmartTradingLogger"):
-            self.name = name
-            self.logger = logging.getLogger(name)
-            self.logger.setLevel(logging.INFO)
-            if not self.logger.handlers:
-                handler = logging.StreamHandler(sys.stdout)
-                formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s')
-                handler.setFormatter(formatter)
-                self.logger.addHandler(handler)
-
-        def log_info(self, msg: str):
-            self.logger.info(msg)
-
-        def log_warning(self, msg: str):
-            self.logger.warning(msg)
-
-        def log_error(self, msg: str):
-            self.logger.error(msg)
-
+    # ================= LEGACY SUPPORT CLASSES (DEPRECATED) =================
+    # Estas clases están marcadas como obsoletas. Usar la clase principal SmartTradingLogger below.
+    
     class UnifiedLoggingSystem:
+        """Sistema unificado legacy - usar SmartTradingLogger directamente"""
         def __init__(self):
             self.loggers = {}
 
@@ -171,59 +242,131 @@ class SmartTradingLogger:
             return 'GENERAL'
     
     def _setup_handlers(self):
-        """🔧 Configurar handlers del logger con archivos diarios organizados"""
-        
-        # Formatter
-        formatter = logging.Formatter(
-            '[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s',
-            datefmt='%H:%M:%S'
-        )
-        
-        # Console handler - solo si no está en modo silencioso
+        """🔧 Configurar handlers del logger con rotación y retención"""
+        formatter = logging.Formatter('[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s', datefmt='%H:%M:%S')
+
+        # Config desde entorno (con valores por defecto sensatos)
+        retention_days = _get_env_int('ICT_LOG_RETENTION_DAYS', 14)
+        max_bytes = _get_env_int('ICT_LOG_MAX_BYTES', 5 * 1024 * 1024)  # 5MB
+        backup_count = _get_env_int('ICT_LOG_BACKUP_COUNT', 3)
+        use_queue = _get_env_bool('ICT_LOG_USE_QUEUE', True)
+        max_total_mb = _get_env_int('ICT_LOG_MAX_TOTAL_MB', 512)  # por componente
+
+        # Crear handlers (sin adjuntar todavía)
+        console_handler = None
         if not self.silent_mode:
             console_handler = logging.StreamHandler(sys.stdout)
             console_handler.setFormatter(formatter)
             console_handler.setLevel(logging.INFO)
-            self.logger.addHandler(console_handler)
-        
-        # File handlers organizados por categoría y fecha
-        self._setup_daily_file_handlers(formatter)
+
+        file_handler = self._setup_daily_file_handlers(formatter, max_bytes=max_bytes, backup_count=backup_count)
+
+        # NDJSON export opcional para IA
+        jsonl_handler = None
+        if _get_env_bool('ICT_LOG_EXPORT_JSON', False):
+            try:
+                jsonl_file = self.log_dir / f"{self.component_name.lower()}_{self.date_str}.ndjson"
+                jsonl_handler = RotatingFileHandler(
+                    jsonl_file, mode='a', maxBytes=max_bytes, backupCount=backup_count, encoding='utf-8', delay=True
+                )
+                jsonl_handler.setFormatter(JSONLineFormatter())
+                jsonl_handler.setLevel(logging.INFO)
+            except Exception:
+                jsonl_handler = None
+
+        # Limpieza de retención y tamaño total por componente
+        try:
+            self._cleanup_old_logs(self.log_dir, retention_days=retention_days, max_total_mb=max_total_mb)
+        except Exception:
+            pass
+
+        # Adjuntar handlers: directamente o vía queue
+        if use_queue:
+            qh = _register_handlers_with_global_queue(file_handler, console_handler, jsonl_handler)
+            self.logger.addHandler(qh)
+        else:
+            if console_handler is not None:
+                self.logger.addHandler(console_handler)
+            self.logger.addHandler(file_handler)
+            if jsonl_handler is not None:
+                self.logger.addHandler(jsonl_handler)
     
-    def _setup_daily_file_handlers(self, formatter):
-        """📅 Configurar handlers de archivos diarios centralizados - UN archivo por día por componente"""
+    def _setup_daily_file_handlers(self, formatter, max_bytes: int, backup_count: int):
+        """📅 Configurar archivo diario con rotación por tamaño"""
         try:
             project_root = Path(__file__).parent.parent
             self.date_str = datetime.now().strftime('%Y-%m-%d')
-            
-            # Estructura de logging diario centralizada en 05-LOGS
+
             component_name = self._get_component_from_name()
             log_dir = project_root / "05-LOGS" / component_name.lower()
             log_dir.mkdir(parents=True, exist_ok=True)
-            
-            # ARCHIVO ÚNICO por día por componente
+
             daily_log_file = log_dir / f"{component_name.lower()}_{self.date_str}.log"
-            
-            # Handler con modo append para agregar al archivo diario
-            file_handler = logging.FileHandler(daily_log_file, mode='a', encoding='utf-8')
-            
-            # Formato optimizado para logs diarios
-            daily_formatter = logging.Formatter(
-                '[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s',
-                datefmt='%H:%M:%S'
+
+            file_handler = RotatingFileHandler(
+                daily_log_file, mode='a', maxBytes=max_bytes, backupCount=backup_count, encoding='utf-8', delay=True
             )
+            daily_formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s', datefmt='%H:%M:%S')
             file_handler.setFormatter(daily_formatter)
             file_handler.setLevel(logging.DEBUG)
-            self.logger.addHandler(file_handler)
-            
-            # Guardar referencias para uso posterior
+
             self.log_dir = log_dir
             self.daily_log_file = daily_log_file
             self.component_name = component_name
-            
-        except Exception as e:
-            # Si no se puede crear archivos, continuar sin file logging
+
+            return file_handler
+
+        except Exception:
             self.log_categories = {}
             self.date_str = datetime.now().strftime('%Y-%m-%d')
+            # Fallback a StreamHandler para no romper
+            sh = logging.StreamHandler(sys.stdout)
+            sh.setFormatter(formatter)
+            sh.setLevel(logging.INFO)
+            return sh
+
+    def _cleanup_old_logs(self, log_dir: Path, retention_days: int, max_total_mb: int) -> None:
+        """🧹 Eliminar archivos viejos y limitar tamaño total por componente"""
+        if retention_days <= 0 and max_total_mb <= 0:
+            return
+        now = datetime.now()
+        total_size = 0
+        files = []
+        for f in log_dir.glob("*.log*"):
+            try:
+                stat = f.stat()
+                files.append((f, stat.st_mtime, stat.st_size))
+            except Exception:
+                continue
+
+        # Ordenar por fecha (más reciente al final)
+        files.sort(key=lambda x: x[1])
+
+        # Borrar por retención
+        if retention_days > 0:
+            cutoff = now - timedelta(days=retention_days)
+            for f, mtime, size in list(files):
+                if datetime.fromtimestamp(mtime) < cutoff:
+                    try:
+                        f.unlink(missing_ok=True)
+                    except Exception:
+                        pass
+                    files.remove((f, mtime, size))
+
+        # Limitar tamaño total
+        if max_total_mb > 0:
+            bytes_cap = max_total_mb * 1024 * 1024
+            for f, mtime, size in files:
+                total_size += size
+            idx = 0
+            while total_size > bytes_cap and idx < len(files):
+                f, mtime, size = files[idx]
+                try:
+                    f.unlink(missing_ok=True)
+                    total_size -= size
+                except Exception:
+                    pass
+                idx += 1
     
     def debug(self, message: str, component: str = "CORE", **kwargs):
         """🔍 Log debug message"""

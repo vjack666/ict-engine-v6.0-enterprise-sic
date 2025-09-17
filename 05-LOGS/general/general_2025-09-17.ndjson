@@ -1,0 +1,276 @@
+{"ts": "2025-09-17T15:59:37.637554", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 0"}
+{"ts": "2025-09-17T15:59:37.642954", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 1"}
+{"ts": "2025-09-17T15:59:37.648623", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 2"}
+{"ts": "2025-09-17T15:59:37.654107", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 3"}
+{"ts": "2025-09-17T15:59:37.659756", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 4"}
+{"ts": "2025-09-17T15:59:37.665220", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 5"}
+{"ts": "2025-09-17T15:59:37.670981", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 6"}
+{"ts": "2025-09-17T15:59:37.676560", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 7"}
+{"ts": "2025-09-17T15:59:37.682416", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 8"}
+{"ts": "2025-09-17T15:59:37.688037", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 9"}
+{"ts": "2025-09-17T15:59:37.693767", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 10"}
+{"ts": "2025-09-17T15:59:37.699571", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 11"}
+{"ts": "2025-09-17T15:59:37.705254", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 12"}
+{"ts": "2025-09-17T15:59:37.711010", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 13"}
+{"ts": "2025-09-17T15:59:37.716804", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 14"}
+{"ts": "2025-09-17T15:59:37.722896", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 15"}
+{"ts": "2025-09-17T15:59:37.728641", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 16"}
+{"ts": "2025-09-17T15:59:37.734432", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 17"}
+{"ts": "2025-09-17T15:59:37.740381", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 18"}
+{"ts": "2025-09-17T15:59:37.745952", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 19"}
+{"ts": "2025-09-17T15:59:37.751971", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 20"}
+{"ts": "2025-09-17T15:59:37.757890", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 21"}
+{"ts": "2025-09-17T15:59:37.763615", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 22"}
+{"ts": "2025-09-17T15:59:37.769532", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 23"}
+{"ts": "2025-09-17T15:59:37.775434", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 24"}
+{"ts": "2025-09-17T15:59:37.781343", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 25"}
+{"ts": "2025-09-17T15:59:37.786739", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 26"}
+{"ts": "2025-09-17T15:59:37.792460", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 27"}
+{"ts": "2025-09-17T15:59:37.798097", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 28"}
+{"ts": "2025-09-17T15:59:37.803779", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 29"}
+{"ts": "2025-09-17T15:59:37.809457", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 30"}
+{"ts": "2025-09-17T15:59:37.815322", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 31"}
+{"ts": "2025-09-17T15:59:37.820992", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 32"}
+{"ts": "2025-09-17T15:59:37.826839", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 33"}
+{"ts": "2025-09-17T15:59:37.832263", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 34"}
+{"ts": "2025-09-17T15:59:37.838255", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 35"}
+{"ts": "2025-09-17T15:59:37.844349", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 36"}
+{"ts": "2025-09-17T15:59:37.849781", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 37"}
+{"ts": "2025-09-17T15:59:37.855589", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 38"}
+{"ts": "2025-09-17T15:59:37.861621", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 39"}
+{"ts": "2025-09-17T15:59:37.867407", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 40"}
+{"ts": "2025-09-17T15:59:37.872881", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 41"}
+{"ts": "2025-09-17T15:59:37.878538", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 42"}
+{"ts": "2025-09-17T15:59:37.884275", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 43"}
+{"ts": "2025-09-17T15:59:37.889966", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 44"}
+{"ts": "2025-09-17T15:59:37.895636", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 45"}
+{"ts": "2025-09-17T15:59:37.901402", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 46"}
+{"ts": "2025-09-17T15:59:37.906796", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 47"}
+{"ts": "2025-09-17T15:59:37.912488", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 48"}
+{"ts": "2025-09-17T15:59:37.917774", "level": "INFO", "logger": "TestExport", "component": "SYSTEM", "message": "Evento de prueba 49"}
+{"ts": "2025-09-17T16:25:31.155501", "level": "INFO", "logger": "TestCleanup", "component": "CLEANUP", "message": "Sistema limpio funcionando"}
+{"ts": "2025-09-17T16:25:58.346681", "level": "INFO", "logger": "TestUnified", "component": "TestUnified", "message": "Sistema unificado funcionando"}
+{"ts": "2025-09-17T16:43:08.743958", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT_CENTER", "message": "✅ Thread-Safe Pandas manager inicializado"}
+{"ts": "2025-09-17T16:43:08.743958", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT_CENTER", "message": "✅ Thread-Safe Pandas manager inicializado"}
+{"ts": "2025-09-17T16:43:08.744511", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT_CENTER", "message": "✅ Thread-Safe Numpy manager inicializado"}
+{"ts": "2025-09-17T16:43:08.744511", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT_CENTER", "message": "✅ Thread-Safe Numpy manager inicializado"}
+{"ts": "2025-09-17T16:43:08.744881", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT_CENTER", "message": "✅ SmartMoneyAnalyzer cargado exitosamente desde smart_money_concepts"}
+{"ts": "2025-09-17T16:43:08.744881", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT_CENTER", "message": "✅ SmartMoneyAnalyzer cargado exitosamente desde smart_money_concepts"}
+{"ts": "2025-09-17T16:43:08.745186", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT_CENTER", "message": "✅ AdvancedCandleDownloader cargado"}
+{"ts": "2025-09-17T16:43:08.745186", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT_CENTER", "message": "✅ AdvancedCandleDownloader cargado"}
+{"ts": "2025-09-17T16:43:08.745415", "level": "INFO", "logger": "ImportCenter", "component": "PATTERN_DETECTOR", "message": "✅ Thread-Safe Pandas/Numpy Manager inicializado"}
+{"ts": "2025-09-17T16:43:08.745415", "level": "INFO", "logger": "ImportCenter", "component": "PATTERN_DETECTOR", "message": "✅ Thread-Safe Pandas/Numpy Manager inicializado"}
+{"ts": "2025-09-17T16:43:08.745891", "level": "INFO", "logger": "ImportCenter", "component": "PATTERN_DETECTOR", "message": "🩺 Sistema: 100.0% - Trading Ready: True"}
+{"ts": "2025-09-17T16:43:08.745891", "level": "INFO", "logger": "ImportCenter", "component": "PATTERN_DETECTOR", "message": "🩺 Sistema: 100.0% - Trading Ready: True"}
+{"ts": "2025-09-17T16:43:08.746286", "level": "INFO", "logger": "ImportCenter", "component": "CORE", "message": "✅ TRADING_READY: TRUE - Sistema listo para trading en vivo"}
+{"ts": "2025-09-17T16:43:08.746286", "level": "INFO", "logger": "ImportCenter", "component": "CORE", "message": "✅ TRADING_READY: TRUE - Sistema listo para trading en vivo"}
+{"ts": "2025-09-17T16:43:08.746624", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT", "message": "✅ Advanced Candle Downloader disponible"}
+{"ts": "2025-09-17T16:43:08.746624", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT", "message": "✅ Advanced Candle Downloader disponible"}
+{"ts": "2025-09-17T16:43:08.746873", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT", "message": "✅ Smart Money Analyzer disponible"}
+{"ts": "2025-09-17T16:43:08.746873", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT", "message": "✅ Smart Money Analyzer disponible"}
+{"ts": "2025-09-17T16:43:08.850812", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_SYSTEM_CREATE EURUSD: {\"component\": \"UnifiedMemorySystem\", \"version\": \"v6.1.0-enterprise\", \"fase\": \"FASE 2\"}"}
+{"ts": "2025-09-17T16:43:08.850812", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_SYSTEM_CREATE EURUSD: {\"component\": \"UnifiedMemorySystem\", \"version\": \"v6.1.0-enterprise\", \"fase\": \"FASE 2\"}"}
+{"ts": "2025-09-17T16:43:08.851976", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_START EURUSD: {\"component\": \"UnifiedMemorySystem\", \"version\": \"v6.1.0-enterprise\", \"phase\": \"FASE_2_REAL_IMPLEMENTATION\", \"config_path\": \"config/memory_config.json\"}"}
+{"ts": "2025-09-17T16:43:08.851976", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_START EURUSD: {\"component\": \"UnifiedMemorySystem\", \"version\": \"v6.1.0-enterprise\", \"phase\": \"FASE_2_REAL_IMPLEMENTATION\", \"config_path\": \"config/memory_config.json\"}"}
+{"ts": "2025-09-17T16:43:08.852720", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 MEMORY_CONFIG_DEFAULT EURUSD: {\"reason\": \"Config file not found\", \"using_defaults\": true}"}
+{"ts": "2025-09-17T16:43:08.852720", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 MEMORY_CONFIG_DEFAULT EURUSD: {\"reason\": \"Config file not found\", \"using_defaults\": true}"}
+{"ts": "2025-09-17T16:43:08.855725", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "unified_memory", "message": "🧠 Inicializando Unified Market Memory v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:08.855725", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "unified_memory", "message": "🧠 Inicializando Unified Market Memory v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:08.859668", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Inicializando Market Context v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:08.859668", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Inicializando Market Context v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:08.859668", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Inicializando Market Context v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:08.860455", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "✅ Market Context v6.0 Enterprise inicializado - Retención: 50 periodos, Max POIs: 200, Cache: C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\04-DATA\\memory_persistence"}
+{"ts": "2025-09-17T16:43:08.860455", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "✅ Market Context v6.0 Enterprise inicializado - Retención: 50 periodos, Max POIs: 200, Cache: C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\04-DATA\\memory_persistence"}
+{"ts": "2025-09-17T16:43:08.860455", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "✅ Market Context v6.0 Enterprise inicializado - Retención: 50 periodos, Max POIs: 200, Cache: C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\04-DATA\\memory_persistence"}
+{"ts": "2025-09-17T16:43:08.863170", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "historical_memory", "message": "📈 Inicializando ICT Historical Analyzer v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:08.863170", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "historical_memory", "message": "📈 Inicializando ICT Historical Analyzer v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:08.863170", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "historical_memory", "message": "📈 Inicializando ICT Historical Analyzer v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:08.863170", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "historical_memory", "message": "📈 Inicializando ICT Historical Analyzer v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:08.864263", "level": "INFO", "logger": "ICT_Engine", "component": "decision_cache", "message": "💾 TradingDecisionCacheV6 inicializado - Intelligent: True, Cleanup: 24h"}
+{"ts": "2025-09-17T16:43:08.864263", "level": "INFO", "logger": "ICT_Engine", "component": "decision_cache", "message": "💾 TradingDecisionCacheV6 inicializado - Intelligent: True, Cleanup: 24h"}
+{"ts": "2025-09-17T16:43:08.864263", "level": "INFO", "logger": "ICT_Engine", "component": "decision_cache", "message": "💾 TradingDecisionCacheV6 inicializado - Intelligent: True, Cleanup: 24h"}
+{"ts": "2025-09-17T16:43:08.864263", "level": "INFO", "logger": "ICT_Engine", "component": "decision_cache", "message": "💾 TradingDecisionCacheV6 inicializado - Intelligent: True, Cleanup: 24h"}
+{"ts": "2025-09-17T16:43:08.865423", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Contexto inicial cargado - Sistema listo para análisis"}
+{"ts": "2025-09-17T16:43:08.865423", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Contexto inicial cargado - Sistema listo para análisis"}
+{"ts": "2025-09-17T16:43:08.865423", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Contexto inicial cargado - Sistema listo para análisis"}
+{"ts": "2025-09-17T16:43:08.865423", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Contexto inicial cargado - Sistema listo para análisis"}
+{"ts": "2025-09-17T16:43:08.867062", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "historical_memory", "message": "🧠 Memoria inicial cargada - Sistema listo para aprender"}
+{"ts": "2025-09-17T16:43:08.867062", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "historical_memory", "message": "🧠 Memoria inicial cargada - Sistema listo para aprender"}
+{"ts": "2025-09-17T16:43:08.867062", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "historical_memory", "message": "🧠 Memoria inicial cargada - Sistema listo para aprender"}
+{"ts": "2025-09-17T16:43:08.867062", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "historical_memory", "message": "🧠 Memoria inicial cargada - Sistema listo para aprender"}
+{"ts": "2025-09-17T16:43:08.867621", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "unified_memory", "message": "✅ Unified Market Memory inicializado - Components: 3/3, Quality: ACTIVE, Coherence: 1.000"}
+{"ts": "2025-09-17T16:43:08.867621", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "unified_memory", "message": "✅ Unified Market Memory inicializado - Components: 3/3, Quality: ACTIVE, Coherence: 1.000"}
+{"ts": "2025-09-17T16:43:08.867621", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "unified_memory", "message": "✅ Unified Market Memory inicializado - Components: 3/3, Quality: ACTIVE, Coherence: 1.000"}
+{"ts": "2025-09-17T16:43:08.867621", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "unified_memory", "message": "✅ Unified Market Memory inicializado - Components: 3/3, Quality: ACTIVE, Coherence: 1.000"}
+{"ts": "2025-09-17T16:43:08.868461", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Inicializando Market Context v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:08.868461", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Inicializando Market Context v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:08.868461", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Inicializando Market Context v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:08.868461", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Inicializando Market Context v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:08.869959", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "✅ Market Context v6.0 Enterprise inicializado - Retención: 50 periodos, Max POIs: 200, Cache: C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\04-DATA\\memory_persistence"}
+{"ts": "2025-09-17T16:43:08.869959", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "✅ Market Context v6.0 Enterprise inicializado - Retención: 50 periodos, Max POIs: 200, Cache: C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\04-DATA\\memory_persistence"}
+{"ts": "2025-09-17T16:43:08.869959", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "✅ Market Context v6.0 Enterprise inicializado - Retención: 50 periodos, Max POIs: 200, Cache: C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\04-DATA\\memory_persistence"}
+{"ts": "2025-09-17T16:43:08.869959", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "✅ Market Context v6.0 Enterprise inicializado - Retención: 50 periodos, Max POIs: 200, Cache: C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\04-DATA\\memory_persistence"}
+{"ts": "2025-09-17T16:43:08.871393", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🔗 Historical Analyzer conectado exitosamente"}
+{"ts": "2025-09-17T16:43:08.871393", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🔗 Historical Analyzer conectado exitosamente"}
+{"ts": "2025-09-17T16:43:08.871393", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🔗 Historical Analyzer conectado exitosamente"}
+{"ts": "2025-09-17T16:43:08.871393", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🔗 Historical Analyzer conectado exitosamente"}
+{"ts": "2025-09-17T16:43:08.871843", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "CORE", "message": "🔗 Historical analyzer conectado al market context"}
+{"ts": "2025-09-17T16:43:08.871843", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "CORE", "message": "🔗 Historical analyzer conectado al market context"}
+{"ts": "2025-09-17T16:43:08.871843", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "CORE", "message": "🔗 Historical analyzer conectado al market context"}
+{"ts": "2025-09-17T16:43:08.871843", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "CORE", "message": "🔗 Historical analyzer conectado al market context"}
+{"ts": "2025-09-17T16:43:08.872119", "level": "INFO", "logger": "ICT_Engine", "component": "CORE", "message": "🔗 Decision cache conectado al market context"}
+{"ts": "2025-09-17T16:43:08.872119", "level": "INFO", "logger": "ICT_Engine", "component": "CORE", "message": "🔗 Decision cache conectado al market context"}
+{"ts": "2025-09-17T16:43:08.872119", "level": "INFO", "logger": "ICT_Engine", "component": "CORE", "message": "🔗 Decision cache conectado al market context"}
+{"ts": "2025-09-17T16:43:08.872119", "level": "INFO", "logger": "ICT_Engine", "component": "CORE", "message": "🔗 Decision cache conectado al market context"}
+{"ts": "2025-09-17T16:43:08.872393", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 COMPONENT_INTEGRATION_SUCCESS EURUSD: {\"integrated_components\": 3}"}
+{"ts": "2025-09-17T16:43:08.872393", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 COMPONENT_INTEGRATION_SUCCESS EURUSD: {\"integrated_components\": 3}"}
+{"ts": "2025-09-17T16:43:08.872393", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 COMPONENT_INTEGRATION_SUCCESS EURUSD: {\"integrated_components\": 3}"}
+{"ts": "2025-09-17T16:43:08.872393", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 COMPONENT_INTEGRATION_SUCCESS EURUSD: {\"integrated_components\": 3}"}
+{"ts": "2025-09-17T16:43:08.872795", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 CROSS_INTEGRATION_START EURUSD: {\"components\": [\"MarketContext\", \"HistoricalAnalyzer\", \"DecisionCache\", \"UnifiedMemory\"]}"}
+{"ts": "2025-09-17T16:43:08.872795", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 CROSS_INTEGRATION_START EURUSD: {\"components\": [\"MarketContext\", \"HistoricalAnalyzer\", \"DecisionCache\", \"UnifiedMemory\"]}"}
+{"ts": "2025-09-17T16:43:08.872795", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 CROSS_INTEGRATION_START EURUSD: {\"components\": [\"MarketContext\", \"HistoricalAnalyzer\", \"DecisionCache\", \"UnifiedMemory\"]}"}
+{"ts": "2025-09-17T16:43:08.872795", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 CROSS_INTEGRATION_START EURUSD: {\"components\": [\"MarketContext\", \"HistoricalAnalyzer\", \"DecisionCache\", \"UnifiedMemory\"]}"}
+{"ts": "2025-09-17T16:43:08.873031", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_SYSTEM_LINKING EURUSD: {\"action\": \"linking_memory_components\", \"components\": [\"memory\", \"context\", \"analyzer\", \"cache\"]}"}
+{"ts": "2025-09-17T16:43:08.873031", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_SYSTEM_LINKING EURUSD: {\"action\": \"linking_memory_components\", \"components\": [\"memory\", \"context\", \"analyzer\", \"cache\"]}"}
+{"ts": "2025-09-17T16:43:08.873031", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_SYSTEM_LINKING EURUSD: {\"action\": \"linking_memory_components\", \"components\": [\"memory\", \"context\", \"analyzer\", \"cache\"]}"}
+{"ts": "2025-09-17T16:43:08.873031", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_SYSTEM_LINKING EURUSD: {\"action\": \"linking_memory_components\", \"components\": [\"memory\", \"context\", \"analyzer\", \"cache\"]}"}
+{"ts": "2025-09-17T16:43:08.873273", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "CORE", "message": "🔗 Unified memory conectada al market context"}
+{"ts": "2025-09-17T16:43:08.873273", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "CORE", "message": "🔗 Unified memory conectada al market context"}
+{"ts": "2025-09-17T16:43:08.873273", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "CORE", "message": "🔗 Unified memory conectada al market context"}
+{"ts": "2025-09-17T16:43:08.873273", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "CORE", "message": "🔗 Unified memory conectada al market context"}
+{"ts": "2025-09-17T16:43:08.873707", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Unified Memory System conectado exitosamente"}
+{"ts": "2025-09-17T16:43:08.873707", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Unified Memory System conectado exitosamente"}
+{"ts": "2025-09-17T16:43:08.873707", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Unified Memory System conectado exitosamente"}
+{"ts": "2025-09-17T16:43:08.873707", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Unified Memory System conectado exitosamente"}
+{"ts": "2025-09-17T16:43:08.873976", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "CORE", "message": "🧠 Historical analyzer conectado a la memoria unificada"}
+{"ts": "2025-09-17T16:43:08.873976", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "CORE", "message": "🧠 Historical analyzer conectado a la memoria unificada"}
+{"ts": "2025-09-17T16:43:08.873976", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "CORE", "message": "🧠 Historical analyzer conectado a la memoria unificada"}
+{"ts": "2025-09-17T16:43:08.873976", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "CORE", "message": "🧠 Historical analyzer conectado a la memoria unificada"}
+{"ts": "2025-09-17T16:43:08.874616", "level": "INFO", "logger": "ICT_Engine", "component": "CORE", "message": "🧠 Decision cache conectado al sistema unificado"}
+{"ts": "2025-09-17T16:43:08.874616", "level": "INFO", "logger": "ICT_Engine", "component": "CORE", "message": "🧠 Decision cache conectado al sistema unificado"}
+{"ts": "2025-09-17T16:43:08.874616", "level": "INFO", "logger": "ICT_Engine", "component": "CORE", "message": "🧠 Decision cache conectado al sistema unificado"}
+{"ts": "2025-09-17T16:43:08.874616", "level": "INFO", "logger": "ICT_Engine", "component": "CORE", "message": "🧠 Decision cache conectado al sistema unificado"}
+{"ts": "2025-09-17T16:43:08.874994", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 CROSS_INTEGRATION_SUCCESS EURUSD: {\"status\": \"Components connected for bidirectional communication\"}"}
+{"ts": "2025-09-17T16:43:08.874994", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 CROSS_INTEGRATION_SUCCESS EURUSD: {\"status\": \"Components connected for bidirectional communication\"}"}
+{"ts": "2025-09-17T16:43:08.874994", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 CROSS_INTEGRATION_SUCCESS EURUSD: {\"status\": \"Components connected for bidirectional communication\"}"}
+{"ts": "2025-09-17T16:43:08.874994", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 CROSS_INTEGRATION_SUCCESS EURUSD: {\"status\": \"Components connected for bidirectional communication\"}"}
+{"ts": "2025-09-17T16:43:08.875993", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_SUCCESS EURUSD: {\"component\": \"UnifiedMemorySystem\", \"status\": \"TRADER_READY\", \"experience_level\": 5, \"components_integrated\": 3, \"logging_system\": \"SmartTradingLogger_v6\", \"external_dependencies\": \"NONE\"}"}
+{"ts": "2025-09-17T16:43:08.875993", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_SUCCESS EURUSD: {\"component\": \"UnifiedMemorySystem\", \"status\": \"TRADER_READY\", \"experience_level\": 5, \"components_integrated\": 3, \"logging_system\": \"SmartTradingLogger_v6\", \"external_dependencies\": \"NONE\"}"}
+{"ts": "2025-09-17T16:43:08.875993", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_SUCCESS EURUSD: {\"component\": \"UnifiedMemorySystem\", \"status\": \"TRADER_READY\", \"experience_level\": 5, \"components_integrated\": 3, \"logging_system\": \"SmartTradingLogger_v6\", \"external_dependencies\": \"NONE\"}"}
+{"ts": "2025-09-17T16:43:08.875993", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_SUCCESS EURUSD: {\"component\": \"UnifiedMemorySystem\", \"status\": \"TRADER_READY\", \"experience_level\": 5, \"components_integrated\": 3, \"logging_system\": \"SmartTradingLogger_v6\", \"external_dependencies\": \"NONE\"}"}
+{"ts": "2025-09-17T16:43:08.876326", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_SUCCESS EURUSD: {\"system_ready\": true, \"components_loaded\": 3, \"version\": \"v6.1.0-enterprise\", \"phase\": \"FASE_2_REAL_IMPLEMENTATION\"}"}
+{"ts": "2025-09-17T16:43:08.876326", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_SUCCESS EURUSD: {\"system_ready\": true, \"components_loaded\": 3, \"version\": \"v6.1.0-enterprise\", \"phase\": \"FASE_2_REAL_IMPLEMENTATION\"}"}
+{"ts": "2025-09-17T16:43:08.876326", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_SUCCESS EURUSD: {\"system_ready\": true, \"components_loaded\": 3, \"version\": \"v6.1.0-enterprise\", \"phase\": \"FASE_2_REAL_IMPLEMENTATION\"}"}
+{"ts": "2025-09-17T16:43:08.876326", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_SUCCESS EURUSD: {\"system_ready\": true, \"components_loaded\": 3, \"version\": \"v6.1.0-enterprise\", \"phase\": \"FASE_2_REAL_IMPLEMENTATION\"}"}
+{"ts": "2025-09-17T16:43:25.657176", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT_CENTER", "message": "✅ Thread-Safe Pandas manager inicializado"}
+{"ts": "2025-09-17T16:43:25.657176", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT_CENTER", "message": "✅ Thread-Safe Pandas manager inicializado"}
+{"ts": "2025-09-17T16:43:25.657615", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT_CENTER", "message": "✅ Thread-Safe Numpy manager inicializado"}
+{"ts": "2025-09-17T16:43:25.657615", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT_CENTER", "message": "✅ Thread-Safe Numpy manager inicializado"}
+{"ts": "2025-09-17T16:43:25.657960", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT_CENTER", "message": "✅ SmartMoneyAnalyzer cargado exitosamente desde smart_money_concepts"}
+{"ts": "2025-09-17T16:43:25.657960", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT_CENTER", "message": "✅ SmartMoneyAnalyzer cargado exitosamente desde smart_money_concepts"}
+{"ts": "2025-09-17T16:43:25.658281", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT_CENTER", "message": "✅ AdvancedCandleDownloader cargado"}
+{"ts": "2025-09-17T16:43:25.658281", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT_CENTER", "message": "✅ AdvancedCandleDownloader cargado"}
+{"ts": "2025-09-17T16:43:25.658525", "level": "INFO", "logger": "ImportCenter", "component": "PATTERN_DETECTOR", "message": "✅ Thread-Safe Pandas/Numpy Manager inicializado"}
+{"ts": "2025-09-17T16:43:25.658525", "level": "INFO", "logger": "ImportCenter", "component": "PATTERN_DETECTOR", "message": "✅ Thread-Safe Pandas/Numpy Manager inicializado"}
+{"ts": "2025-09-17T16:43:25.658782", "level": "INFO", "logger": "ImportCenter", "component": "PATTERN_DETECTOR", "message": "🩺 Sistema: 100.0% - Trading Ready: True"}
+{"ts": "2025-09-17T16:43:25.658782", "level": "INFO", "logger": "ImportCenter", "component": "PATTERN_DETECTOR", "message": "🩺 Sistema: 100.0% - Trading Ready: True"}
+{"ts": "2025-09-17T16:43:25.659055", "level": "INFO", "logger": "ImportCenter", "component": "CORE", "message": "✅ TRADING_READY: TRUE - Sistema listo para trading en vivo"}
+{"ts": "2025-09-17T16:43:25.659055", "level": "INFO", "logger": "ImportCenter", "component": "CORE", "message": "✅ TRADING_READY: TRUE - Sistema listo para trading en vivo"}
+{"ts": "2025-09-17T16:43:25.659262", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT", "message": "✅ Advanced Candle Downloader disponible"}
+{"ts": "2025-09-17T16:43:25.659262", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT", "message": "✅ Advanced Candle Downloader disponible"}
+{"ts": "2025-09-17T16:43:25.659498", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT", "message": "✅ Smart Money Analyzer disponible"}
+{"ts": "2025-09-17T16:43:25.659498", "level": "INFO", "logger": "ImportCenter", "component": "IMPORT", "message": "✅ Smart Money Analyzer disponible"}
+{"ts": "2025-09-17T16:43:25.684756", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_SYSTEM_CREATE EURUSD: {\"component\": \"UnifiedMemorySystem\", \"version\": \"v6.1.0-enterprise\", \"fase\": \"FASE 2\"}"}
+{"ts": "2025-09-17T16:43:25.684756", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_SYSTEM_CREATE EURUSD: {\"component\": \"UnifiedMemorySystem\", \"version\": \"v6.1.0-enterprise\", \"fase\": \"FASE 2\"}"}
+{"ts": "2025-09-17T16:43:25.685421", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_START EURUSD: {\"component\": \"UnifiedMemorySystem\", \"version\": \"v6.1.0-enterprise\", \"phase\": \"FASE_2_REAL_IMPLEMENTATION\", \"config_path\": \"config/memory_config.json\"}"}
+{"ts": "2025-09-17T16:43:25.685421", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_START EURUSD: {\"component\": \"UnifiedMemorySystem\", \"version\": \"v6.1.0-enterprise\", \"phase\": \"FASE_2_REAL_IMPLEMENTATION\", \"config_path\": \"config/memory_config.json\"}"}
+{"ts": "2025-09-17T16:43:25.685982", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 MEMORY_CONFIG_DEFAULT EURUSD: {\"reason\": \"Config file not found\", \"using_defaults\": true}"}
+{"ts": "2025-09-17T16:43:25.685982", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 MEMORY_CONFIG_DEFAULT EURUSD: {\"reason\": \"Config file not found\", \"using_defaults\": true}"}
+{"ts": "2025-09-17T16:43:25.688031", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "unified_memory", "message": "🧠 Inicializando Unified Market Memory v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:25.688031", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "unified_memory", "message": "🧠 Inicializando Unified Market Memory v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:25.690451", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Inicializando Market Context v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:25.690451", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Inicializando Market Context v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:25.690451", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Inicializando Market Context v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:25.691474", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "✅ Market Context v6.0 Enterprise inicializado - Retención: 50 periodos, Max POIs: 200, Cache: C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\04-DATA\\memory_persistence"}
+{"ts": "2025-09-17T16:43:25.691474", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "✅ Market Context v6.0 Enterprise inicializado - Retención: 50 periodos, Max POIs: 200, Cache: C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\04-DATA\\memory_persistence"}
+{"ts": "2025-09-17T16:43:25.691474", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "✅ Market Context v6.0 Enterprise inicializado - Retención: 50 periodos, Max POIs: 200, Cache: C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\04-DATA\\memory_persistence"}
+{"ts": "2025-09-17T16:43:25.693592", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "historical_memory", "message": "📈 Inicializando ICT Historical Analyzer v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:25.693592", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "historical_memory", "message": "📈 Inicializando ICT Historical Analyzer v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:25.693592", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "historical_memory", "message": "📈 Inicializando ICT Historical Analyzer v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:25.693592", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "historical_memory", "message": "📈 Inicializando ICT Historical Analyzer v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:25.695085", "level": "INFO", "logger": "ICT_Engine", "component": "decision_cache", "message": "💾 TradingDecisionCacheV6 inicializado - Intelligent: True, Cleanup: 24h"}
+{"ts": "2025-09-17T16:43:25.695085", "level": "INFO", "logger": "ICT_Engine", "component": "decision_cache", "message": "💾 TradingDecisionCacheV6 inicializado - Intelligent: True, Cleanup: 24h"}
+{"ts": "2025-09-17T16:43:25.695085", "level": "INFO", "logger": "ICT_Engine", "component": "decision_cache", "message": "💾 TradingDecisionCacheV6 inicializado - Intelligent: True, Cleanup: 24h"}
+{"ts": "2025-09-17T16:43:25.695085", "level": "INFO", "logger": "ICT_Engine", "component": "decision_cache", "message": "💾 TradingDecisionCacheV6 inicializado - Intelligent: True, Cleanup: 24h"}
+{"ts": "2025-09-17T16:43:25.696370", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Contexto inicial cargado - Sistema listo para análisis"}
+{"ts": "2025-09-17T16:43:25.696370", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Contexto inicial cargado - Sistema listo para análisis"}
+{"ts": "2025-09-17T16:43:25.696370", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Contexto inicial cargado - Sistema listo para análisis"}
+{"ts": "2025-09-17T16:43:25.696370", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Contexto inicial cargado - Sistema listo para análisis"}
+{"ts": "2025-09-17T16:43:25.697614", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "historical_memory", "message": "🧠 Memoria inicial cargada - Sistema listo para aprender"}
+{"ts": "2025-09-17T16:43:25.697614", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "historical_memory", "message": "🧠 Memoria inicial cargada - Sistema listo para aprender"}
+{"ts": "2025-09-17T16:43:25.697614", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "historical_memory", "message": "🧠 Memoria inicial cargada - Sistema listo para aprender"}
+{"ts": "2025-09-17T16:43:25.697614", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "historical_memory", "message": "🧠 Memoria inicial cargada - Sistema listo para aprender"}
+{"ts": "2025-09-17T16:43:25.698264", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "unified_memory", "message": "✅ Unified Market Memory inicializado - Components: 3/3, Quality: ACTIVE, Coherence: 1.000"}
+{"ts": "2025-09-17T16:43:25.698264", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "unified_memory", "message": "✅ Unified Market Memory inicializado - Components: 3/3, Quality: ACTIVE, Coherence: 1.000"}
+{"ts": "2025-09-17T16:43:25.698264", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "unified_memory", "message": "✅ Unified Market Memory inicializado - Components: 3/3, Quality: ACTIVE, Coherence: 1.000"}
+{"ts": "2025-09-17T16:43:25.698264", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "unified_memory", "message": "✅ Unified Market Memory inicializado - Components: 3/3, Quality: ACTIVE, Coherence: 1.000"}
+{"ts": "2025-09-17T16:43:25.698655", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Inicializando Market Context v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:25.698655", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Inicializando Market Context v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:25.698655", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Inicializando Market Context v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:25.698655", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Inicializando Market Context v6.0 Enterprise"}
+{"ts": "2025-09-17T16:43:25.699837", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "✅ Market Context v6.0 Enterprise inicializado - Retención: 50 periodos, Max POIs: 200, Cache: C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\04-DATA\\memory_persistence"}
+{"ts": "2025-09-17T16:43:25.699837", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "✅ Market Context v6.0 Enterprise inicializado - Retención: 50 periodos, Max POIs: 200, Cache: C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\04-DATA\\memory_persistence"}
+{"ts": "2025-09-17T16:43:25.699837", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "✅ Market Context v6.0 Enterprise inicializado - Retención: 50 periodos, Max POIs: 200, Cache: C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\04-DATA\\memory_persistence"}
+{"ts": "2025-09-17T16:43:25.699837", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "✅ Market Context v6.0 Enterprise inicializado - Retención: 50 periodos, Max POIs: 200, Cache: C:\\Users\\v_jac\\Desktop\\ict-engine-v6.0-enterprise-sic\\04-DATA\\memory_persistence"}
+{"ts": "2025-09-17T16:43:25.701213", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🔗 Historical Analyzer conectado exitosamente"}
+{"ts": "2025-09-17T16:43:25.701213", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🔗 Historical Analyzer conectado exitosamente"}
+{"ts": "2025-09-17T16:43:25.701213", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🔗 Historical Analyzer conectado exitosamente"}
+{"ts": "2025-09-17T16:43:25.701213", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🔗 Historical Analyzer conectado exitosamente"}
+{"ts": "2025-09-17T16:43:25.701524", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "CORE", "message": "🔗 Historical analyzer conectado al market context"}
+{"ts": "2025-09-17T16:43:25.701524", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "CORE", "message": "🔗 Historical analyzer conectado al market context"}
+{"ts": "2025-09-17T16:43:25.701524", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "CORE", "message": "🔗 Historical analyzer conectado al market context"}
+{"ts": "2025-09-17T16:43:25.701524", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "CORE", "message": "🔗 Historical analyzer conectado al market context"}
+{"ts": "2025-09-17T16:43:25.701735", "level": "INFO", "logger": "ICT_Engine", "component": "CORE", "message": "🔗 Decision cache conectado al market context"}
+{"ts": "2025-09-17T16:43:25.701735", "level": "INFO", "logger": "ICT_Engine", "component": "CORE", "message": "🔗 Decision cache conectado al market context"}
+{"ts": "2025-09-17T16:43:25.701735", "level": "INFO", "logger": "ICT_Engine", "component": "CORE", "message": "🔗 Decision cache conectado al market context"}
+{"ts": "2025-09-17T16:43:25.701735", "level": "INFO", "logger": "ICT_Engine", "component": "CORE", "message": "🔗 Decision cache conectado al market context"}
+{"ts": "2025-09-17T16:43:25.701991", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 COMPONENT_INTEGRATION_SUCCESS EURUSD: {\"integrated_components\": 3}"}
+{"ts": "2025-09-17T16:43:25.701991", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 COMPONENT_INTEGRATION_SUCCESS EURUSD: {\"integrated_components\": 3}"}
+{"ts": "2025-09-17T16:43:25.701991", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 COMPONENT_INTEGRATION_SUCCESS EURUSD: {\"integrated_components\": 3}"}
+{"ts": "2025-09-17T16:43:25.701991", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 COMPONENT_INTEGRATION_SUCCESS EURUSD: {\"integrated_components\": 3}"}
+{"ts": "2025-09-17T16:43:25.702250", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 CROSS_INTEGRATION_START EURUSD: {\"components\": [\"MarketContext\", \"HistoricalAnalyzer\", \"DecisionCache\", \"UnifiedMemory\"]}"}
+{"ts": "2025-09-17T16:43:25.702250", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 CROSS_INTEGRATION_START EURUSD: {\"components\": [\"MarketContext\", \"HistoricalAnalyzer\", \"DecisionCache\", \"UnifiedMemory\"]}"}
+{"ts": "2025-09-17T16:43:25.702250", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 CROSS_INTEGRATION_START EURUSD: {\"components\": [\"MarketContext\", \"HistoricalAnalyzer\", \"DecisionCache\", \"UnifiedMemory\"]}"}
+{"ts": "2025-09-17T16:43:25.702250", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 CROSS_INTEGRATION_START EURUSD: {\"components\": [\"MarketContext\", \"HistoricalAnalyzer\", \"DecisionCache\", \"UnifiedMemory\"]}"}
+{"ts": "2025-09-17T16:43:25.702492", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_SYSTEM_LINKING EURUSD: {\"action\": \"linking_memory_components\", \"components\": [\"memory\", \"context\", \"analyzer\", \"cache\"]}"}
+{"ts": "2025-09-17T16:43:25.702492", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_SYSTEM_LINKING EURUSD: {\"action\": \"linking_memory_components\", \"components\": [\"memory\", \"context\", \"analyzer\", \"cache\"]}"}
+{"ts": "2025-09-17T16:43:25.702492", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_SYSTEM_LINKING EURUSD: {\"action\": \"linking_memory_components\", \"components\": [\"memory\", \"context\", \"analyzer\", \"cache\"]}"}
+{"ts": "2025-09-17T16:43:25.702492", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_SYSTEM_LINKING EURUSD: {\"action\": \"linking_memory_components\", \"components\": [\"memory\", \"context\", \"analyzer\", \"cache\"]}"}
+{"ts": "2025-09-17T16:43:25.702718", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "CORE", "message": "🔗 Unified memory conectada al market context"}
+{"ts": "2025-09-17T16:43:25.702718", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "CORE", "message": "🔗 Unified memory conectada al market context"}
+{"ts": "2025-09-17T16:43:25.702718", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "CORE", "message": "🔗 Unified memory conectada al market context"}
+{"ts": "2025-09-17T16:43:25.702718", "level": "INFO", "logger": "UnifiedMemorySystem", "component": "CORE", "message": "🔗 Unified memory conectada al market context"}
+{"ts": "2025-09-17T16:43:25.702932", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Unified Memory System conectado exitosamente"}
+{"ts": "2025-09-17T16:43:25.702932", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Unified Memory System conectado exitosamente"}
+{"ts": "2025-09-17T16:43:25.702932", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Unified Memory System conectado exitosamente"}
+{"ts": "2025-09-17T16:43:25.702932", "level": "INFO", "logger": "MarketContext", "component": "market_memory", "message": "🧠 Unified Memory System conectado exitosamente"}
+{"ts": "2025-09-17T16:43:25.703101", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "CORE", "message": "🧠 Historical analyzer conectado a la memoria unificada"}
+{"ts": "2025-09-17T16:43:25.703101", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "CORE", "message": "🧠 Historical analyzer conectado a la memoria unificada"}
+{"ts": "2025-09-17T16:43:25.703101", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "CORE", "message": "🧠 Historical analyzer conectado a la memoria unificada"}
+{"ts": "2025-09-17T16:43:25.703101", "level": "INFO", "logger": "HistoricalAnalyzer", "component": "CORE", "message": "🧠 Historical analyzer conectado a la memoria unificada"}
+{"ts": "2025-09-17T16:43:25.703295", "level": "INFO", "logger": "ICT_Engine", "component": "CORE", "message": "🧠 Decision cache conectado al sistema unificado"}
+{"ts": "2025-09-17T16:43:25.703295", "level": "INFO", "logger": "ICT_Engine", "component": "CORE", "message": "🧠 Decision cache conectado al sistema unificado"}
+{"ts": "2025-09-17T16:43:25.703295", "level": "INFO", "logger": "ICT_Engine", "component": "CORE", "message": "🧠 Decision cache conectado al sistema unificado"}
+{"ts": "2025-09-17T16:43:25.703295", "level": "INFO", "logger": "ICT_Engine", "component": "CORE", "message": "🧠 Decision cache conectado al sistema unificado"}
+{"ts": "2025-09-17T16:43:25.703737", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 CROSS_INTEGRATION_SUCCESS EURUSD: {\"status\": \"Components connected for bidirectional communication\"}"}
+{"ts": "2025-09-17T16:43:25.703737", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 CROSS_INTEGRATION_SUCCESS EURUSD: {\"status\": \"Components connected for bidirectional communication\"}"}
+{"ts": "2025-09-17T16:43:25.703737", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 CROSS_INTEGRATION_SUCCESS EURUSD: {\"status\": \"Components connected for bidirectional communication\"}"}
+{"ts": "2025-09-17T16:43:25.703737", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 CROSS_INTEGRATION_SUCCESS EURUSD: {\"status\": \"Components connected for bidirectional communication\"}"}
+{"ts": "2025-09-17T16:43:25.704442", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_SUCCESS EURUSD: {\"component\": \"UnifiedMemorySystem\", \"status\": \"TRADER_READY\", \"experience_level\": 5, \"components_integrated\": 3, \"logging_system\": \"SmartTradingLogger_v6\", \"external_dependencies\": \"NONE\"}"}
+{"ts": "2025-09-17T16:43:25.704442", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_SUCCESS EURUSD: {\"component\": \"UnifiedMemorySystem\", \"status\": \"TRADER_READY\", \"experience_level\": 5, \"components_integrated\": 3, \"logging_system\": \"SmartTradingLogger_v6\", \"external_dependencies\": \"NONE\"}"}
+{"ts": "2025-09-17T16:43:25.704442", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_SUCCESS EURUSD: {\"component\": \"UnifiedMemorySystem\", \"status\": \"TRADER_READY\", \"experience_level\": 5, \"components_integrated\": 3, \"logging_system\": \"SmartTradingLogger_v6\", \"external_dependencies\": \"NONE\"}"}
+{"ts": "2025-09-17T16:43:25.704442", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_SUCCESS EURUSD: {\"component\": \"UnifiedMemorySystem\", \"status\": \"TRADER_READY\", \"experience_level\": 5, \"components_integrated\": 3, \"logging_system\": \"SmartTradingLogger_v6\", \"external_dependencies\": \"NONE\"}"}
+{"ts": "2025-09-17T16:43:25.704760", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_SUCCESS EURUSD: {\"system_ready\": true, \"components_loaded\": 3, \"version\": \"v6.1.0-enterprise\", \"phase\": \"FASE_2_REAL_IMPLEMENTATION\"}"}
+{"ts": "2025-09-17T16:43:25.704760", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_SUCCESS EURUSD: {\"system_ready\": true, \"components_loaded\": 3, \"version\": \"v6.1.0-enterprise\", \"phase\": \"FASE_2_REAL_IMPLEMENTATION\"}"}
+{"ts": "2025-09-17T16:43:25.704760", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_SUCCESS EURUSD: {\"system_ready\": true, \"components_loaded\": 3, \"version\": \"v6.1.0-enterprise\", \"phase\": \"FASE_2_REAL_IMPLEMENTATION\"}"}
+{"ts": "2025-09-17T16:43:25.704760", "level": "INFO", "logger": "ImportCenter", "component": "trading_decision", "message": "📈 UNIFIED_MEMORY_INIT_SUCCESS EURUSD: {\"system_ready\": true, \"components_loaded\": 3, \"version\": \"v6.1.0-enterprise\", \"phase\": \"FASE_2_REAL_IMPLEMENTATION\"}"}

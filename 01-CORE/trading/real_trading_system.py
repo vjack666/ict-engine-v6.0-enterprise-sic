@@ -24,10 +24,8 @@ try:
     from smart_trading_logger import SmartTradingLogger  # type: ignore
 except ImportError:
     import logging
-    class SmartTradingLogger:
-        @staticmethod
-        def get_logger(name: str):
-            return logging.getLogger(name)
+    # Fallback - usar logging estándar si no está disponible
+    SmartTradingLogger = None
 
 from data_management.mt5_connection_manager import get_mt5_connection
 from risk_management.risk_manager import RiskManager
@@ -84,8 +82,8 @@ class RealTradingSystem:
         """Initialize complete real trading system"""
         
         # Initialize logging first
-        if hasattr(SmartTradingLogger, 'get_logger'):
-            self.base_logger = SmartTradingLogger.get_logger(__name__)
+        if SmartTradingLogger is not None:
+            self.base_logger = SmartTradingLogger(__name__)
         else:
             import logging
             self.base_logger = logging.getLogger(__name__)

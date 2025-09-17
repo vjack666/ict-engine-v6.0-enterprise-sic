@@ -1,12 +1,12 @@
 {
-  "timestamp": "2025-09-17T14:07:50.173122",
+  "timestamp": "2025-09-17T17:55:56.975362",
   "mt5_connected": true,
   "mt5_login_id": 1511525932,
   "mt5_server": "FTMO-Demo",
-  "broker_ping_ms": 0.06699562072753906,
-  "last_tick_age_ms": -10799758.753299713,
-  "account_balance": 9950.53,
-  "account_equity": 9950.53,
+  "broker_ping_ms": 0.06222724914550781,
+  "last_tick_age_ms": -10797847.571849823,
+  "account_balance": 9947.33,
+  "account_equity": 9947.33,
   "margin_level": 0.0,
   "open_positions": 0,
   "internet_connected": true
