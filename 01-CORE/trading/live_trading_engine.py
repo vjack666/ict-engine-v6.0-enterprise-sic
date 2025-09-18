@@ -369,13 +369,13 @@ class LiveTradingEngine:
             
             # Esperar a que terminen los hilos
             if self._signal_processor_thread and self._signal_processor_thread.is_alive():
-                self._signal_processor_thread.join(timeout=5.0)
+                self._signal_processor_thread.join(timeout=2.0)
                 
             if self._position_monitor_thread and self._position_monitor_thread.is_alive():
-                self._position_monitor_thread.join(timeout=5.0)
+                self._position_monitor_thread.join(timeout=2.0)
                 
             if self._stats_thread and self._stats_thread.is_alive():
-                self._stats_thread.join(timeout=5.0)
+                self._stats_thread.join(timeout=2.0)
             
             # Cerrar posiciones si es forzado
             if force:
@@ -537,12 +537,14 @@ class LiveTradingEngine:
                         break
                     self._process_signal(signal)
                 
-                time.sleep(interval)
+                if self._stop_event.wait(interval):
+                    break
                 
             except Exception as e:
                 if LOGGER_AVAILABLE:
                     self.logger.error(f"Error en procesador de señales: {e}", "LiveTrading")
-                time.sleep(interval)
+                if self._stop_event.wait(interval):
+                    break
     
     def _position_monitor_loop(self):
         """Bucle de monitoreo de posiciones"""
@@ -551,12 +553,14 @@ class LiveTradingEngine:
         while self.is_running and not self._stop_event.is_set():
             try:
                 self._update_positions()
-                time.sleep(interval)
+                if self._stop_event.wait(interval):
+                    break
                 
             except Exception as e:
                 if LOGGER_AVAILABLE:
                     self.logger.error(f"Error en monitor de posiciones: {e}", "LiveTrading")
-                time.sleep(interval)
+                if self._stop_event.wait(interval):
+                    break
     
     def _stats_update_loop(self):
         """Bucle de actualización de estadísticas"""
@@ -577,12 +581,14 @@ class LiveTradingEngine:
                     except:
                         pass
                 
-                time.sleep(interval)
+                if self._stop_event.wait(interval):
+                    break
                 
             except Exception as e:
                 if LOGGER_AVAILABLE:
                     self.logger.error(f"Error actualizando estadísticas: {e}", "LiveTrading")
-                time.sleep(interval)
+                if self._stop_event.wait(interval):
+                    break
     
     def _process_signal(self, signal: TradingSignal):
         """Procesar una señal de trading"""

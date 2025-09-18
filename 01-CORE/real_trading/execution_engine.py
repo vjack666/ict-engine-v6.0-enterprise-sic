@@ -7,7 +7,7 @@ Sistema de ejecución de trades automatizado
 from protocols.unified_logging import get_unified_logger
 import time
 from dataclasses import dataclass, field
-from typing import Optional, Dict, List, Tuple, Any, Callable
+from typing import Optional, Dict, List, Tuple, Any, Callable, Union
 from datetime import datetime
 from enum import Enum
 import logging
@@ -113,7 +113,7 @@ class ExecutionEngine:
             self._mt5_available = False
             self.logger.error(f"Could not initialize MT5 components: {e}", "INIT")
         
-    def execute_order(self, request: OrderRequest) -> OrderResult:
+    def execute_order(self, request: Union[OrderRequest, Dict[str, Any]]) -> OrderResult:
         """
         Ejecutar orden de trading
         
@@ -126,12 +126,26 @@ class ExecutionEngine:
         start_time = time.time()
         
         try:
+            # Normalize request: accept dict for compatibility with integrator
+            if isinstance(request, dict):
+                req = OrderRequest(
+                    symbol=str(request.get("symbol", "")),
+                    order_type=OrderType.MARKET if str(request.get("order_type", "market")).lower() == "market" else OrderType.LIMIT,
+                    volume=float(request.get("volume", 0.0)),
+                    entry_price=request.get("entry_price"),
+                    stop_loss=request.get("stop_loss"),
+                    take_profit=request.get("take_profit"),
+                    comment=str(request.get("comment", "")),
+                )
+            else:
+                req = request
+
             # Log execution attempt
-            self.logger.info(f"Executing order: {request.symbol} {request.order_type.value} "
-                           f"Volume: {request.volume}", "EXECUTION")
+            self.logger.info(f"Executing order: {req.symbol} {req.order_type.value} "
+                           f"Volume: {req.volume}", "EXECUTION")
             
             # Validate request
-            validation_error = self._validate_order_request(request)
+            validation_error = self._validate_order_request(req)
             if validation_error:
                 return OrderResult(
                     success=False,
@@ -141,15 +155,15 @@ class ExecutionEngine:
             
             # Execute based on MT5 availability
             if self._mt5_available:
-                result = self._execute_mt5_order(request, start_time)
+                result = self._execute_mt5_order(req, start_time)
             else:
-                result = self._simulate_order_execution(request, start_time)
+                result = self._simulate_order_execution(req, start_time)
             
             # Update statistics
             self._update_execution_stats(result)
             
-            # Call callbacks
-            self._notify_execution_callbacks(request, result)
+            # Call callbacks using normalized request
+            self._notify_execution_callbacks(req, result)
             
             return result
             
@@ -203,39 +217,49 @@ class ExecutionEngine:
                     error_message="MT5 not connected via central manager",
                     execution_time_ms=(time.time() - start_time) * 1000
                 )
-            
-            # Por ahora, simular ejecución ya que MT5DataManager no tiene métodos de trading
-            # En una implementación completa, MT5DataManager debería tener:
-            # - execute_market_order()
-            # - execute_limit_order() 
-            # - close_position()
-            # etc.
-            
+            # Ejecutar orden de mercado usando helpers del MT5DataManager
             self.logger.info(f"Executing order via MT5DataManager: {request.symbol} {request.order_type.value}", "MT5")
-            
-            # Simular ejecución exitosa con datos realistas
-            execution_time = (time.time() - start_time) * 1000
-            
-            # Obtener precio actual del símbolo para ejecución realista
-            symbol_info = self.mt5_manager.get_symbol_info(request.symbol)
-            if symbol_info:
-                # Usar bid/ask para precio de ejecución realista
-                current_price = symbol_info.get('bid', request.entry_price or 0.0)
+
+            if request.order_type == OrderType.MARKET:
+                side = "BUY" if (request.entry_price is None or True) else "BUY"
+                # Determinar lado según comentario 'action' opcional
+                if request.comment:
+                    c = request.comment.lower()
+                    if "sell" in c:
+                        side = "SELL"
+                    elif "buy" in c:
+                        side = "BUY"
+                # Ejecutar
+                exec_res = self.mt5_manager.place_market_order(
+                    symbol=request.symbol,
+                    side=side,
+                    volume=request.volume,
+                    price=request.entry_price,
+                    sl=request.stop_loss,
+                    tp=request.take_profit,
+                    comment=request.comment or "ICT"
+                )
+                if not exec_res.get("success"):
+                    return OrderResult(
+                        success=False,
+                        error_message=str(exec_res.get("message", "order failed")),
+                        execution_time_ms=(time.time() - start_time) * 1000
+                    )
+                return OrderResult(
+                    success=True,
+                    order_id=int(time.time() * 1000) % 1000000,
+                    ticket=int(exec_res.get("ticket") or 0) or None,
+                    execution_price=float(exec_res.get("price") or 0.0),
+                    execution_time_ms=(time.time() - start_time) * 1000,
+                    slippage_pips=0.0,
+                )
             else:
-                current_price = request.entry_price if request.entry_price else 0.0
-            
-            # Simular pequeño slippage realista
-            import random
-            slippage_pips = random.uniform(0.1, 1.5)  # 0.1-1.5 pips realistic slippage
-            
-            return OrderResult(
-                success=True,
-                order_id=int(time.time() * 1000) % 1000000,  # Simulate order ID
-                ticket=int(time.time() * 1000) % 1000000,
-                execution_price=current_price,
-                execution_time_ms=execution_time,
-                slippage_pips=slippage_pips
-            )
+                # Para órdenes no mercado, fallback actual
+                return OrderResult(
+                    success=False,
+                    error_message="Only market orders supported via MT5DataManager",
+                    execution_time_ms=(time.time() - start_time) * 1000
+                )
             
         except Exception as e:
             return OrderResult(

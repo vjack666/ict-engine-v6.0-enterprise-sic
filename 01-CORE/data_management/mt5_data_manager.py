@@ -521,6 +521,90 @@ class MT5DataManager:
             'connection_attempts': self._connection_attempts
         }
 
+    # ===============================
+    # ORDENES DE TRADING (BÁSICAS)
+    # ===============================
+    def _ensure_symbol_selected(self, symbol: str) -> bool:
+        """Asegura que el símbolo esté seleccionado en MT5"""
+        try:
+            if not MT5_AVAILABLE or not mt5:
+                return False
+            info = mt5.symbol_info(symbol)  # type: ignore
+            if info is None:
+                return False
+            if not info.visible:
+                return bool(mt5.symbol_select(symbol, True))  # type: ignore
+            return True
+        except Exception as e:
+            self._log_error(f"Error seleccionando símbolo {symbol}", e)
+            return False
+
+    def place_market_order(self, symbol: str, side: str, volume: float, price: Optional[float] = None,
+                           sl: Optional[float] = None, tp: Optional[float] = None,
+                           comment: str = "ICT") -> Dict[str, Any]:
+        """Ejecuta una orden de mercado básica BUY/SELL via MT5."""
+        result: Dict[str, Any] = {"success": False, "ticket": None, "price": None, "message": ""}
+        if not self.is_connected():
+            result["message"] = "MT5 no conectado"
+            return result
+        if not self._ensure_symbol_selected(symbol):
+            result["message"] = f"Símbolo no disponible: {symbol}"
+            return result
+        try:
+            import MetaTrader5 as _mt5  # local import para tipos
+            # Obtener precio actual si no se especifica
+            if price is None:
+                tick = mt5.symbol_info_tick(symbol)  # type: ignore
+                if not tick:
+                    result["message"] = "Tick no disponible"
+                    return result
+                price = float(tick.ask) if side.upper() == "BUY" else float(tick.bid)
+
+            order_type = mt5.ORDER_TYPE_BUY if side.upper() == "BUY" else mt5.ORDER_TYPE_SELL  # type: ignore
+            request = {
+                "action": mt5.TRADE_ACTION_DEAL,  # type: ignore
+                "symbol": symbol,
+                "volume": float(volume),
+                "type": order_type,
+                "price": float(price),
+                "deviation": 20,
+                "magic": 12345,
+                "comment": comment,
+            }
+            if sl is not None:
+                request["sl"] = float(sl)
+            if tp is not None:
+                request["tp"] = float(tp)
+
+            send_result = mt5.order_send(request)  # type: ignore
+            # Éxito si retcode DONE o PLACED
+            done_codes = {
+                getattr(mt5, "TRADE_RETCODE_DONE", 10009),
+                getattr(mt5, "TRADE_RETCODE_PLACED", 10008),
+            }
+            success = hasattr(send_result, "retcode") and send_result.retcode in done_codes
+            result["success"] = bool(success)
+            result["ticket"] = getattr(send_result, "order", None) or getattr(send_result, "deal", None)
+            result["price"] = float(price)
+            result["message"] = getattr(send_result, "comment", "") or getattr(send_result, "retcode_external", "")
+            return result
+        except Exception as e:
+            self._log_error("Error enviando orden de mercado", e)
+            result["message"] = str(e)
+            return result
+
+    def place_buy_order(self, symbol: str, volume: float, price: Optional[float] = None,
+                        sl: Optional[float] = None, tp: Optional[float] = None,
+                        comment: str = "ICT") -> Dict[str, Any]:
+        """Helper para BUY market."""
+        return self.place_market_order(symbol, "BUY", volume, price, sl, tp, comment)
+
+    def place_sell_order(self, symbol: str, volume: float, price: Optional[float] = None,
+                         sl: Optional[float] = None, tp: Optional[float] = None,
+                         comment: str = "ICT") -> Dict[str, Any]:
+        """Helper para SELL market."""
+        return self.place_market_order(symbol, "SELL", volume, price, sl, tp, comment)
+
     def __del__(self):
         """Limpieza automática al destruir el objeto"""
         try:

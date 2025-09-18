@@ -194,12 +194,12 @@ python .\main.py
 - [x] Señales Ctrl+C capturadas; cierre ordenado confirmado (aprox. 16–17s por MT5/threads).
 
 ### 🔧 Próximos pasos inmediatos
-- [ ] Optimizar tiempos de shutdown a <5s:
-	- Reducir `join(timeout)` en hilos internos y en desconexión MT5.
-	- Asegurar `daemon=True` donde sea aplicable en hilos no críticos.
-	- Añadir flag de quick-shutdown para entorno real.
+- [x] Optimizar tiempos de shutdown a <5s:
+	- Reemplazado `time.sleep()` por `Event.wait()` en loops de `AlertIntegrationSystem`, `DashboardTradingIntegrator` y `LiveTradingEngine` para salida inmediata.
+	- Reducidos `join(timeout)` a ≤3s y `ThreadPoolExecutor.shutdown(wait=False, cancel_futures=True)` donde aplica.
+	- Hilos principales ya usan `daemon=True` donde corresponde.
 - [ ] Extender test de integración para verificar invocación de `process_market_data` (contadores).
-- [ ] Address: warning de persistencia de estadísticas (datetime no serializable) en AlertIntegrationSystem.
+- [x] Address: warning de persistencia de estadísticas (datetime no serializable) en AlertIntegrationSystem.
 
 ### 🧪 Test rápido añadido
 Ejecutar solo el test mínimo de integración:

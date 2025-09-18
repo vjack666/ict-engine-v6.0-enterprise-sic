@@ -327,10 +327,15 @@ class AlertIntegrationSystem:
             # Wait for threads
             for thread in [self._alert_processor_thread, self._statistics_thread]:
                 if thread and thread.is_alive():
-                    thread.join(timeout=10)
+                    thread.join(timeout=2.0)
             
             # Shutdown executor
-            self._executor.shutdown(wait=True)
+            try:
+                # Fast shutdown: cancel pending tasks and return quickly
+                self._executor.shutdown(wait=False, cancel_futures=True)  # type: ignore[arg-type]
+            except TypeError:
+                # Fallback for older Python
+                self._executor.shutdown(wait=False)
             
             # Save state
             self._save_persistent_state()
@@ -416,11 +421,13 @@ class AlertIntegrationSystem:
                 # Cleanup old alerts
                 self._cleanup_old_alerts()
                 
-                time.sleep(interval)
+                if self._shutdown_event.wait(interval):
+                    break
                 
             except Exception as e:
                 logger.error(f"Error in alert processing loop: {e}", "PROCESSING")
-                time.sleep(interval)
+                if self._shutdown_event.wait(interval):
+                    break
     
     def _statistics_loop(self) -> None:
         """Statistics collection loop"""
@@ -443,11 +450,13 @@ class AlertIntegrationSystem:
                 # Save statistics
                 self._save_statistics()
                 
-                time.sleep(interval_seconds)
+                if self._shutdown_event.wait(interval_seconds):
+                    break
                 
             except Exception as e:
                 logger.error(f"Error in statistics loop: {e}", "STATISTICS")
-                time.sleep(interval_seconds)
+                if self._shutdown_event.wait(interval_seconds):
+                    break
     
     # Alert handlers from different sources
     def _handle_system_monitor_alert(self, system_alert: 'SystemAlert') -> None:
@@ -1030,13 +1039,22 @@ class AlertIntegrationSystem:
             stats_file = Path(self.config['statistics_file'])
             stats_file.parent.mkdir(exist_ok=True)
             
-            stats_data = [asdict(stats) for stats in self.alert_statistics[-100:]]
+            # Ensure datetime fields are serialized
+            stats_data = [self._statistics_to_dict(stats) for stats in self.alert_statistics[-100:]]
             
             with open(stats_file, 'w', encoding='utf-8') as f:
                 json.dump(stats_data, f, indent=2)
             
         except Exception as e:
             logger.warning(f"Failed to save statistics: {e}", "PERSISTENCE")
+
+    def _statistics_to_dict(self, stats: AlertStatistics) -> Dict[str, Any]:
+        """Convert AlertStatistics to JSON-serializable dict"""
+        data = asdict(stats)
+        ts = data.get('timestamp')
+        if isinstance(ts, datetime):
+            data['timestamp'] = ts.isoformat()
+        return data
     
     def _load_persistent_state(self) -> None:
         """Load persistent state from disk"""

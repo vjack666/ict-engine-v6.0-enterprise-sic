@@ -166,10 +166,10 @@ class DashboardTradingIntegrator:
         self.stop_processing.set()
         
         if self.processing_thread:
-            self.processing_thread.join(timeout=5.0)
+            self.processing_thread.join(timeout=2.0)
         
         if self.account_monitor_thread:
-            self.account_monitor_thread.join(timeout=5.0)
+            self.account_monitor_thread.join(timeout=2.0)
         
         self.logger.info("⏹️ Dashboard trading integration stopped")
     
@@ -222,11 +222,13 @@ class DashboardTradingIntegrator:
                 self._notify_account_update()
                 
                 # Sleep between updates
-                time.sleep(self.account_update_interval)
+                if self.stop_processing.wait(self.account_update_interval):
+                    break
                 
             except Exception as e:
                 self.logger.error(f"Account monitor error: {str(e)}")
-                time.sleep(10.0)  # Longer sleep on error
+                if self.stop_processing.wait(10.0):
+                    break
         
         self.logger.info("🏦 Account monitor loop stopped")
     
@@ -589,11 +591,13 @@ class DashboardTradingIntegrator:
                 self._cleanup_old_signals()
                 
                 # Sleep between iterations
-                time.sleep(1.0)
+                if self.stop_processing.wait(1.0):
+                    break
                 
             except Exception as e:
                 self.logger.error(f"Processing loop error: {str(e)}")
-                time.sleep(5.0)  # Longer sleep on error
+                if self.stop_processing.wait(5.0):
+                    break
         
         self.logger.info("🔄 Processing loop stopped")
     
