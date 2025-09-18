@@ -57,17 +57,53 @@ atexit.register(_shutdown_queue_listener)
 
 def _register_handlers_with_global_queue(*handlers: Optional[logging.Handler]) -> QueueHandler:
     """Registrar handlers en un QueueListener global y devolver QueueHandler.
-    Acepta cualquier número de handlers (pueden ser None)."""
+    Acepta cualquier número de handlers (pueden ser None).
+    Evita múltiples handlers de archivo apuntando al mismo path (Windows-safe)."""
     global _GLOBAL_LOG_QUEUE, _GLOBAL_QUEUE_LISTENER, _GLOBAL_QUEUE_HANDLERS
+
+    def _handler_target_id(h: logging.Handler) -> Optional[str]:
+        try:
+            # RotatingFileHandler has baseFilename attribute
+            base = getattr(h, 'baseFilename', None)
+            if isinstance(base, str):
+                # Normalize path for comparisons
+                return os.path.abspath(base)
+        except Exception:
+            return None
+        return None
+
     with _GLOBAL_QUEUE_LOCK:
         if _GLOBAL_LOG_QUEUE is None:
             _GLOBAL_LOG_QUEUE = queue.Queue(-1)
 
-        # Construir nuevo conjunto de handlers evitando duplicados
-        new_handlers: List[logging.Handler] = list(_GLOBAL_QUEUE_HANDLERS)
+        # Construir nuevo conjunto de handlers evitando duplicados por instancia y por archivo
+        new_handlers: List[logging.Handler] = []
+        existing_targets: set[str] = set()
+
+        # Sembrar con los handlers ya activos
+        for eh in _GLOBAL_QUEUE_HANDLERS:
+            new_handlers.append(eh)
+            tgt = _handler_target_id(eh)
+            if tgt:
+                existing_targets.add(tgt)
+
+        # Añadir nuevos handlers si no existen y sin duplicar destino de archivo
         for h in handlers:
-            if h is not None and all(h is not eh for eh in new_handlers):
-                new_handlers.append(h)
+            if h is None:
+                continue
+            if any(h is eh for eh in new_handlers):
+                continue
+            tgt = _handler_target_id(h)
+            if tgt and tgt in existing_targets:
+                # Ya existe un handler para ese archivo; cerrar el nuevo para liberar el handle
+                try:
+                    h.close()
+                except Exception:
+                    pass
+                continue
+            new_handlers.append(h)
+            if tgt:
+                existing_targets.add(tgt)
 
         # Si hubo cambios, reiniciar listener con la lista actualizada
         if (len(new_handlers) != len(_GLOBAL_QUEUE_HANDLERS)) or _GLOBAL_QUEUE_LISTENER is None:

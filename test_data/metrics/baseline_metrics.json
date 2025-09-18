@@ -1,1 +1,17 @@
-{}
+{
+  "test_component_operation_test_latency_ms": {
+    "metric_name": "operation_test_latency_ms",
+    "category": "component_latency",
+    "baseline_value": 20.695400016847998,
+    "unit": "ms",
+    "tolerance_percent": 20.0,
+    "samples_count": 3,
+    "established_at": "2025-09-18T16:16:35.936757",
+    "last_updated": "2025-09-18T16:16:35.936757",
+    "min_value": 20.428999967407435,
+    "max_value": 20.78379999147728,
+    "avg_value": 20.636066658577572,
+    "std_deviation": 0.18469190513589345,
+    "component": "test_component"
+  }
+}

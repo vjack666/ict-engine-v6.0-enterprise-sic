@@ -192,7 +192,7 @@ class BasePatternDashboard(ABC):
         """Inicializar conexión con detector del core"""
         try:
             # Intentar cargar el detector principal
-            from analysis.pattern_detector import PatternDetector
+            from ict_engine.pattern_detector import PatternDetector
             self.pattern_detector = PatternDetector()
             print(f"✅ Detector inicializado para patrón: {self.pattern_name}")
         except ImportError as e:

@@ -30,7 +30,7 @@
             "update_interval": 500
         },
         "pattern_detector": {
-            "module": "core.analysis.pattern_detector", 
+            "module": "core.ict_engine.pattern_detector", 
             "class": "PatternDetector",
             "update_interval": 1000
         },

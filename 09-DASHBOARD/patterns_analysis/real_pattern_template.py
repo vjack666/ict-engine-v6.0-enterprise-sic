@@ -52,7 +52,7 @@ class RealPatternDashboard(BasePatternDashboard):
         
         # 1. Conectar con Pattern Detector principal
         try:
-            from analysis.pattern_detector import PatternDetector
+            from ict_engine.pattern_detector import PatternDetector
             self.real_pattern_detector = PatternDetector()
             print(f"✅ {self.pattern_name}: PatternDetector real conectado")
         except ImportError as e:

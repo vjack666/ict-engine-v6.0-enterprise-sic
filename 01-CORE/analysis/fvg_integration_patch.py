@@ -302,7 +302,7 @@ class FVGIntegrationPatch:
 
 # 1. Importar e inicializar
 from analysis.fvg_integration_patch import FVGIntegrationPatch
-from analysis.pattern_detector import PatternDetector  # Tu clase original
+from ict_engine.pattern_detector import PatternDetector  # Tu clase original
 
 # 2. Crear instancias
 pattern_detector = PatternDetector()

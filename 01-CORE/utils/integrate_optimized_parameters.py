@@ -44,7 +44,7 @@ SmartMoneyDetector = None
 try:
     from utils.parameter_optimization_manager import ParameterOptimizationManager, OptimizationLevel, PerformanceMetrics
     from ict_engine.patterns.simple_order_blocks import SimpleOrderBlockDetector
-    from analysis.pattern_detector import PatternDetector
+    from ict_engine.pattern_detector import PatternDetector
     from smart_money_concepts.smart_money_detector import SmartMoneyDetector
     print("✅ Imports del sistema ICT cargados exitosamente")
 except ImportError as e:

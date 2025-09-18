@@ -1,0 +1,33 @@
+{
+  "include": ["**/*.py"],
+  "exclude": [
+    "**/__pycache__",
+    ".venv",
+    "venv",
+    ".pytest_cache"
+  ],
+  "reportMissingImports": true,
+  "reportMissingModuleSource": false,
+  "reportImportCycles": false,
+  "reportUnusedImport": false,
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "pythonVersion": "3.8",
+      "extraPaths": [
+        ".",
+        "./01-CORE",
+        "./01-CORE/analysis",
+        "./01-CORE/protocols",
+        "./01-CORE/utils",
+        "./01-CORE/data_management",
+        "./01-CORE/smart_money_concepts",
+        "./01-CORE/real_trading",
+        "./01-CORE/production",
+        "./01-CORE/risk_management",
+        "./scripts",
+        "./09-DASHBOARD"
+      ]
+    }
+  ]
+}

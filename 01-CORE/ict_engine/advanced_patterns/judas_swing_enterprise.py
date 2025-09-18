@@ -43,7 +43,7 @@ try:
 except ImportError:
     try:
         # Fallback para imports desde nivel superior
-        from unified_logging import log_info, log_warning, log_error, log_debug, SmartTradingLogger, create_unified_logger
+        from protocols.unified_logging import get_unified_logger
         from analysis.unified_memory_system import get_unified_memory_system
         UNIFIED_MEMORY_AVAILABLE = True
     except ImportError:

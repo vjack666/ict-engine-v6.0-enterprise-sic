@@ -107,7 +107,7 @@ class Alert:
     level: AlertLevel
     component: str
     message: str
-    metrics: Dict[str, Any] = field(default_factory=dict)
+    metrics: Dict[str, Any] = field(default_factory=lambda: {})
     
 class ProductionSystemMonitor:
     """🚀 Monitor de producción para sistema ICT Engine"""
@@ -362,6 +362,7 @@ class ProductionSystemMonitor:
         alert_key = f"{component}_{level.value}"
         
         # Check throttling - prevent spam alerts
+        time_since_last = 0  # Default value
         if alert_key in self.last_alert_time:
             time_since_last = (now - self.last_alert_time[alert_key]).total_seconds()
             if time_since_last < self.alert_cooldown_seconds:
@@ -596,8 +597,14 @@ class ProductionSystemMonitor:
             # Test internet connectivity
             import socket
             try:
-                socket.create_connection(("8.8.8.8", 53), 3)
-                metrics.internet_connected = True
+                s = socket.create_connection(("8.8.8.8", 53), 3)
+                try:
+                    metrics.internet_connected = True
+                finally:
+                    try:
+                        s.close()
+                    except Exception:
+                        pass
             except OSError:
                 metrics.internet_connected = False
             

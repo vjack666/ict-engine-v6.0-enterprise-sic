@@ -159,15 +159,12 @@ class ImportCenter:
     def get_pattern_detector(self):
         """🎯 Obtener PatternDetector con fallbacks"""
 
-        # Intentar desde core.analysis
+        # Intentar desde ict_engine
         try:
-            from analysis.pattern_detector import get_pattern_detector
-            return get_pattern_detector
+            from ict_engine.pattern_detector import PatternDetector
+            return PatternDetector
         except ImportError:
             pass
-
-        # core.ict_engine.pattern_detector no tiene función get_pattern_detector
-        # Solo existe en core.analysis.pattern_detector
 
         # Fallback: crear función básica
         def fallback_pattern_detector(*args, **kwargs):

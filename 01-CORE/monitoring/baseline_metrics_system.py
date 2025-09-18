@@ -107,7 +107,9 @@ class BaselineMetricsSystem:
         Args:
             config: Configuración del sistema (opcional)
         """
-        self.config = config or self._get_default_config()
+        # Merge provided config with defaults to ensure required keys exist
+        default_config = self._get_default_config()
+        self.config = {**default_config, **(config or {})}
         self.is_monitoring = False
         self.baseline_metrics: Dict[str, BaselineMetric] = {}
         self.metric_snapshots: List[MetricSnapshot] = []

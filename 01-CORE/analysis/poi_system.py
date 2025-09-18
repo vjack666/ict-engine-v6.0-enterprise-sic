@@ -41,9 +41,10 @@ else:
 from typing import Any
 
 try:
-    from ..data_management.advanced_candle_downloader import get_advanced_candle_downloader
-    from .pattern_detector import get_pattern_detector, PatternType as PatternDetectorType
-    from .market_structure_analyzer import get_market_structure_analyzer
+    # Usar rutas absolutas basadas en extraPaths de pyproject.toml
+    from data_management.advanced_candle_downloader import get_advanced_candle_downloader
+    from analysis.pattern_detector import get_pattern_detector, PatternType as PatternDetectorType
+    from analysis.market_structure_analyzer import get_market_structure_analyzer
     print("[INFO] Componentes POI System cargados exitosamente")
 except ImportError as e:
     print(f"[WARNING] Algunos componentes no disponibles: {e}")
@@ -67,7 +68,7 @@ except ImportError as e:
     
     # Fallback PatternType enum
     from enum import Enum
-    class PatternType(Enum):  # type: ignore
+    class PatternType(Enum):
         """Fallback PatternType enum para compatibilidad"""
         UNKNOWN = "unknown"
 
@@ -403,6 +404,118 @@ class POISystem:
             
         except Exception as e:
             print(f"[ERROR] Error detectando POIs: {e}")
+            return []
+
+    def detect_points_of_interest(self, data: Any) -> List[Dict[str, Any]]:
+        """
+        🎯 DETECTAR POINTS OF INTEREST - Método requerido para ProductionSystemIntegrator
+        
+        Detecta Points of Interest en los datos de mercado proporcionados
+        
+        Args:
+            data: Datos de mercado (DataFrame o dict con OHLCV)
+            
+        Returns:
+            Lista de POIs encontrados como diccionarios
+        """
+        try:
+            # Validar datos de entrada
+            if data is None:
+                return []
+            
+            # Convertir datos a formato estándar
+            if hasattr(data, 'empty') and data.empty:
+                return []
+                
+            # Detectar POIs usando el método principal
+            if hasattr(data, 'columns') and all(col in data.columns for col in ['high', 'low', 'open', 'close']):
+                # Es un DataFrame con datos OHLC
+                symbol = "UNKNOWN"  # No disponible en los datos
+                timeframe = "M15"   # Asumir M15 por defecto
+                
+                detected_pois = []
+                
+                # Usar los mismos métodos internos de detección
+                if self.config.get('enable_order_blocks', True):
+                    order_block_pois = self._detect_order_block_pois(data, symbol, timeframe)
+                    detected_pois.extend(order_block_pois)
+                
+                if self.config.get('enable_fair_value_gaps', True):
+                    fvg_pois = self._detect_fvg_pois(data, symbol, timeframe)
+                    detected_pois.extend(fvg_pois)
+                
+                if self.config.get('enable_swing_points', True):
+                    swing_pois = self._detect_swing_point_pois(data, symbol, timeframe)
+                    detected_pois.extend(swing_pois)
+                
+                # Convertir POI objects a diccionarios
+                poi_dicts = []
+                for poi in detected_pois:
+                    poi_dict = {
+                        'type': poi.poi_type.value if hasattr(poi, 'poi_type') else 'unknown',
+                        'price': float(poi.price) if hasattr(poi, 'price') else 0.0,
+                        'strength': float(poi.strength) if hasattr(poi, 'strength') else 0.5,
+                        'significance': poi.significance.value if hasattr(poi, 'significance') else 'medium',
+                        'timestamp': poi.timestamp.isoformat() if hasattr(poi, 'timestamp') else datetime.now().isoformat(),
+                        'is_valid': bool(poi.is_valid) if hasattr(poi, 'is_valid') else True,
+                        'confidence': float(getattr(poi, 'confidence', 0.6))
+                    }
+                    poi_dicts.append(poi_dict)
+                
+                # Actualizar métricas
+                self.performance_metrics['total_pois_created'] += len(poi_dicts)
+                self.performance_metrics['last_update'] = datetime.now()
+                
+                return poi_dicts
+                
+            elif isinstance(data, list) and len(data) > 0:
+                # Es una lista de velas
+                # Crear respuesta básica para compatibilidad
+                basic_pois = []
+                
+                if len(data) >= 10:  # Mínimo para análisis
+                    # Detectar niveles de swing básicos
+                    for i in range(2, len(data) - 2):
+                        candle = data[i]
+                        prev_candles = data[i-2:i]
+                        next_candles = data[i+1:i+3]
+                        
+                        if isinstance(candle, dict):
+                            high = candle.get('high', candle.get('High', 0))
+                            low = candle.get('low', candle.get('Low', 0))
+                            
+                            # Swing High
+                            is_swing_high = all(high > c.get('high', c.get('High', 0)) for c in prev_candles + next_candles if isinstance(c, dict))
+                            if is_swing_high and high > 0:
+                                basic_pois.append({
+                                    'type': 'swing_high',
+                                    'price': float(high),
+                                    'strength': 0.7,
+                                    'significance': 'medium',
+                                    'timestamp': datetime.now().isoformat(),
+                                    'is_valid': True,
+                                    'confidence': 0.65
+                                })
+                            
+                            # Swing Low
+                            is_swing_low = all(low < c.get('low', c.get('Low', 999999)) for c in prev_candles + next_candles if isinstance(c, dict))
+                            if is_swing_low and low > 0:
+                                basic_pois.append({
+                                    'type': 'swing_low',
+                                    'price': float(low),
+                                    'strength': 0.7,
+                                    'significance': 'medium',
+                                    'timestamp': datetime.now().isoformat(),
+                                    'is_valid': True,
+                                    'confidence': 0.65
+                                })
+                
+                return basic_pois[:10]  # Limitar a 10 POIs
+                
+            return []
+            
+        except Exception as e:
+            print(f"[ERROR] Error detecting points of interest: {e}")
             return []
     
     def _get_market_data(self, symbol: str, timeframe: str, days: int) -> Optional[DataFrameType]:

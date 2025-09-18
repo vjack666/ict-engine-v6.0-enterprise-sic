@@ -35,37 +35,89 @@ current_dir = Path(__file__).parent
 project_root = current_dir.parent.parent
 sys.path.insert(0, str(current_dir.parent))
 
-# Import production modules
+# Centralized, safe logger getter to avoid duplicate definitions
+def get_central_logger(name: str = "ProductionIntegrator"):
+    """Return a central logger from available protocols, with fallback to stdlib."""
+    try:
+        from protocols.logging_central_protocols import create_safe_logger  # type: ignore
+        return create_safe_logger(name)
+    except Exception:
+        try:
+            from protocols.unified_logging import get_unified_logger  # type: ignore
+            return get_unified_logger(name)
+        except Exception:
+            import logging as _logging
+            return _logging.getLogger(name)
+
+# Initialize module-level logger using the safe getter
+logger = get_central_logger("ProductionSystemIntegrator")
+LOGGING_AVAILABLE = True if logger else False
 try:
-    from protocols.logging_protocol import get_central_logger, LogLevel, LogCategory
-    logger = get_central_logger("ProductionSystemIntegrator")
-    LOGGING_AVAILABLE = True
-except ImportError:
-    logger = None
-    LogCategory = None  # Define fallback
-    LOGGING_AVAILABLE = False
-    print("⚠️ Advanced logging not available, using fallback")
-    
-    class FallbackLogger:
-        def info(self, msg, component=""): print(f"[INFO] {msg}")
-        def error(self, msg, component=""): print(f"[ERROR] {msg}")
-        def warning(self, msg, component=""): print(f"[WARNING] {msg}")
-        def debug(self, msg, component=""): print(f"[DEBUG] {msg}")
-        def critical(self, msg, component=""): print(f"[CRITICAL] {msg}")
-    
-    logger = FallbackLogger()
+    from protocols.logging_central_protocols import LogLevel  # type: ignore
+except Exception:
+    LogLevel = None
 
 def _safe_log(logger_instance, level: str, msg: str, category=None):
     """Safe logging that handles LogCategory availability"""
     if hasattr(logger_instance, level):
         log_func = getattr(logger_instance, level)
-        if category and LogCategory:
+        try:
+            # Try with component parameter first
+            log_func(msg, component="ProductionIntegrator")
+        except TypeError:
             try:
-                log_func(msg, category)
+                # Try with category if available
+                if category:
+                    log_func(msg, category)
+                else:
+                    log_func(msg)
             except:
                 log_func(msg)
-        else:
-            log_func(msg)
+
+# Global fallback logger class (single definition)
+class FallbackLogger:
+    def info(self, msg, component=""): print(f"[INFO] {msg}")
+    def error(self, msg, component=""): print(f"[ERROR] {msg}")
+    def warning(self, msg, component=""): print(f"[WARNING] {msg}")
+    def debug(self, msg, component=""): print(f"[DEBUG] {msg}")
+    def critical(self, msg, component=""): print(f"[CRITICAL] {msg}")
+
+class LoggerWrapper:
+    """Wrapper that automatically adds component parameter"""
+    def __init__(self, logger, component="ProductionIntegrator"):
+        self._logger = logger
+        self._component = component
+    
+    def info(self, msg):
+        try:
+            self._logger.info(msg, component=self._component)
+        except TypeError:
+            self._logger.info(msg)
+    
+    def error(self, msg):
+        try:
+            self._logger.error(msg, component=self._component)
+        except TypeError:
+            self._logger.error(msg)
+    
+    def warning(self, msg):
+        try:
+            self._logger.warning(msg, component=self._component)
+        except TypeError:
+            self._logger.warning(msg)
+    
+    def debug(self, msg):
+        try:
+            self._logger.debug(msg, component=self._component)
+        except TypeError:
+            self._logger.debug(msg)
+    
+    def critical(self, msg):
+        try:
+            self._logger.critical(msg, component=self._component)
+        except TypeError:
+            self._logger.critical(msg)
+
 from production.production_system_manager import ProductionSystemManager, get_production_manager
 from production.realtime_data_processor import RealTimeDataProcessor, get_data_processor
 
@@ -74,7 +126,7 @@ from production.realtime_data_processor import RealTimeDataProcessor, get_data_p
 class ProductionConfig:
     """Production configuration settings"""
     trading_mode: str = "live"  # "live", "paper", "simulation"
-    symbols: List[str] = None
+    symbols: Optional[List[str]] = None
     risk_per_trade: float = 1.0
     max_open_positions: int = 5
     emergency_stop_enabled: bool = True
@@ -100,7 +152,7 @@ class TradingSignal:
     timestamp: datetime
     pattern_type: str
     session: str
-    additional_data: Dict[str, Any] = None
+    additional_data: Optional[Dict[str, Any]] = None
     
     def __post_init__(self):
         if self.additional_data is None:
@@ -146,7 +198,8 @@ class ProductionSystemIntegrator:
             self.config = config or ProductionConfig()
             self.additional_config = {}
         
-        self.logger = logger or get_central_logger("ProductionIntegrator")
+        raw_logger = logger or FallbackLogger()
+        self.logger = LoggerWrapper(raw_logger, "ProductionIntegrator")
         
         # Initialize from provided components or create defaults
         if components:
@@ -167,6 +220,7 @@ class ProductionSystemIntegrator:
         self.is_running = False
         self.start_time = None
         self.performance_metrics = {}
+        self.data_events_count = 0
         
         # Signal processing
         self.active_signals: Dict[str, TradingSignal] = {}
@@ -174,29 +228,93 @@ class ProductionSystemIntegrator:
         
         self.logger.info("Production System Integrator initialized")
     
+    # ---- Minimal interface expected by main.py ----
+    def initialize(self) -> bool:
+        """Minimal initializer to align with main.py expectations."""
+        try:
+            # Initialize linked components if available
+            if self.data_processor and hasattr(self.data_processor, 'is_running'):
+                if not self.data_processor.is_running():
+                    self.data_processor.start()
+            # Auto-register to data callbacks for direct market data handling
+            if self.data_processor and hasattr(self.data_processor, 'add_callback'):
+                try:
+                    self.data_processor.add_callback(self.process_market_data)
+                except Exception as e:
+                    self.logger.warning(f"Could not register data callback: {e}")
+            if self.production_manager and hasattr(self.production_manager, 'is_healthy'):
+                # Ensure manager is started
+                if not self.production_manager.is_healthy():
+                    self.production_manager.start()
+
+            # Lazy init flags/state
+            self.is_running = True
+            self.start_time = datetime.now()
+            return True
+        except Exception as e:
+            self.logger.error(f"Initializer error: {e}")
+            return False
+
+    def is_initialized(self) -> bool:
+        return bool(self.is_running)
+
+    def shutdown(self) -> None:
+        self.is_running = False
+
+    def get_metrics(self) -> Dict[str, Any]:
+        return {
+            "initialized": self.is_running,
+            "active_signals": len(self.active_signals),
+            "executions": len(self.execution_results),
+            "data_events": self.data_events_count,
+        }
+
+    def get_status(self) -> Dict[str, Any]:
+        return {"initialized": self.is_running}
+
+    def handle_system_event(self, event_type: str, payload: Dict[str, Any]) -> None:
+        try:
+            # Placeholder to accept health updates, etc.
+            self.performance_metrics["last_event"] = {"type": event_type, "ts": datetime.now().isoformat()}
+        except Exception as e:
+            self.logger.warning(f"handle_system_event error: {e}")
+
+    def process_market_data(self, symbol: str, timeframe: str, tick_data: Any) -> None:
+        try:
+            # Placeholder to accept data callbacks from processor
+            self.performance_metrics["last_symbol"] = symbol
+            self.data_events_count += 1
+        except Exception as e:
+            self.logger.warning(f"process_market_data error: {e}")
+
     def initialize_production_system(self) -> bool:
         """Initialize complete production system with all components"""
         try:
             self.logger.info("Initializing production system with real components")
             
             # Initialize data processor
-            if not self.data_processor.start_processing():
+            if self.data_processor and hasattr(self.data_processor, 'start_processing') and not self.data_processor.start_processing():
                 self.logger.error("Failed to start data processor")
                 return False
             
             # Initialize system manager
-            if not self.system_manager.initialize():
-                self.logger.error("Failed to initialize system manager")
-                return False
+            if self.production_manager and hasattr(self.production_manager, 'initialize'):
+                if not self.production_manager.initialize():
+                    self.logger.error("Failed to initialize system manager")
+                    return False
+            elif self.production_manager and hasattr(self.production_manager, 'start'):
+                started = self.production_manager.start()
+                if started is False:
+                    self.logger.error("Failed to start system manager")
+                    return False
+            else:
+                self.logger.warning("No production manager available to initialize")
             
             self.logger.info("Production system initialized successfully")
             return True
             
         except Exception as e:
             self.logger.error(f"Production system initialization failed: {e}")
-            return False
-        except Exception as e:
-            self.logger.error(f"Data processor initialization failed: {e}")
             return False
     
     def _initialize_ict_components(self) -> bool:
@@ -224,7 +342,7 @@ class ProductionSystemIntegrator:
         
         # Initialize Pattern Detector
         try:
-            from analysis.pattern_detector import PatternDetector
+            from ict_engine.pattern_detector import PatternDetector
             self.pattern_detector = PatternDetector()
             success_count += 1
             self.logger.info("Pattern Detector initialized")
@@ -375,7 +493,7 @@ class ProductionSystemIntegrator:
         
         try:
             # Use existing Smart Money analyzer instead of test data
-            if hasattr(self.smart_money_analyzer, 'analyze_market_data'):
+            if self.smart_money_analyzer and hasattr(self.smart_money_analyzer, 'analyze_market_data'):
                 analysis_result = self.smart_money_analyzer.analyze_market_data(data)
                 
                 if analysis_result and analysis_result.get('signals'):
@@ -400,7 +518,7 @@ class ProductionSystemIntegrator:
         
         try:
             # Use existing POI system instead of test data
-            if hasattr(self.poi_system, 'detect_points_of_interest'):
+            if self.poi_system and hasattr(self.poi_system, 'detect_points_of_interest'):
                 pois = self.poi_system.detect_points_of_interest(data)
                 
                 for poi in pois:
@@ -423,13 +541,7 @@ class ProductionSystemIntegrator:
     def _queue_trading_signal(self, signal: TradingSignal):
         """Queue signal for execution processing"""
         self.active_signals[signal.id] = signal
-        self.logger.info(f"Signal queued: {signal.symbol} {signal.action}", extra={
-            "signal_id": signal.id,
-            "symbol": signal.symbol,
-            "action": signal.action,
-            "confidence": signal.confidence,
-            "pattern_type": signal.pattern_type
-        })
+        self.logger.info(f"Signal queued: {signal.symbol} {signal.action} - ID: {signal.id}, Confidence: {signal.confidence}, Pattern: {signal.pattern_type}")
     
     def _process_trading_signals(self):
         """Process queued trading signals"""
@@ -475,10 +587,11 @@ class ProductionSystemIntegrator:
                 }
                 
                 if hasattr(self.risk_manager, 'validate_trade'):
-                    return self.risk_manager.validate_trade(risk_assessment)
+                    validation_result = self.risk_manager.validate_trade(risk_assessment)
+                    return validation_result.get('valid', False)
                 elif hasattr(self.risk_manager, 'assess_risk'):
                     risk_result = self.risk_manager.assess_risk(risk_assessment)
-                    return risk_result.get('approved', False)
+                    return risk_result.get('assessment_valid', False) and risk_result.get('risk_level') != 'HIGH'
             
             # Basic validation if risk manager not available
             return self._basic_risk_validation(signal)
@@ -540,7 +653,7 @@ class ProductionSystemIntegrator:
             }
             
             # Execute using production execution engine
-            if hasattr(self.execution_engine, 'execute_order'):
+            if self.execution_engine and hasattr(self.execution_engine, 'execute_order'):
                 result = self.execution_engine.execute_order(order_request)
                 
                 return ExecutionResult(
@@ -728,7 +841,7 @@ def get_production_integrator(config: Optional[ProductionConfig] = None) -> Prod
     
     with _integrator_lock:
         if _production_integrator is None:
-            _production_integrator = ProductionSystemIntegrator(config)
+            _production_integrator = ProductionSystemIntegrator(components=None, config=config)
         return _production_integrator
 
 
@@ -757,7 +870,7 @@ if __name__ == "__main__":
         risk_per_trade=0.5
     )
     
-    integrator = ProductionSystemIntegrator(config)
+    integrator = ProductionSystemIntegrator(components=None, config=config)
     
     if integrator.start_production_trading():
         print("✅ Production trading started")

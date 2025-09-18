@@ -72,9 +72,9 @@ class PatternFactory:
         """Descubrir patrones disponibles en el sistema real"""
         print("\n🔍 Descubriendo patrones del sistema real...")
         
-        # 1. Buscar en analysis.pattern_detector
+        # 1. Buscar en ict_engine.pattern_detector
         try:
-            from analysis.pattern_detector import PatternDetector
+            from ict_engine.pattern_detector import PatternDetector
             detector = PatternDetector()
             
             # Buscar métodos _detect_*
@@ -83,12 +83,12 @@ class PatternFactory:
                     pattern_name = method_name.replace('_detect_', '')
                     self.core_patterns[pattern_name] = {
                         'detector_method': method_name,
-                        'source': 'analysis.pattern_detector',
+                        'source': 'ict_engine.pattern_detector',
                         'detector_class': 'PatternDetector',
                         'available': True
                     }
             
-            print(f"✅ PatternDetector: {len([p for p in self.core_patterns if self.core_patterns[p]['source'] == 'analysis.pattern_detector'])} patrones")
+            print(f"✅ PatternDetector: {len([p for p in self.core_patterns if self.core_patterns[p]['source'] == 'ict_engine.pattern_detector'])} patrones")
             
         except ImportError as e:
             print(f"⚠️ No se pudo cargar PatternDetector: {e}")

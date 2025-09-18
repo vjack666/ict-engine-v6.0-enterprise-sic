@@ -12,6 +12,14 @@ Fecha: Agosto 7, 2025
 Versión: v6.1.0-enterprise
 """
 
+import sys
+from pathlib import Path
+
+# Agregar paths del proyecto para las importaciones
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 from protocols.unified_logging import get_unified_logger
 import time
 from datetime import datetime, timedelta, time as dt_time
@@ -77,8 +85,13 @@ try:
     if str(utils_path) not in sys.path:
         sys.path.insert(0, str(utils_path))
     
+    # Direct imports from existing modules
     from utils.import_center import ImportCenter
     from smart_trading_logger import get_smart_logger
+    from data_management.ict_data_manager import ICTDataManager
+    from data_management.advanced_candle_downloader import AdvancedCandleDownloader
+    from utils.ict_symbol_manager import ICTSymbolManager
+    from analysis.multi_timeframe_analyzer import OptimizedICTAnalysisEnterprise
     
     # Configurar logging para PatternDetector
     _logger = get_smart_logger("PatternDetector")
@@ -482,7 +495,7 @@ class PatternDetector:
             
             # 🚀 NUEVO: Inicializar Multi-Timeframe Analyzer
             try:
-                from .multi_timeframe_analyzer import OptimizedICTAnalysisEnterprise
+                from analysis.multi_timeframe_analyzer import OptimizedICTAnalysisEnterprise
                 self._multi_tf_analyzer = OptimizedICTAnalysisEnterprise()
                 print("[INFO] 🚀 Multi-Timeframe Analyzer Enterprise v6.0 conectado - pipeline H4→M15→M5 disponible")
                 self.config['multi_timeframe_enabled'] = True
@@ -3126,15 +3139,23 @@ class PatternDetector:
             pattern_time = pattern.timestamp
             
             # Find closest HTF candle to pattern time
-            # Calcular diferencias temporales usando numpy para compatibilidad
+            # Calcular diferencias temporales de forma segura y tipada
             try:
                 import numpy as np
-                time_diffs = np.abs(htf_data.index - pattern_time)
-                closest_pos = int(time_diffs.argmin())  # Convertir a int para compatibilidad
+                import pandas as _pd
+                idx = htf_data.index
+                if not isinstance(idx, _pd.DatetimeIndex):
+                    idx = _pd.to_datetime(idx, errors='coerce')
+                idx_ns = idx.view('int64') if hasattr(idx, 'view') else idx.astype('int64')
+                # Ensure idx_ns is a proper numpy array for arithmetic operations
+                idx_ns = np.asarray(idx_ns)
+                pattern_ns = _pd.Timestamp(pattern_time).value
+                diffs = np.abs(idx_ns - np.int64(pattern_ns))
+                closest_pos = int(diffs.argmin())
             except Exception:
                 # Fallback: usar diferencias directas con conversión manual
-                time_diffs = [(abs((idx - pattern_time).total_seconds())) for idx in htf_data.index]
-                closest_pos = time_diffs.index(min(time_diffs))
+                time_diffs = [abs((getattr(i, 'to_pydatetime', lambda: i)() if hasattr(i, 'to_pydatetime') else i) - pattern_time).total_seconds() for i in htf_data.index]
+                closest_pos = int(time_diffs.index(min(time_diffs)))
             
             # Get context window
             # closest_pos ya es la posición numérica, no necesitamos get_loc()

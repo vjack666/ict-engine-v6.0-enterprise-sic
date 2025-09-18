@@ -5,6 +5,8 @@ Sistema de Trading Avanzado con Smart Money Concepts
 """
 
 import os
+import signal
+import threading
 import sys
 import time
 import gc
@@ -268,7 +270,7 @@ class ICTEnterpriseManager:
             journal = None
         if not journal:
             return
-        def _positions_provider() -> list[dict[str, Any]]:
+        def _positions_provider() -> "list[dict[str, Any]]":
             # TODO: sustituir cuando el ejecutor exponga posiciones reales
             return []
         try:
@@ -395,7 +397,8 @@ class ICTEnterpriseManager:
                         'max_history': 5000
                     }
                     
-                    self.realtime_data_processor = RealTimeDataProcessor(processor_config)
+                    symbols = processor_config['symbols']
+                    self.realtime_data_processor = RealTimeDataProcessor(symbols, processor_config)
                     self.logger.info("✅ RealtimeDataProcessor initialized")
                     
                     # Start processing
@@ -465,9 +468,10 @@ class ICTEnterpriseManager:
                 if self.realtime_data_processor:
                     def data_callback(symbol, timeframe, tick_data):
                         try:
-                            self.production_system_integrator.process_market_data(
-                                symbol, timeframe, tick_data
-                            )
+                            if self.production_system_integrator:
+                                self.production_system_integrator.process_market_data(
+                                    symbol, timeframe, tick_data
+                                )
                         except Exception as e:
                             self.logger.error(f"Error in data callback: {e}")
                     
@@ -478,13 +482,14 @@ class ICTEnterpriseManager:
                 if self.production_system_manager:
                     def health_callback(component, status, metrics):
                         try:
-                            self.production_system_integrator.handle_system_event(
-                                'health_update', {
-                                    'component': component,
-                                    'status': status,
-                                    'metrics': metrics
-                                }
-                            )
+                            if self.production_system_integrator:
+                                self.production_system_integrator.handle_system_event(
+                                    'health_update', {
+                                        'component': component,
+                                        'status': status,
+                                        'metrics': metrics
+                                    }
+                                )
                         except Exception as e:
                             self.logger.error(f"Error in health callback: {e}")
                     
@@ -496,7 +501,7 @@ class ICTEnterpriseManager:
                 # Register production components for health monitoring
                 def check_production_systems():
                     try:
-                        manager_ok = self.production_system_manager.is_healthy()
+                        manager_ok = self.production_system_manager.is_healthy() if self.production_system_manager else False
                         processor_ok = (
                             self.realtime_data_processor.is_running() 
                             if self.realtime_data_processor else True
@@ -522,6 +527,7 @@ class ICTEnterpriseManager:
                         name="production_integration",
                         check_function=check_production_systems,
                         interval_seconds=60.0,
+                        timeout_seconds=10.0,
                         critical=True
                     )
                     
@@ -1899,7 +1905,7 @@ if __name__ == "__main__":
 
     def main_menu(self):
         """Menú principal (web dashboard eliminado)"""
-        while True:
+        while not _shutdown_event.is_set():
             print("\n" + "="*70)
             print("ICT ENGINE v6.0 ENTERPRISE - TRADING REAL")
             print("="*70)
@@ -1958,6 +1964,9 @@ if __name__ == "__main__":
                 print("🔄 RETORNANDO AL MENÚ PRINCIPAL")
                 print("="*60)
                 time.sleep(1.5)
+        # Si se ha solicitado shutdown por señal, asegurar salida
+        if _shutdown_event.is_set():
+            print("\n[EXIT] Shutdown solicitado — saliendo del menú...")
     
     def shutdown(self):
         """🛑 Cerrar sistema limpiamente"""
@@ -2312,6 +2321,28 @@ if __name__ == "__main__":
 # ============================================================================
 
 _enterprise_manager_instance = None
+_shutdown_event = threading.Event()
+
+
+def _handle_termination(signum, frame):
+    """Global handler for Ctrl+C/SIGTERM to ensure clean shutdown."""
+    try:
+        print("\n[EXIT] Señal de terminación recibida — cerrando sistema...")
+    except Exception:
+        pass
+    try:
+        global _enterprise_manager_instance
+        if _enterprise_manager_instance and hasattr(_enterprise_manager_instance, 'shutdown'):
+            _enterprise_manager_instance.shutdown()
+    except Exception:
+        pass
+    finally:
+        _shutdown_event.set()
+        # Salida limpia con código 0 tras apagado ordenado (Windows-friendly)
+        try:
+            sys.exit(0)
+        except SystemExit:
+            os._exit(0)
 
 def get_performance_metrics_instance():
     """Obtener instancia actual del PerformanceMetricsAggregator."""
@@ -2329,6 +2360,21 @@ def main():
     global _enterprise_manager_instance
     manager = None
     try:
+        # Registrar handlers de señal para Ctrl+C/Ctrl+Break
+        try:
+            signal.signal(signal.SIGINT, _handle_termination)
+        except Exception:
+            pass
+        try:
+            # En Windows, SIGBREAK captura Ctrl+Break
+            if hasattr(signal, 'SIGBREAK'):
+                signal.signal(signal.SIGBREAK, _handle_termination)
+        except Exception:
+            pass
+        try:
+            signal.signal(signal.SIGTERM, _handle_termination)
+        except Exception:
+            pass
         print("ICT Engine v6.0 Enterprise - Inicio")
         print(f"Inicio: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         
@@ -2348,6 +2394,7 @@ def main():
         
         # Ejecutar menú principal
         print("Iniciando interfaz principal...")
+        # Ejecutar menú principal (saldrá con 4, KeyboardInterrupt o señal)
         manager.main_menu()
         
         # Shutdown limpio
@@ -2368,6 +2415,14 @@ def main():
         print(f"Error crítico: {e}")
         import traceback
         traceback.print_exc()
+        try:
+            # Si el apagado ya está en curso, terminar con código 0
+            if '_shutdown_event' in globals():
+                evt = globals().get('_shutdown_event')
+                if evt is not None and getattr(evt, 'is_set', lambda: False)():
+                    sys.exit(0)
+        except Exception:
+            pass
         sys.exit(1)
     finally:
         # Restaurar directorio original

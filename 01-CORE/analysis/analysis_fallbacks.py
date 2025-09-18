@@ -505,7 +505,7 @@ def _get_pattern_from_system_analysis(pattern_value: str) -> PatternType:
     """🔧 Try to get pattern from system analysis modules - optimized for production"""
     try:
         # Try to use pattern detector if available
-        from analysis.pattern_detector import PatternDetector
+        from ict_engine.pattern_detector import PatternDetector
         
         # Create minimal pattern detector instance
         detector = PatternDetector()

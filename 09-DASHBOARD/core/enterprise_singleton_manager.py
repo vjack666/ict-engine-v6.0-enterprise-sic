@@ -88,7 +88,7 @@ class EnterpriseSingletonManager:
         
         def create_detector():
             try:
-                from analysis.pattern_detector import PatternDetector
+                from ict_engine.pattern_detector import PatternDetector
                 print("🎯 [SINGLETON] Inicializando Pattern Detector Enterprise v6.0...")
                 return PatternDetector()
             except ImportError as e:

@@ -311,7 +311,10 @@ class EmergencyStopSystem:
             # Check MT5 terminal response time
             if self.mt5_manager:
                 start_time = time.time()
-                terminal_info = self.mt5_manager.get_terminal_info()
+                terminal_info = None
+                get_info = getattr(self.mt5_manager, 'get_terminal_info', None)
+                if callable(get_info):
+                    terminal_info = get_info()
                 response_time = (time.time() - start_time) * 1000  # ms
                 
                 if response_time > self.config.max_terminal_response_ms:
@@ -319,8 +322,9 @@ class EmergencyStopSystem:
                     return True
                 
                 # Check data feed quality - last tick age
-                if hasattr(terminal_info, 'last_tick_time'):
-                    tick_age = time.time() - terminal_info.last_tick_time
+                if terminal_info is not None and hasattr(terminal_info, 'last_tick_time'):
+                    last_tick = getattr(terminal_info, 'last_tick_time', None)
+                    tick_age = time.time() - last_tick if isinstance(last_tick, (int, float)) else 0
                     if tick_age > self.config.max_data_age_seconds:
                         self.logger.warning(f"Stale data feed: {tick_age:.1f}s old")
                         return True
@@ -373,8 +377,9 @@ class EmergencyStopSystem:
                     return True
             
             # Check for major news events (if news calendar available)
-            if hasattr(self, 'news_calendar') and self.news_calendar:
-                upcoming_events = self.news_calendar.get_high_impact_events(minutes_ahead=30)
+            news_cal = getattr(self, 'news_calendar', None)
+            if news_cal:
+                upcoming_events = news_cal.get_high_impact_events(minutes_ahead=30)
                 if upcoming_events:
                     self.logger.warning(f"High impact news events in 30 minutes: {len(upcoming_events)}")
                     return True
@@ -469,12 +474,25 @@ class EmergencyStopSystem:
             import MetaTrader5 as mt5  # type: ignore
             
             # Get all open positions
-            positions = mt5.positions_get()
+            positions_get = getattr(mt5, 'positions_get', None)
+            positions = positions_get() if callable(positions_get) else None
             if positions is None:
                 return True  # No positions to close
             
             closed_count = 0
-            for position in positions:
+            # Safely coerce positions to a list if possible
+            pos_list: list = []
+            try:
+                if positions is None:
+                    pos_list = []
+                elif isinstance(positions, list):
+                    pos_list = positions
+                else:
+                    from typing import Iterable, Any, cast
+                    pos_list = list(cast(Iterable[Any], positions))
+            except Exception:
+                pos_list = []
+            for position in pos_list:
                 # Determine action (opposite of position type)
                 action = mt5.TRADE_ACTION_DEAL
                 if position.type == mt5.POSITION_TYPE_BUY:
@@ -494,15 +512,24 @@ class EmergencyStopSystem:
                 }
                 
                 # Execute close order
-                result = mt5.order_send(request)
-                if result.retcode == mt5.TRADE_RETCODE_DONE:
+                order_send = getattr(mt5, 'order_send', None)
+                result = order_send(request) if callable(order_send) else None
+                retcode_ok = False
+                if result is not None:
+                    try:
+                        retcode_ok = getattr(result, 'retcode') == getattr(mt5, 'TRADE_RETCODE_DONE', None)
+                    except Exception:
+                        retcode_ok = False
+                if retcode_ok:
                     closed_count += 1
                     self.logger.info(f"Emergency closed position {position.ticket}")
                 else:
-                    self.logger.error(f"Failed to close position {position.ticket}: {result.comment}")
+                    err_comment = getattr(result, 'comment', 'unknown') if result else 'mt5.order_send unavailable'
+                    self.logger.error(f"Failed to close position {position.ticket}: {err_comment}")
             
-            self.logger.info(f"Emergency close completed: {closed_count}/{len(positions)} positions closed")
-            return closed_count == len(positions)
+            total = len(pos_list)
+            self.logger.info(f"Emergency close completed: {closed_count}/{total} positions closed")
+            return closed_count == total
             
         except ImportError:
             self.logger.error("MT5 not available for position closing")
@@ -520,12 +547,25 @@ class EmergencyStopSystem:
             import MetaTrader5 as mt5  # type: ignore
             
             # Get all pending orders
-            orders = mt5.orders_get()
+            orders_get = getattr(mt5, 'orders_get', None)
+            orders = orders_get() if callable(orders_get) else None
             if orders is None:
                 return True  # No orders to cancel
             
             cancelled_count = 0
-            for order in orders:
+            # Safely coerce orders to a list if possible
+            ord_list: list = []
+            try:
+                if orders is None:
+                    ord_list = []
+                elif isinstance(orders, list):
+                    ord_list = orders
+                else:
+                    from typing import Iterable, Any, cast
+                    ord_list = list(cast(Iterable[Any], orders))
+            except Exception:
+                ord_list = []
+            for order in ord_list:
                 # Create cancel request
                 request = {
                     "action": mt5.TRADE_ACTION_REMOVE,
@@ -534,15 +574,24 @@ class EmergencyStopSystem:
                 }
                 
                 # Execute cancel order
-                result = mt5.order_send(request)
-                if result.retcode == mt5.TRADE_RETCODE_DONE:
+                order_send = getattr(mt5, 'order_send', None)
+                result = order_send(request) if callable(order_send) else None
+                retcode_ok = False
+                if result is not None:
+                    try:
+                        retcode_ok = getattr(result, 'retcode') == getattr(mt5, 'TRADE_RETCODE_DONE', None)
+                    except Exception:
+                        retcode_ok = False
+                if retcode_ok:
                     cancelled_count += 1
                     self.logger.info(f"Emergency cancelled order {order.ticket}")
                 else:
-                    self.logger.error(f"Failed to cancel order {order.ticket}: {result.comment}")
+                    err_comment = getattr(result, 'comment', 'unknown') if result else 'mt5.order_send unavailable'
+                    self.logger.error(f"Failed to cancel order {order.ticket}: {err_comment}")
             
-            self.logger.info(f"Emergency cancel completed: {cancelled_count}/{len(orders)} orders cancelled")
-            return cancelled_count == len(orders)
+            total = len(ord_list)
+            self.logger.info(f"Emergency cancel completed: {cancelled_count}/{total} orders cancelled")
+            return cancelled_count == total
             
         except ImportError:
             self.logger.error("MT5 not available for order cancellation")
@@ -631,8 +680,21 @@ class EmergencyStopSystem:
         try:
             import MetaTrader5 as mt5  # type: ignore
             
-            positions = mt5.positions_get()
-            return len(positions) if positions is not None else 0
+            positions_get = getattr(mt5, 'positions_get', None)
+            positions = positions_get() if callable(positions_get) else None
+            # Safely coerce positions result to list
+            pos_list: list = []
+            try:
+                if positions is None:
+                    pos_list = []
+                elif isinstance(positions, list):
+                    pos_list = positions
+                else:
+                    from typing import Iterable, Any, cast
+                    pos_list = list(cast(Iterable[Any], positions))
+            except Exception:
+                pos_list = []
+            return len(pos_list)
             
         except ImportError:
             self.logger.warning("MT5 not available for position count")
@@ -652,13 +714,26 @@ class EmergencyStopSystem:
             start_of_day = datetime.combine(today, time.min)
             
             # Get deals from today
-            deals = mt5.history_deals_get(start_of_day, datetime.now())
+            history_deals_get = getattr(mt5, 'history_deals_get', None)
+            deals = history_deals_get(start_of_day, datetime.now()) if callable(history_deals_get) else None
             if deals is None:
                 return 0.0
             
             # Calculate total P&L for today
             daily_pnl = 0.0
-            for deal in deals:
+            # Safely coerce deals to list
+            deals_list: list = []
+            try:
+                if deals is None:
+                    deals_list = []
+                elif isinstance(deals, list):
+                    deals_list = deals
+                else:
+                    from typing import Iterable, Any, cast
+                    deals_list = list(cast(Iterable[Any], deals))
+            except Exception:
+                deals_list = []
+            for deal in deals_list:
                 if hasattr(deal, 'profit'):
                     daily_pnl += deal.profit
                     
@@ -679,7 +754,7 @@ class EmergencyStopSystem:
             
             # Get recent deals (last 24 hours)
             yesterday = datetime.now() - timedelta(days=1)
-            deals = mt5.history_deals_get(yesterday, datetime.now())
+            deals = mt5.history_deals_get(yesterday, datetime.now())  # type: ignore[attr-defined]
             
             if deals is None or len(deals) == 0:
                 return

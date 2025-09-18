@@ -61,6 +61,7 @@ except ImportError:
         def warning(self, msg, component=""): print(f"[WARNING] {msg}")
         def debug(self, msg, component=""): print(f"[DEBUG] {msg}")
         def critical(self, msg, component=""): print(f"[CRITICAL] {msg}")
+        def performance(self, msg, component=""): print(f"[PERFORMANCE] {msg}")
     
     logger = FallbackLogger()
 
@@ -106,8 +107,8 @@ class ComponentHealth:
     last_update: datetime
     error_count: int = 0
     warning_count: int = 0
-    performance_metrics: Dict[str, float] = None
-    additional_info: Dict[str, Any] = None
+    performance_metrics: Optional[Dict[str, float]] = None
+    additional_info: Optional[Dict[str, Any]] = None
     
     def __post_init__(self):
         if self.performance_metrics is None:
@@ -139,11 +140,33 @@ class ProductionSystemManager:
     
     def __init__(self, config_path_or_dict: Optional[Union[str, Dict[str, Any]]] = None):
         """Initialize production system manager"""
-        self.logger = logger or get_central_logger("ProductionManager")
+        # Initialize logger first
+        if LOGGING_AVAILABLE and logger:
+            self.logger = logger
+        else:
+            self.logger = FallbackLogger()
         
         # Handle both config path and config dict
         if isinstance(config_path_or_dict, dict):
-            self.config = self._create_config_from_dict(config_path_or_dict)
+            # main.py passes a flat dict; map/merge to our expected structure
+            mapped = {
+                "system": {
+                    "profile": config_path_or_dict.get("profile"),
+                    "broker_type": config_path_or_dict.get("broker_type"),
+                    "market_condition": config_path_or_dict.get("market_condition"),
+                },
+                "monitoring": {
+                    "health_check_interval": 30,
+                    "performance_history_limit": 100,
+                    "auto_recovery": True,
+                    "critical_error_threshold": 10
+                },
+                "trading": {
+                    "rate_limits": config_path_or_dict.get("rate_limits", {}),
+                    "symbols": ["EURUSD", "GBPUSD", "AUDUSD", "USDCAD"]
+                }
+            }
+            self.config = self._create_config_from_dict(mapped)
         else:
             self.config = self._load_config(config_path_or_dict)
         
@@ -161,6 +184,7 @@ class ProductionSystemManager:
         # Performance tracking
         self._performance_history: List[Dict[str, Any]] = []
         self._last_health_check = datetime.now()
+        self._health_callbacks: List[Callable] = []
         
         _safe_log(self.logger, 'info', "Production System Manager initialized")
     
@@ -379,8 +403,13 @@ class ProductionSystemManager:
         """Initialize data persistence system"""
         try:
             from real_trading.state_persistence import StatePersistence
+            from pathlib import Path
             
-            persistence = StatePersistence()
+            # Create persistence directory
+            persistence_path = Path("04-DATA/state")
+            persistence_path.mkdir(parents=True, exist_ok=True)
+            
+            persistence = StatePersistence(base_path=persistence_path)
             self.components["data_persistence"] = persistence
             self._update_component_health("data_persistence", ComponentStatus.READY)
             self.logger.info("Data Persistence initialized successfully")
@@ -405,6 +434,8 @@ class ProductionSystemManager:
             health.status = status
             health.last_update = datetime.now()
             if additional_info:
+                if health.additional_info is None:
+                    health.additional_info = {}
                 health.additional_info.update(additional_info)
                 if "error" in additional_info:
                     health.error_count += 1
@@ -455,6 +486,20 @@ class ProductionSystemManager:
             self._update_system_status()
             
             self._last_health_check = datetime.now()
+            # Notify external health callbacks
+            if self._health_callbacks:
+                status_str = self.status.value if isinstance(self.status, SystemStatus) else str(self.status)
+                metrics = {
+                    "components": len(self.components),
+                    "errors": sum(h.error_count for h in self.component_health.values()),
+                    "warnings": sum(h.warning_count for h in self.component_health.values()),
+                    "timestamp": datetime.now().isoformat()
+                }
+                for cb in list(self._health_callbacks):
+                    try:
+                        cb("production_manager", status_str, metrics)
+                    except Exception as e:
+                        self.logger.warning(f"Health callback error: {e}")
             
         except Exception as e:
             self.logger.error(f"Health check failed: {e}")
@@ -491,6 +536,8 @@ class ProductionSystemManager:
             
             # Update performance metrics
             for health in self.component_health.values():
+                if health.performance_metrics is None:
+                    health.performance_metrics = {}
                 health.performance_metrics.update({
                     "memory_mb": memory_usage_mb,
                     "cpu_percent": cpu_usage
@@ -645,6 +692,50 @@ class ProductionSystemManager:
                 return False
         
         return True
+
+    # ---- Minimal interface expected by main.py ----
+    def start(self) -> bool:
+        """Alias to start the production system (expected by main.py)"""
+        return self.start_production_system()
+
+    def stop(self) -> None:
+        """Alias to shutdown the production system (expected by main.py)"""
+        self.shutdown_production_system()
+
+    def register_data_source(self, name: str, source: Any) -> None:
+        """Register an external data source (e.g., realtime processor)."""
+        key = f"data_source:{name}"
+        self.components[key] = source
+        self._update_component_health(key, ComponentStatus.READY)
+        self.logger.info(f"Data source registered: {name}")
+
+    def add_health_callback(self, callback: Callable[[str, str, Dict[str, Any]], None]) -> None:
+        """Register external health callback (component, status, metrics)."""
+        if not hasattr(self, "_health_callbacks"):
+            self._health_callbacks = []
+        self._health_callbacks.append(callback)
+        self.logger.info(f"Health callback registered: {len(self._health_callbacks)} total")
+
+    def is_healthy(self) -> bool:
+        """Simple health check used by monitors."""
+        return self.status in {SystemStatus.RUNNING, SystemStatus.WARNING}
+
+    def get_metrics(self) -> Dict[str, Any]:
+        """Return lightweight metrics summary for UI/monitoring."""
+        return {
+            "status": self.status.value if isinstance(self.status, SystemStatus) else str(self.status),
+            "components": list(self.components.keys()),
+            "errors": sum(h.error_count for h in self.component_health.values()),
+            "warnings": sum(h.warning_count for h in self.component_health.values()),
+            "uptime_seconds": (datetime.now() - self.start_time).total_seconds() if self.start_time else 0,
+        }
+
+    def get_status(self) -> Dict[str, Any]:
+        """Return status dict for UI/monitoring fallbacks."""
+        return {
+            "status": self.status.value if isinstance(self.status, SystemStatus) else str(self.status),
+            "last_update": self._last_health_check.isoformat() if self._last_health_check else None,
+        }
     
     def export_system_report(self, file_path: Optional[str] = None) -> str:
         """Export comprehensive system report"""

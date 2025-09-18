@@ -50,6 +50,19 @@ class LogLevel(Enum):
     ERROR = "ERROR"
     CRITICAL = "CRITICAL"
 
+class LogCategory(Enum):
+    """Categorías estándar de logs para componentes del sistema"""
+    APPLICATION = "APPLICATION"
+    SYSTEM = "SYSTEM"
+    DATA = "DATA"
+    TRADING = "TRADING"
+    HEALTH = "HEALTH"
+    PERFORMANCE = "PERFORMANCE"
+    SECURITY = "SECURITY"
+    NETWORK = "NETWORK"
+    STORAGE = "STORAGE"
+    DEBUG = "DEBUG"
+
 @dataclass(frozen=True)
 class EnterpriseLoggingConfig:
     """Configuración inmutable para componentes enterprise"""
@@ -73,6 +86,7 @@ class CentralLogger(Protocol):
     def error(self, msg: str, component: str = "", **kwargs: Any) -> None: ...
     def debug(self, msg: str, component: str = "", **kwargs: Any) -> None: ...
     def critical(self, msg: str, component: str = "", **kwargs: Any) -> None: ...
+    def performance(self, msg: str, component: str = "", **kwargs: Any) -> None: ...
 
 # ============================================================================
 # PRODUCTION-OPTIMIZED IMPLEMENTATIONS
@@ -190,6 +204,9 @@ class ProductionCentralLogger:
     
     def critical(self, msg: str, component: str = "", **kwargs: Any) -> None:
         self._log_safe("CRITICAL", msg, component)
+    
+    def performance(self, msg: str, component: str = "", **kwargs: Any) -> None:
+        self._log_safe("PERFORMANCE", msg, component)
 
 class SmartLoggerBridge:
     """
@@ -255,6 +272,18 @@ class SmartLoggerBridge:
                 print(f"[CRITICAL] [{self.component_name}] [{component}] {msg}")
         else:
             print(f"[CRITICAL] [{self.component_name}] [{component}] {msg}")
+    
+    def performance(self, msg: str, component: str = "", **kwargs: Any) -> None:
+        if self.smart_logger:
+            try:
+                if hasattr(self.smart_logger, 'performance'):
+                    self.smart_logger.performance(msg, component or self.component_name)
+                else:
+                    print(f"[PERFORMANCE] [{self.component_name}] [{component}] {msg}")
+            except Exception:
+                print(f"[PERFORMANCE] [{self.component_name}] [{component}] {msg}")
+        else:
+            print(f"[PERFORMANCE] [{self.component_name}] [{component}] {msg}")
 
 class EmergencyFallbackLogger:
     """
@@ -279,6 +308,9 @@ class EmergencyFallbackLogger:
     
     def critical(self, msg: str, component: str = "", **kwargs: Any) -> None:
         print(f"[CRITICAL] [{self.component_name}] [{component}] {msg}")
+    
+    def performance(self, msg: str, component: str = "", **kwargs: Any) -> None:
+        print(f"[PERFORMANCE] [{self.component_name}] [{component}] {msg}")
 
 # ============================================================================
 # ENTERPRISE FACTORY FUNCTIONS  

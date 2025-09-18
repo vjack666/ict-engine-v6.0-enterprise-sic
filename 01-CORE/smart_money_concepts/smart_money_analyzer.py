@@ -25,7 +25,7 @@ Versión: v6.1.0-enterprise
 
 import time
 from datetime import datetime, timedelta, time as dt_time
-from typing import Dict, List, Optional, Tuple, Any, Union, TYPE_CHECKING
+from typing import Dict, List, Optional, Tuple, Any, Union, TYPE_CHECKING, cast
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -68,14 +68,18 @@ def _get_dependencies():
         except ImportError:
             _pandas_manager = None
     
+    # Default fallback for unified memory getter
+    gum = None
     if not UNIFIED_MEMORY_AVAILABLE:
         try:
-            from analysis.unified_memory_system import get_unified_memory_system
+            from analysis.unified_memory_system import get_unified_memory_system as _gum
             UNIFIED_MEMORY_AVAILABLE = True
+            gum = _gum
         except ImportError:
-            def get_unified_memory_system() -> Optional[Any]:
+            def _gum() -> Optional[Any]:
                 """Fallback para testing cuando UnifiedMemorySystem no está disponible"""
                 return None
+            gum = _gum
     
     if SmartTradingLogger is None:
         try:
@@ -84,7 +88,7 @@ def _get_dependencies():
         except ImportError:
             SmartTradingLogger = Any
     
-    return _pandas_manager, get_unified_memory_system, SmartTradingLogger
+    return _pandas_manager, gum, SmartTradingLogger
 
 
 class SmartMoneySession(Enum):
@@ -377,8 +381,7 @@ class SmartMoneyAnalyzer:
         """
         try:
             # 1. 📊 ANALIZAR ACTIVIDAD ORDER BLOCKS
-            ob_activity = self._analyze_order_block_activity(order_blocks, candles_m15)
-            
+            ob_activity = self._analyze_order_block_activity(order_blocks, candles_m15) if order_blocks else 0
             # 2. 📈 ANALIZAR PERFIL DE VOLUMEN
             volume_profile = self._analyze_volume_profile(candles_h1, candles_m15)
             
@@ -426,8 +429,6 @@ class SmartMoneyAnalyzer:
             
             # 8. 💾 GUARDAR EN ESTADO
             self.institutional_flows.append(flow_analysis)
-            
-            return flow_analysis
             
         except Exception as e:
             print(f"[ERROR] Error analizando flujo institucional: {e}")
@@ -941,16 +942,18 @@ class SmartMoneyAnalyzer:
                 memory_key = f"liquidity_pools_patterns_{symbol}"
                 # FIXED: Usar método correcto del UnifiedMemorySystem
                 try:
-                    historical_pools = self.unified_memory.get_historical_insight(memory_key, "H4")
+                    ghi = getattr(self.unified_memory, 'get_historical_insight', None)
+                    historical_pools: Any = ghi(memory_key, "H4") if callable(ghi) else []
                     if historical_pools and isinstance(historical_pools, dict):
                         historical_pools = historical_pools.get('patterns', [])
-                except AttributeError:
+                except Exception:
                     historical_pools = []
                 
-                if historical_pools and len(historical_pools) > 2:
+                if isinstance(historical_pools, list) and len(historical_pools) > 2:
                     # Crear pools basados en patrones históricos exitosos
-                    enhanced_pools = []
-                    recent_pools = historical_pools[-8:]  # Últimos 8 pools
+                    enhanced_pools: List[Dict[str, Any]] = []
+                    pools_list: List[Dict[str, Any]] = cast(List[Dict[str, Any]], historical_pools)
+                    recent_pools = pools_list[-8:]  # Últimos 8 pools
                     
                     for i, pool_data in enumerate(recent_pools):
                         # Calcular relevancia basada en éxito histórico
@@ -1242,15 +1245,17 @@ class SmartMoneyAnalyzer:
                 memory_key = f"killzone_performance_{session_name}"
                 # FIXED: Usar método correcto del UnifiedMemorySystem
                 try:
-                    historical_performance = self.unified_memory.get_historical_insight(memory_key, "H1")
+                    ghi = getattr(self.unified_memory, 'get_historical_insight', None)
+                    historical_performance: Any = ghi(memory_key, "H1") if callable(ghi) else []
                     if historical_performance and isinstance(historical_performance, dict):
                         historical_performance = historical_performance.get('patterns', [])
-                except AttributeError:
+                except Exception:
                     historical_performance = []
                 
-                if historical_performance and len(historical_performance) > 2:
+                if isinstance(historical_performance, list) and len(historical_performance) > 2:
                     # Calcular métricas basadas en performance histórica
-                    recent_perf = historical_performance[-5:]  # Últimos 5 análisis
+                    perf_list: List[Dict[str, Any]] = cast(List[Dict[str, Any]], historical_performance)
+                    recent_perf = perf_list[-5:]  # Últimos 5 análisis
                     
                     # Efficiency basado en éxitos históricos
                     efficiency_values = [p.get('efficiency', 0.6) for p in recent_perf]
@@ -1481,6 +1486,107 @@ class SmartMoneyAnalyzer:
             'institutional_config': self.institutional_config,
             'last_analysis': datetime.now().isoformat()
         }
+
+    def analyze_market_data(self, data: Any) -> Dict[str, Any]:
+        """
+        🔍 ANÁLISIS DE DATOS DE MERCADO - Método requerido para ProductionSystemIntegrator
+        
+        Analiza datos de mercado usando conceptos Smart Money
+        
+        Args:
+            data: Datos de mercado (DataFrame o dict con OHLCV)
+            
+        Returns:
+            Dict con análisis Smart Money
+        """
+        try:
+            # Validar datos de entrada
+            if data is None:
+                return {'status': 'error', 'message': 'No market data provided', 'analysis': {}}
+            
+            # Convertir datos a formato estándar si es necesario
+            analysis_data = data
+            if hasattr(data, 'to_dict'):
+                analysis_data = data.to_dict('records')
+            elif not isinstance(data, (list, dict)):
+                return {'status': 'error', 'message': 'Invalid data format', 'analysis': {}}
+            
+            # Realizar análisis Smart Money
+            analysis_result = {
+                'status': 'success',
+                'timestamp': datetime.now().isoformat(),
+                'analysis': {
+                    'institutional_flows': [],
+                    'liquidity_pools': [],
+                    'market_maker_activity': {},
+                    'session_analysis': {},
+                    'confidence': 0.0
+                }
+            }
+            
+            # Detectar flujos institucionales
+            if isinstance(analysis_data, list) and len(analysis_data) > 0:
+                # Análisis básico de flujos
+                price_changes = []
+                volumes = []
+                
+                for candle in analysis_data[-10:]:  # Últimas 10 velas
+                    if isinstance(candle, dict):
+                        high = candle.get('high', candle.get('High', 0))
+                        low = candle.get('low', candle.get('Low', 0))
+                        close = candle.get('close', candle.get('Close', 0))
+                        open_price = candle.get('open', candle.get('Open', close))
+                        volume = candle.get('volume', candle.get('Volume', 0))
+                        
+                        if high > 0 and low > 0:
+                            price_changes.append((close - open_price) / open_price)
+                            volumes.append(volume)
+                
+                if price_changes and volumes:
+                    avg_change = sum(price_changes) / len(price_changes)
+                    avg_volume = sum(volumes) / len(volumes) if volumes else 0
+                    
+                    # Determinar dirección del flujo institucional
+                    flow_direction = 'accumulation' if avg_change > 0.001 else 'distribution' if avg_change < -0.001 else 'neutral'
+                    
+                    analysis_result['analysis']['institutional_flows'] = [{
+                        'direction': flow_direction,
+                        'strength': min(0.9, abs(avg_change) * 100),
+                        'volume_profile': avg_volume,
+                        'confidence': min(0.85, abs(avg_change) * 50)
+                    }]
+                    
+                    # Análisis de sesión actual
+                    current_session = self.get_current_smart_money_session()
+                    analysis_result['analysis']['session_analysis'] = {
+                        'current_session': current_session.value,
+                        'session_strength': 0.7 if current_session in [SmartMoneySession.LONDON_KILLZONE, SmartMoneySession.NEW_YORK_KILLZONE] else 0.5
+                    }
+                    
+                    # Confianza general
+                    analysis_result['analysis']['confidence'] = min(0.8, abs(avg_change) * 30 + 0.4)
+            
+            # Incrementar contador de análisis
+            self.analysis_count += 1
+            
+            # Log del análisis
+            self._log_info(f"Market data analyzed: {analysis_result['analysis']['confidence']:.3f} confidence")
+            
+            return analysis_result
+            
+        except Exception as e:
+            self._log_error(f"Error analyzing market data: {str(e)}")
+            return {
+                'status': 'error', 
+                'message': str(e),
+                'analysis': {
+                    'confidence': 0.0,
+                    'institutional_flows': [],
+                    'liquidity_pools': [],
+                    'market_maker_activity': {},
+                    'session_analysis': {}
+                }
+            }
 
     def enhance_pattern_with_smart_money(self, pattern: Dict[str, Any], data: Optional[DataFrameType] = None) -> Dict[str, Any]:
         """
@@ -2268,15 +2374,13 @@ class SmartMoneyAnalyzer:
         try:
             # 1. 🧠 INTENTAR OBTENER DE UNIFIED MEMORY SYSTEM
             if self.unified_memory:
-                historical_flows = self.unified_memory.get_historical_patterns(
-                    pattern_type='institutional_flow',
-                    session=current_session.value,
-                    min_confidence=0.3
-                )
+                get_hist = getattr(self.unified_memory, 'get_historical_patterns', None)
+                historical_flows = get_hist(pattern_type='institutional_flow', session=current_session.value, min_confidence=0.3) if callable(get_hist) else []
                 
-                if historical_flows:
+                if isinstance(historical_flows, list) and len(historical_flows) > 0:
                     # Usar memoria histórica con ajuste de confianza
-                    base_flow = historical_flows[0]
+                    flows_list: List[Dict[str, Any]] = cast(List[Dict[str, Any]], historical_flows)
+                    base_flow = flows_list[0]
                     enhanced_confidence = min(0.85, base_flow.get('confidence', 0.5) * 1.2)
                     
                     flow_analysis = InstitutionalOrderFlow(
@@ -2356,14 +2460,12 @@ class SmartMoneyAnalyzer:
         try:
             # 1. 🧠 INTENTAR RECUPERAR DE UNIFIED MEMORY SYSTEM
             if self.unified_memory:
-                historical_mm = self.unified_memory.get_historical_patterns(
-                    pattern_type='market_maker',
-                    session=current_session.value,
-                    min_confidence=0.25
-                )
+                get_hist = getattr(self.unified_memory, 'get_historical_patterns', None)
+                historical_mm = get_hist(pattern_type='market_maker', session=current_session.value, min_confidence=0.25) if callable(get_hist) else []
                 
-                if historical_mm:
-                    base_mm = historical_mm[0]
+                if isinstance(historical_mm, list) and len(historical_mm) > 0:
+                    mm_list: List[Dict[str, Any]] = cast(List[Dict[str, Any]], historical_mm)
+                    base_mm = mm_list[0]
                     enhanced_probability = min(0.75, base_mm.get('probability', 0.4) * 1.3)
                     
                     behavior_enum = MarketMakerBehavior.LIQUIDITY_HUNT if base_mm.get('behavior_type') == 'manipulation' else MarketMakerBehavior.ACCUMULATION_PHASE
@@ -2444,14 +2546,16 @@ class SmartMoneyAnalyzer:
         try:
             # 1. 🧠 OBTENER DE UNIFIED MEMORY SYSTEM
             if self.unified_memory:
-                killzone_stats = self.unified_memory.get_session_statistics()
-                if killzone_stats:
+                get_stats = getattr(self.unified_memory, 'get_session_statistics', None)
+                killzone_stats = get_stats() if callable(get_stats) else None
+                if isinstance(killzone_stats, dict):
+                    ks: Dict[str, Any] = cast(Dict[str, Any], killzone_stats)
                     return {
-                        'overall': killzone_stats.get('overall_success', 0.75),
-                        'session_score': killzone_stats.get('session_performance', 0.80),
-                        'london_efficiency': killzone_stats.get('london_killzone', {}).get('efficiency', 0.82),
-                        'ny_efficiency': killzone_stats.get('new_york_killzone', {}).get('efficiency', 0.78),
-                        'asian_efficiency': killzone_stats.get('asian_killzone', {}).get('efficiency', 0.65)
+                        'overall': ks.get('overall_success', 0.75),
+                        'session_score': ks.get('session_performance', 0.80),
+                        'london_efficiency': ks.get('london_killzone', {}).get('efficiency', 0.82) if isinstance(ks.get('london_killzone', {}), dict) else 0.82,
+                        'ny_efficiency': ks.get('new_york_killzone', {}).get('efficiency', 0.78) if isinstance(ks.get('new_york_killzone', {}), dict) else 0.78,
+                        'asian_efficiency': ks.get('asian_killzone', {}).get('efficiency', 0.65) if isinstance(ks.get('asian_killzone', {}), dict) else 0.65,
                     }
             
             # 2. 🔍 ANÁLISIS HISTÓRICO COMO FALLBACK
@@ -2507,10 +2611,21 @@ class SmartMoneyAnalyzer:
             # 1. 🧠 OBTENER CONTEXTO DE UNIFIED MEMORY SYSTEM
             base_metrics = {}
             if self.unified_memory and pattern:
-                historical_patterns = self.unified_memory.get_similar_patterns(
-                    pattern_type=pattern.get('type', 'unknown'),
-                    min_similarity=0.6
-                )
+                get_similar = getattr(self.unified_memory, 'get_similar_patterns', None)
+                raw_patterns = get_similar(pattern_type=pattern.get('type', 'unknown'), min_similarity=0.6) if callable(get_similar) else []
+                # Asegurar lista de diccionarios para el análisis
+                historical_patterns: list[dict] = []
+                try:
+                    if isinstance(raw_patterns, list):
+                        historical_patterns = [p for p in raw_patterns if isinstance(p, dict)]
+                    elif isinstance(raw_patterns, dict):
+                        historical_patterns = [raw_patterns]
+                    else:
+                        from typing import Iterable, Dict, Any, cast
+                        historical_patterns = list(cast(Iterable[Dict[str, Any]], raw_patterns))
+                        historical_patterns = [p for p in historical_patterns if isinstance(p, dict)]
+                except Exception:
+                    historical_patterns = []
                 
                 if historical_patterns:
                     # Weighted average de patrones similares
@@ -2602,7 +2717,22 @@ class SmartMoneyAnalyzer:
         try:
             # 1. 🧠 OBTENER ESTADÍSTICAS DE UNIFIED MEMORY SYSTEM
             if self.unified_memory:
-                memory_stats = self.unified_memory.get_performance_statistics()
+                get_perf = getattr(self.unified_memory, 'get_performance_statistics', None)
+                memory_stats_obj = get_perf() if callable(get_perf) else None
+                memory_stats: dict = {}
+                if isinstance(memory_stats_obj, dict):
+                    memory_stats = memory_stats_obj
+                elif memory_stats_obj is not None:
+                    try:
+                        # Try duck-typing via attribute access to dict-like
+                        memory_stats = {
+                            'success_rate': getattr(memory_stats_obj, 'success_rate', 0.75),
+                            'confidence_interval': getattr(memory_stats_obj, 'confidence_interval', 0.05),
+                            'sample_size': getattr(memory_stats_obj, 'sample_size', 100),
+                            'dominant_model': getattr(memory_stats_obj, 'dominant_model', 'adaptive'),
+                        }
+                    except Exception:
+                        memory_stats = {}
                 if memory_stats:
                     base_success = memory_stats.get('success_rate', 0.75)
                     confidence_interval = memory_stats.get('confidence_interval', 0.05)

@@ -491,7 +491,7 @@ class RealMarketBridge:
         """🎯 Obtener Order Blocks reales usando PatternDetector optimizado"""
         try:
             # Importar PatternDetector correcto
-            from analysis.pattern_detector import PatternDetector
+            from ict_engine.pattern_detector import PatternDetector
             
             # Inicializar detector
             detector = PatternDetector()

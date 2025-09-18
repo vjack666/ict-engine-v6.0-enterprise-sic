@@ -95,41 +95,24 @@ class ExecutionEngine:
         self.active_orders: Dict[int, OrderRequest] = {}
         self.execution_callbacks: List[Callable] = []
         
-        # Integración con sistema ICT existente
+        # Integración con sistema ICT existente y logging unificado
+        self.logger = get_unified_logger("ExecutionEngine")
+        
         try:
             if MT5DataManager is not None:
                 self.mt5_manager = MT5DataManager()
                 self._mt5_available = True
+                self.logger.info("MT5DataManager initialized successfully", "INIT")
             else:
                 self.mt5_manager = None
                 self._mt5_available = False
+                self.logger.warning("MT5DataManager not available - using simulation mode", "INIT")
                 
-            if SmartTradingLogger is not None:
-                self.logger = SmartTradingLogger("ExecutionEngine")
-            else:
-                self.logger = self._setup_logger()
         except Exception as e:
             self.mt5_manager = None
             self._mt5_available = False
-            self.logger = self._setup_logger()
-            self.logger.warning(f"Could not initialize MT5 components: {e}")
-            
-        if not self._mt5_available:
-            self.logger.warning("MT5 not available - using simulation mode")
+            self.logger.error(f"Could not initialize MT5 components: {e}", "INIT")
         
-    def _setup_logger(self) -> logging.Logger:
-        """Setup execution logger"""
-        logger = logging.getLogger('ExecutionEngine')
-        if not logger.handlers:
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter(
-                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-            )
-            handler.setFormatter(formatter)
-            logger.addHandler(handler)
-            logger.setLevel(logging.INFO)
-        return logger
-    
     def execute_order(self, request: OrderRequest) -> OrderResult:
         """
         Ejecutar orden de trading
@@ -145,7 +128,7 @@ class ExecutionEngine:
         try:
             # Log execution attempt
             self.logger.info(f"Executing order: {request.symbol} {request.order_type.value} "
-                           f"Volume: {request.volume}")
+                           f"Volume: {request.volume}", "EXECUTION")
             
             # Validate request
             validation_error = self._validate_order_request(request)
@@ -172,7 +155,7 @@ class ExecutionEngine:
             
         except Exception as e:
             error_msg = f"Execution error: {str(e)}"
-            self.logger.error(error_msg)
+            self.logger.error(error_msg, "EXECUTION")
             
             result = OrderResult(
                 success=False,
@@ -228,7 +211,7 @@ class ExecutionEngine:
             # - close_position()
             # etc.
             
-            self.logger.info(f"Executing order via MT5DataManager: {request.symbol} {request.order_type.value}")
+            self.logger.info(f"Executing order via MT5DataManager: {request.symbol} {request.order_type.value}", "MT5")
             
             # Simular ejecución exitosa con datos realistas
             execution_time = (time.time() - start_time) * 1000
@@ -318,7 +301,7 @@ class ExecutionEngine:
             try:
                 callback(request, result)
             except Exception as e:
-                self.logger.error(f"Callback error: {e}")
+                self.logger.error(f"Callback error: {e}", "CALLBACK")
     
     def add_execution_callback(self, callback: Callable[[OrderRequest, OrderResult], None]) -> None:
         """Agregar callback de ejecución"""
@@ -354,7 +337,7 @@ class ExecutionEngine:
     def reset_stats(self) -> None:
         """Resetear estadísticas"""
         self.stats = ExecutionStats()
-        self.logger.info("Execution statistics reset")
+        self.logger.info("Execution statistics reset", "STATS")
     
     def close_all_positions(self, symbol: Optional[str] = None) -> List[OrderResult]:
         """
@@ -375,7 +358,7 @@ class ExecutionEngine:
                 # - get_open_positions()
                 # - close_position()
                 
-                self.logger.info(f"Attempting to close all positions via MT5DataManager{' for symbol ' + symbol if symbol else ''}")
+                self.logger.info(f"Attempting to close all positions via MT5DataManager{' for symbol ' + symbol if symbol else ''}", "CLOSE_POSITIONS")
                 
                 # Por ahora, simular cierre de posiciones
                 # TODO: Implementar métodos reales en MT5DataManager
@@ -393,12 +376,12 @@ class ExecutionEngine:
                     )
                     results.append(order_result)
                     
-                self.logger.info(f"Simulated closure of {len(results)} positions")
+                self.logger.info(f"Simulated closure of {len(results)} positions", "CLOSE_POSITIONS")
             else:
                 # Simulation mode - pretend to close positions
                 import random
                 simulated_price = random.uniform(0.9000, 1.5000)  # Precio simulado realista
-                self.logger.info("Simulating position closure (MT5 not available)")
+                self.logger.info("Simulating position closure (MT5 not available)", "CLOSE_POSITIONS")
                 results.append(OrderResult(
                     success=True, 
                     order_id=999999,
@@ -407,7 +390,7 @@ class ExecutionEngine:
                 ))
         
         except Exception as e:
-            self.logger.error(f"Error closing positions: {e}")
+            self.logger.error(f"Error closing positions: {e}", "CLOSE_POSITIONS")
             results.append(OrderResult(
                 success=False, 
                 error_message=str(e),
@@ -415,3 +398,169 @@ class ExecutionEngine:
             ))
         
         return results
+    
+    # ---------------- PRODUCTION METHODS ----------------
+    
+    def get_order_status(self, order_id: int) -> Tuple[OrderStatus, str]:
+        """Get current status of an order"""
+        try:
+            # In real implementation, query broker for actual status
+            if self._mt5_available:
+                # TODO: Implement real MT5 order status check
+                # For now, simulate based on active orders tracking
+                if order_id in self.active_orders:
+                    return OrderStatus.PENDING, "Order is pending execution"
+                else:
+                    return OrderStatus.FILLED, "Order has been filled"
+            else:
+                # Simulation mode
+                return OrderStatus.FILLED, "Simulated order completion"
+                
+        except Exception as e:
+            self.logger.error(f"Error getting order status for {order_id}: {e}", "ORDER_STATUS")
+            return OrderStatus.REJECTED, f"Status check failed: {e}"
+    
+    def cancel_order(self, order_id: int) -> OrderResult:
+        """Cancel a pending order"""
+        try:
+            self.logger.info(f"Cancelling order {order_id}", "ORDER_CANCEL")
+            
+            if self._mt5_available:
+                # TODO: Implement real MT5 order cancellation
+                # For now, simulate cancellation
+                if order_id in self.active_orders:
+                    del self.active_orders[order_id]
+                    self.logger.info(f"Order {order_id} cancelled successfully", "ORDER_CANCEL")
+                    return OrderResult(success=True, order_id=order_id, error_message="Order cancelled")
+                else:
+                    return OrderResult(success=False, order_id=order_id, error_message="Order not found")
+            else:
+                # Simulation mode
+                return OrderResult(success=True, order_id=order_id, error_message="Simulated cancellation")
+                
+        except Exception as e:
+            error_msg = f"Error cancelling order {order_id}: {e}"
+            self.logger.error(error_msg, "ORDER_CANCEL")
+            return OrderResult(success=False, order_id=order_id, error_message=error_msg)
+    
+    def get_execution_quality_metrics(self) -> Dict[str, Any]:
+        """Get detailed execution quality metrics"""
+        try:
+            with_executions = [t for t in self.stats.execution_times if t > 0]
+            
+            if not with_executions:
+                return {
+                    "total_orders": self.stats.total_orders,
+                    "success_rate": 0.0,
+                    "avg_execution_time_ms": 0.0,
+                    "execution_quality": "no_data",
+                    "last_update": self.stats.last_update.isoformat()
+                }
+            
+            # Calculate percentiles
+            sorted_times = sorted(with_executions)
+            n = len(sorted_times)
+            
+            p50 = sorted_times[n//2] if n > 0 else 0
+            p95 = sorted_times[int(n*0.95)] if n > 0 else 0
+            p99 = sorted_times[int(n*0.99)] if n > 0 else 0
+            
+            success_rate = (self.stats.successful_orders / max(1, self.stats.total_orders)) * 100
+            
+            # Determine execution quality
+            if self.stats.avg_execution_time_ms < 500:
+                quality = "excellent"
+            elif self.stats.avg_execution_time_ms < 1000:
+                quality = "good"
+            elif self.stats.avg_execution_time_ms < 2000:
+                quality = "acceptable"
+            else:
+                quality = "poor"
+            
+            return {
+                "total_orders": self.stats.total_orders,
+                "successful_orders": self.stats.successful_orders,
+                "failed_orders": self.stats.failed_orders,
+                "success_rate": round(success_rate, 2),
+                "avg_execution_time_ms": round(self.stats.avg_execution_time_ms, 2),
+                "avg_slippage_pips": round(self.stats.avg_slippage_pips, 3),
+                "execution_time_percentiles": {
+                    "p50": round(p50, 2),
+                    "p95": round(p95, 2),
+                    "p99": round(p99, 2)
+                },
+                "execution_quality": quality,
+                "active_orders_count": len(self.active_orders),
+                "last_update": self.stats.last_update.isoformat()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error generating execution metrics: {e}", "METRICS")
+            return {
+                "error": str(e),
+                "last_update": datetime.now().isoformat()
+            }
+    
+    def is_healthy(self) -> bool:
+        """Check if Execution Engine is in healthy state"""
+        try:
+            # Health checks
+            if self.stats.total_orders > 0:
+                success_rate = (self.stats.successful_orders / self.stats.total_orders) * 100
+                if success_rate < 80:  # Less than 80% success rate
+                    self.logger.warning(f"Low success rate: {success_rate}%", "HEALTH")
+                    return False
+            
+            # Check execution times
+            if self.stats.avg_execution_time_ms > 5000:  # More than 5 seconds average
+                self.logger.warning(f"High execution time: {self.stats.avg_execution_time_ms}ms", "HEALTH")
+                return False
+            
+            # Check for excessive active orders
+            if len(self.active_orders) > 50:
+                self.logger.warning(f"Too many active orders: {len(self.active_orders)}", "HEALTH")
+                return False
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Health check failed: {e}", "HEALTH")
+            return False
+    
+    def get_status(self) -> Dict[str, Any]:
+        """Get detailed status information for monitoring"""
+        try:
+            return {
+                "timestamp": datetime.now().isoformat(),
+                "healthy": self.is_healthy(),
+                "mt5_available": self._mt5_available,
+                "active_orders": len(self.active_orders),
+                "execution_stats": {
+                    "total_orders": self.stats.total_orders,
+                    "success_rate": f"{(self.stats.successful_orders / max(1, self.stats.total_orders) * 100):.1f}%",
+                    "avg_execution_time": f"{self.stats.avg_execution_time_ms:.1f}ms",
+                    "avg_slippage": f"{self.stats.avg_slippage_pips:.2f} pips"
+                },
+                "configuration": {
+                    "max_slippage_pips": self.max_slippage_pips
+                }
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Status retrieval failed: {e}", "STATUS")
+            return {
+                "timestamp": datetime.now().isoformat(),
+                "healthy": False,
+                "error": str(e)
+            }
+    
+    def get_metrics(self) -> Dict[str, Any]:
+        """Get performance metrics for monitoring"""
+        return {
+            "execution_count": self.stats.total_orders,
+            "success_rate": round((self.stats.successful_orders / max(1, self.stats.total_orders)) * 100, 1),
+            "avg_execution_time_ms": round(self.stats.avg_execution_time_ms, 2),
+            "active_orders": len(self.active_orders),
+            "health_status": "healthy" if self.is_healthy() else "unhealthy",
+            "last_update": datetime.now().isoformat()
+        }
