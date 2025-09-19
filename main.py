@@ -92,7 +92,7 @@ def get_smart_money_analyzer():
 try:
     from validation import get_production_validator, ValidationLevel
     from optimization import get_trading_rate_limiter, get_data_rate_limiter, get_main_rate_limiter
-    from monitoring import get_health_monitor, MonitoringLevel, create_database_health_check
+    from monitoring.health_monitor import get_health_monitor, MonitoringLevel, create_database_health_check
     from config.production_config import get_production_config, TradingProfile, BrokerType, get_config_manager
     PRODUCTION_MODULES_AVAILABLE = True
     print("✅ Production optimization modules loaded successfully")
@@ -396,6 +396,16 @@ class ICTEnterpriseManager:
                         'buffer_size': 1000,
                         'max_history': 5000
                     }
+                    # Enable optional debug/perf metrics via env (no-op if unset)
+                    try:
+                        if os.environ.get('ICT_RTP_DEBUG_PERF', '0') in ('1', 'true', 'True'):
+                            processor_config['debug_perf_metrics'] = True
+                        if 'ICT_RTP_PERF_EMIT_INTERVAL' in os.environ:
+                            processor_config['perf_emit_interval'] = float(os.environ['ICT_RTP_PERF_EMIT_INTERVAL'])
+                        if 'ICT_RTP_PERF_HISTORY' in os.environ:
+                            processor_config['perf_history'] = int(os.environ['ICT_RTP_PERF_HISTORY'])
+                    except Exception:
+                        pass
                     
                     symbols = processor_config['symbols']
                     self.realtime_data_processor = RealTimeDataProcessor(symbols, processor_config)
@@ -522,7 +532,7 @@ class ICTEnterpriseManager:
                 
                 # Register health check
                 try:
-                    from monitoring import HealthCheck
+                    from monitoring.health_monitor import HealthCheck
                     production_health_check = HealthCheck(
                         name="production_integration",
                         check_function=check_production_systems,
@@ -592,7 +602,7 @@ class ICTEnterpriseManager:
             # Import necesarios dentro del método
             from validation import get_production_validator, ValidationLevel
             from optimization import get_trading_rate_limiter, get_data_rate_limiter, get_main_rate_limiter
-            from monitoring import get_health_monitor, MonitoringLevel
+            from monitoring.health_monitor import get_health_monitor, MonitoringLevel
             
             # Usar configuraciones de producción si están disponibles
             validation_level = ValidationLevel.STANDARD
@@ -745,7 +755,7 @@ class ICTEnterpriseManager:
             return
         
         try:
-            from monitoring import HealthCheck
+            from monitoring.health_monitor import HealthCheck
         except:
             return
         

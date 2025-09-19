@@ -27,11 +27,18 @@ import json
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List, Callable, Union, Tuple
+from typing import Dict, Any, Optional, List, Callable, Union, Tuple, Deque
 from dataclasses import dataclass, field
 from pathlib import Path
 from collections import deque
 import sys
+try:
+    from monitoring.metrics_collector import record_counter, record_gauge  # type: ignore
+except Exception:  # pragma: no cover
+    def record_counter(name: str, by: int = 1) -> None:  # type: ignore
+        return
+    def record_gauge(name: str, value: float) -> None:  # type: ignore
+        return
 
 # Add project paths
 current_dir = Path(__file__).parent
@@ -123,6 +130,13 @@ class RealTimeDataProcessor:
     Handles all market data processing, validation, and distribution
     to trading components with minimal latency.
     """
+    # Static annotations to satisfy type checkers
+    data_callbacks: List[Callable]
+    _perf_enabled: bool
+    _loop_intervals: Deque[float]
+    _cb_latencies: Deque[float]
+    _last_perf_emit: datetime
+    _last_tick_count: int
     
     def __init__(self, symbols: Optional[List[str]] = None, config: Optional[Dict[str, Any]] = None):
         """Initialize real-time data processor"""
@@ -165,6 +179,13 @@ class RealTimeDataProcessor:
         self._tick_count = 0
         self._processing_times = deque(maxlen=1000)
         self._last_performance_log = datetime.now()
+        # Debug perf tracking (perf_counter-based)
+        self._perf_enabled = bool(self.config.get("debug_perf_metrics", False))
+        _hist = int(self.config.get("perf_history", 200))
+        self._loop_intervals = deque(maxlen=max(50, _hist))
+        self._cb_latencies = deque(maxlen=max(100, _hist * 2))
+        self._last_perf_emit = datetime.now()
+        self._last_tick_count = 0
         
         # Components
         self.mt5_manager = None
@@ -187,7 +208,11 @@ class RealTimeDataProcessor:
             "max_tick_age": 60,  # seconds
             "volatility_window": 20,
             "timeframes": ["M1", "M5", "M15", "H1", "H4", "D1"],
-            "shutdown_timeout": 2.0
+            "shutdown_timeout": 2.0,
+            # Debug/perf metrics (opt-in)
+            "debug_perf_metrics": False,
+            "perf_emit_interval": 5.0,
+            "perf_history": 200,
         }
     
     def _initialize_buffers(self):
@@ -267,6 +292,7 @@ class RealTimeDataProcessor:
         while self._processing_active:
             try:
                 start_time = time.time()
+                _loop_start_perf = time.perf_counter()
                 
                 # Process tick data for all symbols
                 for symbol in self.symbols:
@@ -284,6 +310,11 @@ class RealTimeDataProcessor:
                 sleep_time = max(0, interval - elapsed)
                 if sleep_time > 0:
                     time.sleep(sleep_time)
+                # Debug perf: store loop interval and maybe emit
+                if self._perf_enabled:
+                    loop_ms = (time.perf_counter() - _loop_start_perf) * 1000.0
+                    self._loop_intervals.append(loop_ms)
+                    self._emit_perf_metrics_if_needed()
                     
             except Exception as e:
                 self.logger.error(f"Data processing error: {e}")
@@ -536,13 +567,25 @@ class RealTimeDataProcessor:
                     # Try 3-arg signature expected by main.py: (symbol, timeframe, tick_data)
                     timeframe = self.config.get("timeframes", ["M1"])[0] if isinstance(self.config, dict) else "M1"
                     tick_data = state.current_tick
-                    callback(symbol, timeframe, tick_data)
+                    if self._perf_enabled:
+                        _t0 = time.perf_counter()
+                        callback(symbol, timeframe, tick_data)
+                        self._cb_latencies.append((time.perf_counter() - _t0) * 1000.0)
+                    else:
+                        callback(symbol, timeframe, tick_data)
                 except TypeError:
                     try:
                         # Fallback to 2-arg signature: (symbol, state)
-                        callback(symbol, state)
+                        if self._perf_enabled:
+                            _t0 = time.perf_counter()
+                            callback(symbol, state)
+                            self._cb_latencies.append((time.perf_counter() - _t0) * 1000.0)
+                        else:
+                            callback(symbol, state)
                     except Exception as e:
                         self.logger.error(f"Callback error: {e}")
+            if self._perf_enabled and self.data_callbacks:
+                record_counter("rtp.data_events", by=len(self.data_callbacks))
                     
         except Exception as e:
             self.logger.debug(f"Callback notification error: {e}")
@@ -569,6 +612,48 @@ class RealTimeDataProcessor:
                 )
             
             self._last_performance_log = now
+
+    def _emit_perf_metrics_if_needed(self) -> None:
+        """Emit debug performance metrics via monitoring wrapper if enabled."""
+        if not getattr(self, "_perf_enabled", False):
+            return
+        try:
+            now = datetime.now()
+            emit_iv = float(self.config.get("perf_emit_interval", 5.0))
+            if (now - self._last_perf_emit).total_seconds() < emit_iv:
+                return
+
+            # Loop interval metrics
+            if getattr(self, "_loop_intervals", None):
+                vals = list(self._loop_intervals)
+                if vals:
+                    avg_ms = sum(vals) / len(vals)
+                    p95_ms = sorted(vals)[max(0, int(0.95 * len(vals)) - 1)]
+                    record_gauge("rtp.loop_avg_ms", float(avg_ms))
+                    record_gauge("rtp.loop_p95_ms", float(p95_ms))
+
+            # Callback latency metrics
+            if getattr(self, "_cb_latencies", None):
+                cvals = list(self._cb_latencies)
+                if cvals:
+                    p95_cb = sorted(cvals)[max(0, int(0.95 * len(cvals)) - 1)]
+                    record_gauge("rtp.callback_p95_ms", float(p95_cb))
+
+            # Event rate
+            elapsed = max(1e-6, (now - self._last_perf_emit).total_seconds())
+            delta_ticks = max(0, self._tick_count - self._last_tick_count)
+            eps = delta_ticks / elapsed
+            record_gauge("rtp.events_per_sec", float(eps))
+            self._last_tick_count = self._tick_count
+
+            # Symbols active
+            actives = len([s for s in self.market_states.values() if s.is_active])
+            record_gauge("rtp.symbols_active", float(actives))
+
+            self._last_perf_emit = now
+        except Exception:
+            # Never break due to metrics
+            pass
     
     # Public interface methods
     def register_data_callback(self, callback: Callable):
