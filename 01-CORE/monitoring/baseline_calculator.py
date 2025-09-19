@@ -85,12 +85,20 @@ __all__ = [
 
 # Optional helper to stop monitoring gracefully from callers like main.py
 def stop() -> bool:
-    sys = _get_system(None)
+    global _baseline_sys
+    sys = _baseline_sys
     if sys is None:
         return False
     try:
         if getattr(sys, 'is_monitoring', False) and hasattr(sys, 'stop_monitoring'):
             sys.stop_monitoring()
+        else:
+            # If not monitoring, still persist what exists if supported
+            if hasattr(sys, '_save_all_data'):
+                try:
+                    sys._save_all_data()  # type: ignore[attr-defined]
+                except Exception:
+                    pass
         return True
     except Exception:
         return False

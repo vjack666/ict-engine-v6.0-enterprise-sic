@@ -252,7 +252,17 @@ class ICTEnterpriseManager:
         try:
             if os.environ.get('ICT_BASELINE_ENABLE', '0') in ('1', 'true', 'True'):
                 from monitoring.baseline_calculator import ensure_started  # type: ignore
-                ensure_started(None)
+                cfg = {}
+                try:
+                    _interval = os.environ.get('ICT_BASELINE_INTERVAL')
+                    if _interval:
+                        cfg['monitoring_interval'] = float(_interval)
+                except Exception:
+                    pass
+                _dir = os.environ.get('ICT_BASELINE_DIR')
+                if _dir:
+                    cfg['data_directory'] = _dir
+                ensure_started(cfg or None)
         except Exception:
             pass
     
