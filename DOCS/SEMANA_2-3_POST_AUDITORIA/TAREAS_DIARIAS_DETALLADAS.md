@@ -15,6 +15,12 @@
 - **T5.4** ✅ Agregar health checks para componentes dashboard
 - **T5.5** ✅ Testing intensivo de estabilidad
 
+#### **LIMPIEZA DE SHUTDOWN Y LOGGING (Completado):**
+- ✅ Filtro global anti-duplicados para mensajes de shutdown/stop
+- ✅ Filtro raíz para logging estándar (captura emisores externos)
+- ✅ Democión a `debug` de echos redundantes en `main.shutdown()`
+- ✅ Documentación añadida: `DOCS/guides/shutdown-log-dedup.md`
+
 #### **DÍA 6 - REORGANIZACIÓN DE MAIN.PY (100% Completado):**
 - **MAIN.1** ✅ Análisis de estructura actual de main.py
 - **MAIN.2** ✅ Reorganización de imports y configuración inicial
@@ -250,7 +256,7 @@ Implementar método `start()` en RealtimeDataProcessor
 
 Tras finalizar cada test (unitario o de integración):
 
-- [ ] **Aplicar aprendizajes del test en el sistema**: refactorizar o ajustar módulos afectados para incorporar las mejoras detectadas durante las pruebas.
+- [x] **Aplicar aprendizajes del test en el sistema**: refactorizar o ajustar módulos afectados para incorporar las mejoras detectadas durante las pruebas.
 - [ ] **Limpiar módulos obsoletos**: eliminar archivos, funciones o rutas de import que hayan quedado en desuso según los resultados del test.
 - [ ] **Eliminar el test temporal**: si el test fue creado solo para validar una hipótesis puntual, eliminarlo tras migrar sus hallazgos a pruebas permanentes o suites existentes.
 - [x] **Ejecutar `main.py` para prueba en real**: ✅ correr la aplicación principal para validar en entorno real que los cambios no regresionan.

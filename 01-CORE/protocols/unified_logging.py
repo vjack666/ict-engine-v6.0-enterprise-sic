@@ -151,7 +151,7 @@ class StandardLoggerAdapter:
     
     def info(self, message: str, component: str = "", **kwargs: Any) -> None:
         formatted = self._format_message(message, component)
-        if not _global_should_emit("info", component or self.component_name, formatted):
+        if not _global_should_emit("info", component or self.component_name, message):
             return
         sig = ("info", component or self.component_name, formatted)
         now = time.monotonic()
@@ -163,7 +163,7 @@ class StandardLoggerAdapter:
     
     def warning(self, message: str, component: str = "", **kwargs: Any) -> None:
         formatted = self._format_message(message, component)
-        if not _global_should_emit("warning", component or self.component_name, formatted):
+        if not _global_should_emit("warning", component or self.component_name, message):
             return
         sig = ("warning", component or self.component_name, formatted)
         now = time.monotonic()
@@ -175,7 +175,7 @@ class StandardLoggerAdapter:
     
     def error(self, message: str, component: str = "", **kwargs: Any) -> None:
         formatted = self._format_message(message, component)
-        if not _global_should_emit("error", component or self.component_name, formatted):
+        if not _global_should_emit("error", component or self.component_name, message):
             return
         sig = ("error", component or self.component_name, formatted)
         now = time.monotonic()
@@ -187,7 +187,7 @@ class StandardLoggerAdapter:
     
     def debug(self, message: str, component: str = "", **kwargs: Any) -> None:
         formatted = self._format_message(message, component)
-        if not _global_should_emit("debug", component or self.component_name, formatted):
+        if not _global_should_emit("debug", component or self.component_name, message):
             return
         sig = ("debug", component or self.component_name, formatted)
         now = time.monotonic()
@@ -199,7 +199,7 @@ class StandardLoggerAdapter:
     
     def critical(self, message: str, component: str = "", **kwargs: Any) -> None:
         formatted = self._format_message(message, component)
-        if not _global_should_emit("critical", component or self.component_name, formatted):
+        if not _global_should_emit("critical", component or self.component_name, message):
             return
         sig = ("critical", component or self.component_name, formatted)
         now = time.monotonic()
@@ -268,20 +268,26 @@ class MinimalLoggerAdapter:
 # =============================================================================
 
 _DEDUP_WINDOW_SEC = float(os.getenv('ICT_LOG_DEDUP_WINDOW_SEC', '1.0'))
-# clave: (nivel, componente, mensaje_normalizado)
-_DEDUP_CACHE: Dict[tuple[str, str, str], float] = {}
+# clave: mensaje_normalizado (global)
+_DEDUP_CACHE: Dict[str, float] = {}
 _DEDUP_KEYWORDS = (
+    # English
     'shutdown',
     'stopped',
+    'stopping alert integration system',
     'shutting down',
-    'shutdown completado',
+    'shutting down production system',
     'system monitoring stopped',
-    'desconectado de mt5',
-    'forzando cierre inmediato',
     'real-time data processing stopped',
     'alert integration system stopped',
     'production system shutdown complete',
-    'shutdown successfully'
+    'shutdown successfully',
+    # Spanish
+    'shutdown completado',
+    'iniciando cierre del sistema',
+    'monitoreo del sistema detenido',
+    'desconectado de mt5',
+    'forzando cierre inmediato',
 )
 
 def _global_should_emit(level: str, component: str, message: str) -> bool:
@@ -291,7 +297,8 @@ def _global_should_emit(level: str, component: str, message: str) -> bool:
         # Solo activar de-dup para mensajes de cierre/parada
         if not any(k in low for k in _DEDUP_KEYWORDS):
             return True
-        key = (level, (component or '').strip(), low)
+        # clave global: solo por mensaje normalizado (independiente de componente/level)
+        key = low
         now = time.monotonic()
         last = _DEDUP_CACHE.get(key)
         if last is not None and (now - last) < _DEDUP_WINDOW_SEC:
@@ -306,6 +313,44 @@ def _global_should_emit(level: str, component: str, message: str) -> bool:
         return True
     except Exception:
         return True
+
+
+# =============================================================================
+# Root logging filter for external emitters
+# =============================================================================
+class _ShutdownDedupFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        try:
+            msg = record.getMessage()
+            low = (msg or '').strip().lower()
+            if not any(k in low for k in _DEDUP_KEYWORDS):
+                return True
+            now = time.monotonic()
+            last = _DEDUP_CACHE.get(low)
+            if last is not None and (now - last) < _DEDUP_WINDOW_SEC:
+                return False
+            _DEDUP_CACHE[low] = now
+            return True
+        except Exception:
+            return True
+
+_ROOT_FILTER_INSTALLED = False
+
+def _ensure_root_filter_installed() -> None:
+    global _ROOT_FILTER_INSTALLED
+    if _ROOT_FILTER_INSTALLED:
+        return
+    try:
+        root = logging.getLogger()
+        # Avoid adding duplicates
+        for f in getattr(root, 'filters', []):
+            if isinstance(f, _ShutdownDedupFilter):
+                _ROOT_FILTER_INSTALLED = True
+                return
+        root.addFilter(_ShutdownDedupFilter())
+        _ROOT_FILTER_INSTALLED = True
+    except Exception:
+        pass
 
 
 # =============================================================================
@@ -360,6 +405,8 @@ class UnifiedLoggingFactory:
         # Check cache
         if component_name in self._loggers_cache:
             return self._loggers_cache[component_name]
+        # Ensure root filter is installed to catch external emitters
+        _ensure_root_filter_installed()
         
         # Override config per component if needed
         config = {**self._logging_config, **kwargs}

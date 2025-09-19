@@ -248,6 +248,13 @@ class ICTEnterpriseManager:
         
         self._initialize_new_enterprise_components()
         self._maybe_start_metrics_exporter()
+        # Optionally start baseline monitoring using wrapper (no duplication)
+        try:
+            if os.environ.get('ICT_BASELINE_ENABLE', '0') in ('1', 'true', 'True'):
+                from monitoring.baseline_calculator import ensure_started  # type: ignore
+                ensure_started(None)
+        except Exception:
+            pass
     
     def _initialize_integration_modules(self):
         """Inicializar módulos de integración de producción"""
@@ -2045,7 +2052,7 @@ if __name__ == "__main__":
                 try:
                     if hasattr(self.production_system_monitor, 'stop_monitoring'):
                         self.production_system_monitor.stop_monitoring()
-                    self.logger.info("✅ ProductionSystemMonitor stopped")
+                    self.logger.debug("✅ ProductionSystemMonitor stopped")
                 except Exception as e:
                     self.logger.error(f"Error stopping ProductionSystemMonitor: {e}")
             
@@ -2053,14 +2060,14 @@ if __name__ == "__main__":
                 try:
                     if hasattr(self.alert_integration_system, 'stop_integration'):
                         self.alert_integration_system.stop_integration()
-                    self.logger.info("✅ AlertIntegrationSystem stopped")
+                    self.logger.debug("✅ AlertIntegrationSystem stopped")
                 except Exception as e:
                     self.logger.error(f"Error stopping AlertIntegrationSystem: {e}")
             
             if hasattr(self, 'auto_recovery_system') and self.auto_recovery_system:
                 try:
                     # AutoRecoverySystem no necesita shutdown especial, pero loggeamos el cierre
-                    self.logger.info("✅ AutoRecoverySystem shutdown")
+                    self.logger.debug("✅ AutoRecoverySystem shutdown")
                 except Exception as e:
                     self.logger.error(f"Error in AutoRecoverySystem shutdown: {e}")
             
@@ -2069,7 +2076,7 @@ if __name__ == "__main__":
                 try:
                     if hasattr(self.production_system_integrator, 'shutdown'):
                         self.production_system_integrator.shutdown()
-                    self.logger.info("✅ ProductionSystemIntegrator stopped")
+                    self.logger.debug("✅ ProductionSystemIntegrator stopped")
                 except Exception as e:
                     self.logger.error(f"Error stopping ProductionSystemIntegrator: {e}")
             
@@ -2077,7 +2084,7 @@ if __name__ == "__main__":
                 try:
                     if hasattr(self.realtime_data_processor, 'stop'):
                         self.realtime_data_processor.stop()
-                    self.logger.info("✅ RealtimeDataProcessor stopped")
+                    self.logger.debug("✅ RealtimeDataProcessor stopped")
                 except Exception as e:
                     self.logger.error(f"Error stopping RealtimeDataProcessor: {e}")
             
@@ -2085,7 +2092,7 @@ if __name__ == "__main__":
                 try:
                     if hasattr(self.production_system_manager, 'stop'):
                         self.production_system_manager.stop()
-                    self.logger.info("✅ ProductionSystemManager stopped")
+                    self.logger.debug("✅ ProductionSystemManager stopped")
                 except Exception as e:
                     self.logger.error(f"Error stopping ProductionSystemManager: {e}")
             
@@ -2106,6 +2113,13 @@ if __name__ == "__main__":
                     self.trade_reconciler.persist_report(report)  # type: ignore
                 except Exception as e:
                     self.logger.error(f"Fallo reconciliación final: {e}")
+
+            # Stop baseline monitoring if running
+            try:
+                from monitoring.baseline_calculator import stop as stop_baseline  # type: ignore
+                stop_baseline()
+            except Exception:
+                pass
 
             # Persistir estado de exposición/posiciones si disponible
             if self.state_persistence and self.position_manager:

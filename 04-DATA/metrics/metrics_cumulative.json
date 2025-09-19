@@ -1,5 +1,10 @@
 {
   "timestamp": "2025-09-19T15:08:26.208339+00:00",
   "counters": {},
-  "gauges": {}
+  "gauges": {},
+  "orders_total": 0,
+  "orders_ok": 0,
+  "orders_failed": 0,
+  "sessions": 5,
+  "last_update": "2025-09-19T17:37:33.478056+00:00"
 }

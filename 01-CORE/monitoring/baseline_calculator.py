@@ -82,3 +82,16 @@ __all__ = [
     'baseline_summary',
     'compare_metric',
 ]
+
+# Optional helper to stop monitoring gracefully from callers like main.py
+def stop() -> bool:
+    sys = _get_system(None)
+    if sys is None:
+        return False
+    try:
+        if getattr(sys, 'is_monitoring', False) and hasattr(sys, 'stop_monitoring'):
+            sys.stop_monitoring()
+        return True
+    except Exception:
+        return False
+

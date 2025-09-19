@@ -28,3 +28,8 @@
 {"ts": "2025-09-18T21:46:17.310998+00:00", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}
 {"ts": "2025-09-18T21:55:28.575806+00:00", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}
 {"ts": "2025-09-18T22:01:04.250777+00:00", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}
+{"ts": "2025-09-19T17:23:38.589347+00:00", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}
+{"ts": "2025-09-19T17:25:43.429570+00:00", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}
+{"ts": "2025-09-19T17:27:43.571543+00:00", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}
+{"ts": "2025-09-19T17:29:20.178795+00:00", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}
+{"ts": "2025-09-19T17:37:33.485208+00:00", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}
