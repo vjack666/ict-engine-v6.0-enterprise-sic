@@ -438,6 +438,19 @@ class ProductionSystemMonitor:
                 
                 with open(self.metrics_file, 'a', encoding='utf-8') as f:
                     f.write(json.dumps(metrics_data) + '\n')
+
+                # Also export the latest snapshot to 04-DATA/metrics for dashboard/API
+                try:
+                    base = Path(__file__).resolve().parents[2]  # project root
+                    metrics_dir = base / '04-DATA' / 'metrics'
+                    metrics_dir.mkdir(parents=True, exist_ok=True)
+                    latest_file = metrics_dir / 'system_metrics.json'
+                    temp_file = latest_file.with_suffix('.tmp')
+                    with open(temp_file, 'w', encoding='utf-8') as tf:
+                        json.dump(metrics_data, tf, indent=2)
+                    temp_file.replace(latest_file)
+                except Exception:
+                    pass
                 
         except Exception as e:
             if LOGGING_AVAILABLE and logger:
@@ -818,6 +831,19 @@ class ProductionSystemMonitor:
                 with open(temp_file, 'w', encoding='utf-8') as f:
                     json.dump(trading_data, f, indent=2)
                 temp_file.replace(self.trading_file)
+
+                # Also export a copy under 04-DATA/metrics for dashboard/API
+                try:
+                    base = Path(__file__).resolve().parents[2]  # project root
+                    metrics_dir = base / '04-DATA' / 'metrics'
+                    metrics_dir.mkdir(parents=True, exist_ok=True)
+                    latest_file = metrics_dir / 'trading_metrics.json'
+                    temp = latest_file.with_suffix('.tmp')
+                    with open(temp, 'w', encoding='utf-8') as tf:
+                        json.dump(trading_data, tf, indent=2)
+                    temp.replace(latest_file)
+                except Exception:
+                    pass
                 
         except Exception as e:
             if LOGGING_AVAILABLE and logger:

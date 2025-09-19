@@ -2,22 +2,32 @@
 """
 main.py - ICT Engine v6.0 Enterprise
 Sistema de Trading Avanzado con Smart Money Concepts
+
+Sistema integrado de trading con capacidades enterprise:
+- Gestión automática de memoria
+- Módulos de producción avanzados  
+- Validación y monitoreo en tiempo real
+- Integración con brokers reales
 """
 
 import os
-import signal
-import threading
 import sys
 import time
+import signal
+import threading
 import gc
 import subprocess
 from pathlib import Path
 from datetime import datetime
 from typing import Union, Any, TYPE_CHECKING, Callable, Optional, Dict
 
-if TYPE_CHECKING:  # Solo para el analizador estático
-    from real_trading.trade_journal import TradeJournal  # noqa: F401
-    from real_trading.trade_reconciler import TradeReconciler  # noqa: F401
+if TYPE_CHECKING:
+    from real_trading.trade_journal import TradeJournal
+    from real_trading.trade_reconciler import TradeReconciler
+
+# ============================================================================
+# CONFIGURACIÓN DEL SISTEMA
+# ============================================================================
 
 # Determinar rutas del sistema
 current_file = Path(__file__).resolve()
@@ -29,14 +39,11 @@ CORE_PATH = SYSTEM_ROOT / "01-CORE"
 DATA_PATH = SYSTEM_ROOT / "04-DATA"
 LOGS_PATH = SYSTEM_ROOT / "05-LOGS"
 DASHBOARD_PATH = SYSTEM_ROOT / "09-DASHBOARD"
-DOCUMENTATION_PATH = SYSTEM_ROOT / "03-DOCUMENTATION"
 SCRIPTS_PATH = SYSTEM_ROOT / "scripts"
 
 # Configurar el path de Python
-if str(CORE_PATH) not in sys.path:
-    sys.path.insert(0, str(CORE_PATH))
-if str(SCRIPTS_PATH) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_PATH))
+sys.path.insert(0, str(CORE_PATH))
+sys.path.insert(0, str(SCRIPTS_PATH))
 
 # ============================================================================
 # SISTEMA DE MEMORIA OPTIMIZADO
@@ -172,78 +179,92 @@ class ICTEnterpriseManager:
     
     def __init__(self):
         """Inicializar el sistema enterprise"""
+        # Configuración básica
         self.logger = LoggerClass("ICTEnterpriseManager")
         self.system_status = SystemStatus()
         self.account_info = AccountInfo()
-        
         self.shutdown_requested = False
         self.real_components_loaded = False
         self.data_collector = None
-        self.dashboard_process = None  # web dashboard removido (ya no se gestiona proceso web)
+        self.dashboard_process = None
         
-        # Setup inicial
+        # Inicializar sistema por módulos
         self._setup_directories()
-        
-        # 🔧 CONFIGURATION MANAGER
+        self._initialize_configuration()
+        self._initialize_production_modules()
+        self._initialize_resilience_components()
+        self._initialize_trading_components()
+        self._initialize_monitoring_components()
+        self._initialize_integration_modules()
+    
+    def _initialize_configuration(self):
+        """Inicializar configuración del sistema"""
         self.config_manager = None
         self.production_config = None
         self._load_production_configuration()
-        
-        # ⚡ NUEVOS MÓDULOS OPTIMIZADOS PARA PRODUCCIÓN ⚡
+    
+    def _initialize_production_modules(self):
+        """Inicializar módulos de producción"""
         self.production_validator = None
         self.trading_rate_limiter = None
         self.data_rate_limiter = None 
         self.main_rate_limiter = None
         self.health_performance_monitor = None
-        self._initialize_production_modules()
-        
-        # Componentes avanzados (se inicializan on-demand)
+        self._setup_production_modules()
+    
+    def _initialize_resilience_components(self):
+        """Inicializar componentes de resistencia y recuperación"""
         self.risk_guard = None
-        self.risk_pipeline = None  # Nuevo facade de riesgo y sizing
+        self.risk_pipeline = None
         self.latency_watchdog = None
         self.health_monitor = None
         self.data_feed_fallback = None
-        self.execution_router = None  # se configura cuando exista broker executor
-        self._initialize_resilience_components()
-        # Componentes de soporte de trading avanzados
+        self.execution_router = None
+        self._setup_resilience_components()
+    
+    def _initialize_trading_components(self):
+        """Inicializar componentes de trading"""
         self.position_manager = None
         self.rate_limiter = None
         self.alert_dispatcher = None
         self.config_loader = None
         self.latency_sampler = None
-        self._initialize_trading_support_components()
-        # Inicializar pipeline de riesgo (fase 1)
-        self._initialize_risk_pipeline()
-        # Subsistema avanzado de alertas (opcional)
         self.advanced_alert_manager = None
+        self.trade_reconciler: Optional['TradeReconciler'] = None
+        
+        self._initialize_trading_support_components()
+        self._initialize_risk_pipeline()
         self._initialize_advanced_alerting()
-        # Servicios adicionales producción
-        self.event_bus = None
-        self.kill_switch = None
-        self.state_persistence = None
-        self.heartbeat_monitor = None
-        self.account_sync = None
-        self._initialize_production_services()
-        # Reconciliación de operaciones
-        self.trade_reconciler: Optional['TradeReconciler'] = None  # forward ref string
         self._initialize_reconciler()
-        # Nuevos módulos de validación / estrategia / métricas
+    
+    def _initialize_monitoring_components(self):
+        """Inicializar componentes de monitoreo y métricas"""
         self.environment_validator = None
         self.data_quality_validator = None
         self.order_state_tracker = None
         self.performance_metrics = None
         self.strategy_pipeline = None
-        self._initialize_new_enterprise_components()
-        # Exportador de métricas JSON (opcional por entorno)
         self.metrics_exporter = None
-        self._maybe_start_metrics_exporter()
         
-        # 🏭 NUEVOS MÓDULOS DE PRODUCCIÓN INTEGRADA
+        self._initialize_new_enterprise_components()
+        self._maybe_start_metrics_exporter()
+    
+    def _initialize_integration_modules(self):
+        """Inicializar módulos de integración de producción"""
         self.production_system_manager = None
         self.realtime_data_processor = None
         self.production_system_integrator = None
+        
+        # Servicios de producción
+        self.event_bus = None
+        self.kill_switch = None
+        self.state_persistence = None
+        self.heartbeat_monitor = None
+        self.account_sync = None
+        
+        self._initialize_production_services()
         self._initialize_production_integration_modules()
-
+    
     def _try_import_trade_journal(self):
         try:
             from real_trading.trade_journal import TradeJournal as _TJ  # local import
@@ -592,7 +613,7 @@ class ICTEnterpriseManager:
             self.logger.error(f"Error loading production configuration: {e}")
             self.production_config = None
 
-    def _initialize_production_modules(self):
+    def _setup_production_modules(self):
         """🏭 Inicializar módulos optimizados para producción real"""
         if not PRODUCTION_MODULES_AVAILABLE:
             self.logger.warning("Production modules not available - running in fallback mode")
@@ -811,7 +832,7 @@ class ICTEnterpriseManager:
         else:
             self.logger.info(f"ℹ️ ALERT [{alert.component}]: {alert.message}")
 
-    def _initialize_resilience_components(self):
+    def _setup_resilience_components(self):
         """Inicializar componentes de resiliencia y monitoreo livianos"""
         # Importes diferidos con fallback silencioso
         try:  # RiskGuard
@@ -1912,69 +1933,85 @@ if __name__ == "__main__":
             self.logger.info(f"Silver Bullet trader ya existe: {silver_bullet_path}")
 
     def main_menu(self):
-        """Menú principal (web dashboard eliminado)"""
-        while not _shutdown_event.is_set():
-            print("\n" + "="*70)
-            print("ICT ENGINE v6.0 ENTERPRISE - TRADING REAL")
-            print("="*70)
-            print("1. 🖥️  [DASHBOARD TERMINAL] Dashboard Convencional")
-            print("2. 🔫 [SILVER BULLET] Auto Trading Silver Bullet")
-            print("3. 📊 [MONITOREO] Sistema de Monitoreo de Producción")
-            print("4. ❌ [SALIR] Cerrar Sistema")
-            print("="*70)
-            print("💡 Opción 1: Dashboard tradicional en ventana de terminal")
-            print("🔫 Opción 2: Trading automático de patrones Silver Bullet")
-            print("📊 Opción 3: Monitoreo completo del sistema en producción")
-            print("="*70)
+        """Menú principal del sistema - interfaz limpia"""
+        # Pausar logs temporalmente para interfaz limpia
+        print("\n" + "🔇 Silenciando logs para interfaz limpia..." + "\n")
+        time.sleep(1)
+        
+        # Limpiar pantalla si es posible
+        try:
+            import os
+            if os.name == 'nt':  # Windows
+                os.system('cls')
+            else:  # Unix/Linux/Mac
+                os.system('clear')
+        except:
+            print("\n" * 50)  # Fallback - múltiples líneas en blanco
+        
+        print("=" * 70)
+        print("🚀 ICT ENGINE v6.0 ENTERPRISE - SISTEMA DE TRADING")
+        print("=" * 70)
+        print("")
+        print("   1. 🖥️  Dashboard Terminal - Dashboard Convencional")
+        print("   2. 🔫 Silver Bullet - Trading Automático") 
+        print("   3. 📊 Monitoreo - Sistema de Producción")
+        print("   q. ❌ Salir del Sistema")
+        print("")
+        print("=" * 70)
+        print("💡 Los componentes están ejecutándose en segundo plano")
+        print("🔄 Selecciona tu opción y presiona ENTER")
+        print("-" * 70)
+        
+        try:
+            choice = input("\n👉 [SELECCIÓN] Tu opción (1-3, q): ").strip().lower()
+            print(f"\n✅ Procesando opción: '{choice}'...")
             
-            try:
-                choice = input("\n[TARGET] Selecciona una opción (1-4): ").strip()
-                
-                if choice == "1":
-                    if not self.real_components_loaded:
-                        print("\n[INFO] Inicializando componentes reales...")
-                        self.initialize_real_components()
-                    
-                    print("\n🖥️ [DASHBOARD TERMINAL] Iniciando dashboard convencional...")
-                    print("[INFO] 📊 Componentes reales configurados y listos")
-                    print("[INFO] ⚡ Cargando interfaz enterprise...")
-                    
-                    time.sleep(1.5)
-                    self.run_dashboard_with_real_data()
-                    
-                elif choice == "2":
-                    print("\n🔫 [SILVER BULLET] Iniciando sistema de auto trading...")
-                    self.run_silver_bullet_trading()
-                    
-                elif choice == "3":
-                    print("\n📊 [MONITOREO] Iniciando sistema de monitoreo de producción...")
-                    self.run_production_monitoring()
-                    input("\nPresiona ENTER para continuar...")
-                    
-                elif choice == "4":
-                    print("\n[EXIT] Cerrando sistema de trading...")
-                    break
-                    
-                else:
-                    print("[X] Opción no válida. Usa 1-5.")
-                    continue
-                    
-            except KeyboardInterrupt:
-                print("\n[EXIT] Saliendo...")
-                break
-            except EOFError:
-                print("\n[EXIT] Saliendo...")
-                break
-                
-            # Pausa antes de mostrar el menú de nuevo
             if choice == "1":
-                print("\n" + "="*60)
-                print("🔄 RETORNANDO AL MENÚ PRINCIPAL")
-                print("="*60)
-                time.sleep(1.5)
-        # Si se ha solicitado shutdown por señal, asegurar salida
-        if _shutdown_event.is_set():
-            print("\n[EXIT] Shutdown solicitado — saliendo del menú...")
+                print("🖥️ Iniciando Dashboard Terminal...")
+                self._handle_dashboard_option()
+                print("\n🏁 [SISTEMA] Dashboard finalizado - cerrando sistema...")
+            elif choice == "2":
+                print("🔫 Iniciando Silver Bullet Trading...")
+                self._handle_silver_bullet_option()
+                print("\n🏁 [SISTEMA] Silver Bullet finalizado - cerrando sistema...")
+            elif choice == "3":
+                print("📊 Iniciando Sistema de Monitoreo...")
+                self._handle_monitoring_option()
+                print("\n🏁 [SISTEMA] Monitoreo finalizado - cerrando sistema...")
+            elif choice == "q":
+                print("🛑 Iniciando cierre del sistema...")
+            else:
+                print(f"❌ Opción '{choice}' no válida - cerrando sistema...")
+                
+        except (KeyboardInterrupt, EOFError):
+            print("\n\n🛑 [INTERRUPCIÓN] Usuario canceló operación - cerrando sistema...")
+        except Exception as e:
+            print(f"\n❌ [ERROR] Error inesperado: {e} - cerrando sistema...")
+    
+    def _handle_dashboard_option(self):
+        """Manejar opción de dashboard"""
+        if not self.real_components_loaded:
+            print("[INFO] Inicializando componentes reales...")
+            self.initialize_real_components()
+        
+        print("🖥️ [DASHBOARD] Cargando dashboard convencional...")
+        print("[INFO] 📊 Componentes reales listos")
+        
+        time.sleep(1)
+        self.run_dashboard_with_real_data()
+        print("[INFO] 🏁 Dashboard completado exitosamente")
+    
+    def _handle_silver_bullet_option(self):
+        """Manejar opción de Silver Bullet trading"""
+        print("🔫 [SILVER BULLET] Cargando sistema de auto trading...")
+        self.run_silver_bullet_trading()
+        print("[INFO] 🏁 Silver Bullet completado exitosamente")
+    
+    def _handle_monitoring_option(self):
+        """Manejar opción de monitoreo"""
+        print("📊 [MONITOREO] Cargando sistema de monitoreo de producción...")
+        self.run_production_monitoring()
+        print("[INFO] 🏁 Monitoreo completado exitosamente")
     
     def shutdown(self):
         """🛑 Cerrar sistema limpiamente"""
@@ -2402,7 +2439,10 @@ def main():
         
         # Ejecutar menú principal
         print("Iniciando interfaz principal...")
-        # Ejecutar menú principal (saldrá con 4, KeyboardInterrupt o señal)
+        print("🔇 Configurando modo silencioso para interfaz...")
+        time.sleep(2)  # Dar tiempo a que se completen las inicializaciones
+        
+        # Ejecutar menú principal (una sola vez)
         manager.main_menu()
         
         # Shutdown limpio
@@ -2410,6 +2450,7 @@ def main():
         manager.shutdown()
         
         print("Sistema cerrado exitosamente")
+        print("Adiós 👋")
         
     except KeyboardInterrupt:
         print("\nInterrupción por teclado detectada - cerrando sistema...")
@@ -2439,7 +2480,7 @@ def main():
             print(f"Directorio restaurado: {original_dir}")
         except Exception as e:
             print(f"No se pudo restaurar directorio: {e}")
-        print("Hasta pronto")
+        print("Adiós 👋")
         # Asegurar flush
         sys.stdout.flush(); sys.stderr.flush()
 

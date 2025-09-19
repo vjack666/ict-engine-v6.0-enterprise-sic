@@ -6,6 +6,7 @@
     "venv",
     ".pytest_cache"
   ],
+  "typeCheckingMode": "basic",
   "reportMissingImports": true,
   "reportMissingModuleSource": false,
   "reportImportCycles": false,
@@ -14,7 +15,6 @@
     {
       "root": ".",
       "pythonVersion": "3.8",
-      "typeCheckingMode": "basic",
       "extraPaths": [
         ".",
         "./01-CORE",

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-09-19T09:32:11.595032",
+  "timestamp": "2025-09-19T10:13:30.246687",
   "active_alerts": [
     {
       "id": "system_f17573a0",
@@ -903,6 +903,84 @@
       ],
       "acknowledged": false,
       "resolved": false,
+      "escalated": true,
+      "channels": [],
+      "notified_at": null,
+      "correlation_id": null,
+      "parent_alert_id": null,
+      "related_alerts": [],
+      "resolved_at": null,
+      "resolution_message": null,
+      "auto_resolved": false
+    },
+    {
+      "id": "system_ac9e0fb3",
+      "timestamp": "2025-09-19T09:57:09.612937",
+      "level": "warning",
+      "source": "system_monitor",
+      "category": "system_resources",
+      "title": "System Alert: Memory",
+      "message": "Uso de memoria elevado: 86.4%",
+      "component": "Memory",
+      "metadata": {},
+      "tags": [
+        "system_monitor",
+        "memory"
+      ],
+      "acknowledged": false,
+      "resolved": false,
+      "escalated": true,
+      "channels": [],
+      "notified_at": null,
+      "correlation_id": null,
+      "parent_alert_id": null,
+      "related_alerts": [],
+      "resolved_at": null,
+      "resolution_message": null,
+      "auto_resolved": false
+    },
+    {
+      "id": "system_be3e69ee",
+      "timestamp": "2025-09-19T10:09:58.094550",
+      "level": "warning",
+      "source": "system_monitor",
+      "category": "system_resources",
+      "title": "System Alert: Memory",
+      "message": "Uso de memoria elevado: 84.9%",
+      "component": "Memory",
+      "metadata": {},
+      "tags": [
+        "system_monitor",
+        "memory"
+      ],
+      "acknowledged": false,
+      "resolved": false,
+      "escalated": false,
+      "channels": [],
+      "notified_at": null,
+      "correlation_id": null,
+      "parent_alert_id": null,
+      "related_alerts": [],
+      "resolved_at": null,
+      "resolution_message": null,
+      "auto_resolved": false
+    },
+    {
+      "id": "system_9833bdbf",
+      "timestamp": "2025-09-19T10:13:05.505586",
+      "level": "warning",
+      "source": "system_monitor",
+      "category": "system_resources",
+      "title": "System Alert: Memory",
+      "message": "Uso de memoria elevado: 83.6%",
+      "component": "Memory",
+      "metadata": {},
+      "tags": [
+        "system_monitor",
+        "memory"
+      ],
+      "acknowledged": false,
+      "resolved": false,
       "escalated": false,
       "channels": [],
       "notified_at": null,
@@ -916,13 +994,13 @@
   ],
   "recent_history": [
     {
-      "id": "system_35d540a2",
-      "timestamp": "2025-09-19T09:31:12.657799",
+      "id": "system_9833bdbf",
+      "timestamp": "2025-09-19T10:13:05.505586",
       "level": "warning",
       "source": "system_monitor",
       "category": "system_resources",
       "title": "System Alert: Memory",
-      "message": "Uso de memoria elevado: 86.7%",
+      "message": "Uso de memoria elevado: 83.6%",
       "component": "Memory",
       "metadata": {},
       "tags": [

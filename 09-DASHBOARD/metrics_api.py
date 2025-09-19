@@ -53,7 +53,21 @@ def _read_json(name: str) -> Dict[str, Any]:
         raise HTTPException(status_code=404, detail=f"File {name} not found")
     try:
         with open(path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            try:
+                return json.load(f)
+            except json.JSONDecodeError:
+                # Support JSON-lines by reading the last non-empty line
+                f.seek(0)
+                lines = [ln.strip() for ln in f.readlines() if ln.strip()]
+                if not lines:
+                    return {}
+                # Try parse last valid JSON object
+                for ln in reversed(lines):
+                    try:
+                        return json.loads(ln)
+                    except Exception:
+                        continue
+                return {}
     except HTTPException:
         raise
     except Exception as e:
@@ -179,21 +193,31 @@ def get_system_metrics() -> Dict[str, Any]:
     """Return system metrics dict from known locations.
 
     Looks in `data/system_metrics.json` and `04-DATA/metrics/system_metrics.json`.
-    Returns an empty skeleton if none found. This function mirrors the shape
-    expected by tests without requiring FastAPI runtime.
+    If none found, computes a live snapshot via ProductionSystemMonitor.
     """
     base = Path(__file__).parent.parent
     candidates = [
         base / 'data' / 'system_metrics.json',
         base / '04-DATA' / 'metrics' / 'system_metrics.json',
     ]
-    data = _read_first_existing(candidates) or {}
-    if not isinstance(data, dict):
-        data = {}
-    # Ensure minimal keys for tests
-    data.setdefault('timestamp', None)
-    data.setdefault('status', 'unknown')
-    return data
+    data = _read_first_existing(candidates)
+    if isinstance(data, dict) and data:
+        return data
+    # Fallback: compute a real-time snapshot using ProductionSystemMonitor utility
+    try:
+        sys.path.append(str(base / '01-CORE'))
+        from monitoring.production_system_monitor import get_system_health_check  # type: ignore
+        snapshot = get_system_health_check()
+        if isinstance(snapshot, dict):
+            return snapshot
+    except Exception:
+        pass
+    # Last resort: minimal structure with current timestamp
+    from datetime import datetime
+    return {
+        'timestamp': datetime.now().isoformat(),
+        'status': 'unknown'
+    }
 
 
 def get_trading_metrics() -> Dict[str, Any]:
