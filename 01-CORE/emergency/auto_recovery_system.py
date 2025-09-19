@@ -175,8 +175,8 @@ class AutoRecoverySystem:
             
             # Persistence
             'persist_history': True,
-            'history_file': 'data/recovery_history.json',
-            'state_file': 'data/recovery_state.json',
+            'history_file': '04-DATA/data/recovery_history.json',
+            'state_file': '04-DATA/data/recovery_state.json',
         }
     
     def _register_default_recovery_actions(self) -> None:

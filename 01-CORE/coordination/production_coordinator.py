@@ -186,8 +186,8 @@ class ProductionCoordinator:
     
     def _setup_persistence(self):
         """Configurar persistencia de métricas y estado"""
-        self.metrics_file = Path("data/system_metrics.json")
-        self.state_file = Path("data/system_status.json")
+        self.metrics_file = Path("04-DATA/data/system_metrics.json")
+        self.state_file = Path("04-DATA/data/system_status.json")
         
         # Crear directorios si no existen
         for file_path in [self.metrics_file, self.state_file]:

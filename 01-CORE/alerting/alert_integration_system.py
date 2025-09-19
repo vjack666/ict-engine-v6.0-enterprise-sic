@@ -225,8 +225,8 @@ class AlertIntegrationSystem:
             
             # Persistence
             'persist_alerts': True,
-            'alerts_file': 'data/integrated_alerts.json',
-            'statistics_file': 'data/alert_statistics.json'
+            'alerts_file': '04-DATA/data/integrated_alerts.json',
+            'statistics_file': '04-DATA/data/alert_statistics.json'
         }
     
     def _setup_default_routing_rules(self) -> None:

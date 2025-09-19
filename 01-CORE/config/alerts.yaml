@@ -1,0 +1,253 @@
+# Alert Configuration - ICT Engine v6.0 Enterprise
+# ================================================
+# 
+# Catálogo completo de alertas, umbrales y configuraciones de severidad
+# para el sistema de monitoreo y notificaciones de producción.
+#
+# Levels: INFO, WARNING, CRITICAL, EMERGENCY
+# Fecha: 19 Septiembre 2025
+
+# Sistema de Performance
+performance_alerts:
+  # Latencia del sistema
+  system_latency:
+    p95_warning_ms: 100.0
+    p95_critical_ms: 500.0
+    p99_warning_ms: 200.0
+    p99_critical_ms: 800.0
+    evaluation_window_seconds: 30
+    cooldown_minutes: 2
+    enabled: true
+  
+  # Tasa de errores
+  error_rate:
+    warning_percent: 1.0
+    critical_percent: 5.0
+    emergency_percent: 15.0
+    evaluation_window_seconds: 60
+    cooldown_minutes: 1
+    enabled: true
+  
+  # Throughput mínimo
+  throughput:
+    warning_ops_per_second: 10.0
+    critical_ops_per_second: 5.0
+    emergency_ops_per_second: 1.0
+    evaluation_window_seconds: 60
+    cooldown_minutes: 3
+    enabled: true
+  
+  # Recursos del sistema
+  system_resources:
+    memory_warning_percent: 80.0
+    memory_critical_percent: 90.0
+    memory_emergency_percent: 95.0
+    cpu_warning_percent: 85.0
+    cpu_critical_percent: 95.0
+    disk_warning_percent: 85.0
+    disk_critical_percent: 95.0
+    evaluation_window_seconds: 30
+    cooldown_minutes: 5
+    enabled: true
+
+# Trading Performance
+trading_alerts:
+  # Drawdown
+  drawdown:
+    warning_percent: 5.0
+    critical_percent: 10.0
+    emergency_percent: 15.0
+    evaluation_window_seconds: 300  # 5 minutos
+    cooldown_minutes: 1
+    enabled: true
+  
+  # Slippage promedio
+  slippage:
+    warning_pips: 2.0
+    critical_pips: 5.0
+    emergency_pips: 10.0
+    evaluation_window_seconds: 60
+    cooldown_minutes: 2
+    enabled: true
+  
+  # Fill rate (porcentaje de órdenes ejecutadas exitosamente)
+  fill_rate:
+    warning_percent: 90.0  # Alerta si < 90%
+    critical_percent: 80.0  # Crítico si < 80%
+    emergency_percent: 70.0  # Emergencia si < 70%
+    evaluation_window_seconds: 300
+    cooldown_minutes: 5
+    enabled: true
+  
+  # PnL rate (cambio en PnL por hora)
+  pnl_rate:
+    warning_loss_per_hour: 100.0  # USD
+    critical_loss_per_hour: 500.0
+    emergency_loss_per_hour: 1000.0
+    evaluation_window_seconds: 3600  # 1 hora
+    cooldown_minutes: 10
+    enabled: true
+
+# Conectividad y Market Data
+connectivity_alerts:
+  # MT5 Connection
+  mt5_connection:
+    disconnect_warning_seconds: 10
+    disconnect_critical_seconds: 30
+    disconnect_emergency_seconds: 120
+    evaluation_window_seconds: 15
+    cooldown_minutes: 1
+    enabled: true
+  
+  # Market Data Staleness
+  market_data_staleness:
+    warning_minutes: 2.0
+    critical_minutes: 5.0
+    emergency_minutes: 10.0
+    evaluation_window_seconds: 60
+    cooldown_minutes: 2
+    enabled: true
+  
+  # Internet connectivity
+  internet_connectivity:
+    timeout_warning_seconds: 5
+    timeout_critical_seconds: 15
+    timeout_emergency_seconds: 60
+    evaluation_window_seconds: 30
+    cooldown_minutes: 2
+    enabled: true
+
+# Sistema de Engine
+engine_alerts:
+  # Order processing delays
+  order_processing:
+    warning_delay_ms: 1000
+    critical_delay_ms: 5000
+    emergency_delay_ms: 15000
+    evaluation_window_seconds: 60
+    cooldown_minutes: 1
+    enabled: true
+  
+  # Pattern detection accuracy
+  pattern_detection:
+    warning_accuracy_percent: 70.0  # Alerta si < 70%
+    critical_accuracy_percent: 60.0
+    evaluation_window_seconds: 300
+    cooldown_minutes: 10
+    enabled: true
+  
+  # Backlog de procesamiento
+  processing_backlog:
+    warning_items: 100
+    critical_items: 500
+    emergency_items: 1000
+    evaluation_window_seconds: 60
+    cooldown_minutes: 2
+    enabled: true
+
+# Risk Management
+risk_alerts:
+  # Margin level
+  margin_level:
+    warning_percent: 200.0  # Alerta si margin level < 200%
+    critical_percent: 150.0
+    emergency_percent: 120.0
+    evaluation_window_seconds: 30
+    cooldown_minutes: 1
+    enabled: true
+  
+  # Position exposure
+  position_exposure:
+    warning_percent: 70.0  # % de balance en posiciones abiertas
+    critical_percent: 85.0
+    emergency_percent: 95.0
+    evaluation_window_seconds: 60
+    cooldown_minutes: 5
+    enabled: true
+  
+  # Daily loss limit
+  daily_loss_limit:
+    warning_percent: 3.0   # % de balance perdido en el día
+    critical_percent: 5.0
+    emergency_percent: 8.0
+    evaluation_window_seconds: 3600
+    cooldown_minutes: 30
+    enabled: true
+
+# Configuración global de alertas
+global_settings:
+  # Deduplication
+  deduplication_enabled: true
+  deduplication_window_minutes: 5
+  
+  # Auto-resolution
+  auto_resolution_enabled: true
+  auto_resolution_timeout_minutes: 30
+  
+  # Escalation
+  escalation_enabled: true
+  escalation_timeout_minutes: 15
+  critical_escalation_timeout_minutes: 5
+  
+  # Persistencia
+  alerts_persistence_enabled: true
+  alerts_file: "04-DATA/data/alerts_active.json"
+  alerts_history_file: "04-DATA/data/alerts_history.json"
+  max_active_alerts: 500
+  max_history_alerts: 5000
+  
+  # Notificaciones
+  notifications_enabled: true
+  
+# Routing rules para notificaciones
+notification_routing:
+  emergency:
+    channels: ["email", "sms", "discord", "telegram"]
+    immediate: true
+  
+  critical_system:
+    condition:
+      level: "CRITICAL"
+      categories: ["SYSTEM_RESOURCES", "MT5_CONNECTION", "INTERNET"]
+    channels: ["email", "discord"]
+    immediate: true
+  
+  critical_trading:
+    condition:
+      level: "CRITICAL" 
+      categories: ["TRADING_PERFORMANCE", "RISK_MANAGEMENT"]
+    channels: ["email", "telegram"]
+    immediate: true
+  
+  warning_general:
+    condition:
+      level: "WARNING"
+    channels: ["discord"]
+    immediate: false
+    batch_interval_minutes: 10
+
+# Channels configuration
+notification_channels:
+  email:
+    enabled: false  # Configurar SMTP para activar
+    smtp_server: ""
+    smtp_port: 587
+    username: ""
+    password: ""
+    recipients: []
+  
+  discord:
+    enabled: true
+    webhook_url: ""
+    username: "ICT-Engine-Alerts"
+  
+  telegram:
+    enabled: false  # Configurar bot token para activar
+    bot_token: ""
+    chat_ids: []
+  
+  sms:
+    enabled: false  # Requiere servicio SMS
+    provider: ""
+    api_key: ""
+    phone_numbers: []

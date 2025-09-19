@@ -191,9 +191,9 @@ class ProductionPerformanceMonitor:
         # Callbacks
         self.alert_callbacks: List[Callable[[PerformanceAlert], None]] = []
         self.snapshot_callbacks: List[Callable[[PerformanceSnapshot], None]] = []
-        
-        # Persistencia
-        self.metrics_file = Path(self.config.get('performance_file', 'data/performance_metrics.json'))
+
+        # Persistencia (consolidada en 04-DATA/data)
+        self.metrics_file = Path(self.config.get('performance_file', '04-DATA/data/performance_metrics.json'))
         self.metrics_file.parent.mkdir(parents=True, exist_ok=True)
         
         if LOGGING_AVAILABLE and logger:

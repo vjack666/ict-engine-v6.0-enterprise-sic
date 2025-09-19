@@ -192,12 +192,13 @@ def _read_first_existing(paths: list[Path]) -> Optional[Dict[str, Any]]:
 def get_system_metrics() -> Dict[str, Any]:
     """Return system metrics dict from known locations.
 
-    Looks in `data/system_metrics.json` and `04-DATA/metrics/system_metrics.json`.
+    Looks in `04-DATA/data/system_metrics.json`, `data/system_metrics.json` (legacy), and `04-DATA/metrics/system_metrics.json`.
     If none found, computes a live snapshot via ProductionSystemMonitor.
     """
     base = Path(__file__).parent.parent
     candidates = [
-        base / 'data' / 'system_metrics.json',
+        base / '04-DATA' / 'data' / 'system_metrics.json',
+        base / 'data' / 'system_metrics.json',  # legacy
         base / '04-DATA' / 'metrics' / 'system_metrics.json',
     ]
     data = _read_first_existing(candidates)
@@ -223,11 +224,12 @@ def get_system_metrics() -> Dict[str, Any]:
 def get_trading_metrics() -> Dict[str, Any]:
     """Return trading metrics dict from known locations.
 
-    Looks in `data/trading_metrics.json` and `04-DATA/metrics/trading_metrics.json`.
+    Looks in `04-DATA/data/trading_metrics.json`, `data/trading_metrics.json` (legacy), and `04-DATA/metrics/trading_metrics.json`.
     """
     base = Path(__file__).parent.parent
     candidates = [
-        base / 'data' / 'trading_metrics.json',
+        base / '04-DATA' / 'data' / 'trading_metrics.json',
+        base / 'data' / 'trading_metrics.json',  # legacy
         base / '04-DATA' / 'metrics' / 'trading_metrics.json',
     ]
     data = _read_first_existing(candidates) or {}
@@ -257,6 +259,78 @@ def get_risk_metrics() -> Dict[str, Any]:
 @app.get('/metrics/risk')
 async def get_risk():  # pragma: no cover - runtime
     return JSONResponse(get_risk_metrics())
+
+
+@app.get('/metrics/alerts')
+async def get_alerts():  # pragma: no cover - runtime
+    """🚨 Obtener alertas activas y recientes"""
+    try:
+        # Cargar desde alert_threshold_manager
+        import sys
+        from pathlib import Path
+        from datetime import datetime
+        base = Path(__file__).parent.parent
+        sys.path.append(str(base / '01-CORE'))
+        
+        from monitoring.alert_threshold_manager import get_alert_threshold_manager
+        manager = get_alert_threshold_manager()
+        
+        # Obtener alertas recientes (últimas 100)
+        recent_alerts = manager.get_recent_breaches(limit=100)
+        
+        # Intentar cargar desde archivos también
+        fallback_data = _read_first_existing([
+            base / '04-DATA' / 'data' / 'alerts_active.json',
+            base / 'data' / 'alerts_active.json',  # legacy
+            base / '04-DATA' / 'alerts' / 'alerts.json'
+        ]) or {}
+        
+        return JSONResponse({
+            'recent_breaches': recent_alerts,
+            'fallback_data': fallback_data,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        from datetime import datetime
+        return JSONResponse({
+            'error': f'alerts_unavailable: {str(e)}',
+            'recent_breaches': [],
+            'fallback_data': {},
+            'timestamp': datetime.now().isoformat()
+        })
+
+
+@app.get('/metrics/thresholds')
+async def get_thresholds():  # pragma: no cover - runtime
+    """⚙️ Obtener configuración de umbrales de alertas"""
+    try:
+        import sys
+        from pathlib import Path
+        from datetime import datetime
+        base = Path(__file__).parent.parent
+        sys.path.append(str(base / '01-CORE'))
+        
+        from monitoring.alert_threshold_manager import get_alert_threshold_manager
+        manager = get_alert_threshold_manager()
+        
+        # Obtener todas las configuraciones de umbrales
+        thresholds = manager.get_all_thresholds()
+        
+        return JSONResponse({
+            'thresholds': thresholds,
+            'config_path': str(manager.config_path),
+            'last_reload': manager.last_config_load.isoformat(),
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        from datetime import datetime
+        return JSONResponse({
+            'error': f'thresholds_unavailable: {str(e)}',
+            'thresholds': {},
+            'timestamp': datetime.now().isoformat()
+        })
 
 
 if __name__ == '__main__':  # pragma: no cover

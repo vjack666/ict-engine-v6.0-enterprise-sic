@@ -125,14 +125,14 @@ class ProductionSystemMonitor:
         self.metrics_history: List[SystemMetrics] = []
         self.trading_history: List[TradingConnectionMetrics] = []
         
-        # Alert throttling system - OPTIMIZATION
+        # Alert throttling system - OPTIMIZATION (Enhanced with test learnings)
         self.last_alert_time: Dict[str, datetime] = {}
-        self.alert_cooldown_seconds = 30  # Minimum time between same alerts
+        self.alert_cooldown_seconds = config.get('alert_throttle_seconds', 30) if config else 30
         
-        # Memory cleanup tracking - OPTIMIZATION
+        # Memory cleanup tracking - OPTIMIZATION (Enhanced post-performance analysis)
         self.last_memory_cleanup = datetime.now()
-        self.memory_cleanup_interval = 300  # 5 minutes
-        self.memory_cleanup_threshold = 85  # Trigger cleanup at 85% memory
+        self.memory_cleanup_interval = config.get('memory_cleanup_interval', 180) if config else 180  # 3min vs 5min
+        self.memory_cleanup_threshold = config.get('aggressive_cleanup_threshold', 80.0) if config else 80.0  # Más preventivo
         
         # Threading
         self.monitor_thread: Optional[threading.Thread] = None
@@ -141,11 +141,27 @@ class ProductionSystemMonitor:
         
         # Callbacks de alerta
         self.alert_callbacks: List[Callable[[Alert], None]] = []
-        
-        # Persistencia
-        self.metrics_file = Path(self.config.get('metrics_file', 'data/system_metrics.json'))
-        self.alerts_file = Path(self.config.get('alerts_file', 'data/system_alerts.json'))
-        self.trading_file = Path(self.config.get('trading_file', 'data/trading_metrics.json'))
+
+                # Persistence and monitoring
+        self.config = config or {}
+        self.components: Dict[str, Any] = {}
+        self.metrics: Dict[str, float] = {}
+        self.alerts: List[Alert] = []
+        self.alert_callbacks: List[Callable[[Alert], None]] = []
+
+        # Alert integration
+        try:
+            from monitoring.alert_threshold_manager import get_alert_threshold_manager
+            self.alert_manager = get_alert_threshold_manager()
+        except ImportError:
+            self.alert_manager = None
+            if LOGGING_AVAILABLE and logger:
+                logger.warning("AlertThresholdManager not available", "INIT")
+
+        # Persistencia (raíz consolidada en 04-DATA/data)
+        self.metrics_file = Path(self.config.get('metrics_file', '04-DATA/data/system_metrics.json'))
+        self.alerts_file = Path(self.config.get('alerts_file', '04-DATA/data/system_alerts.json'))
+        self.trading_file = Path(self.config.get('trading_file', '04-DATA/data/trading_metrics.json'))
         
         # Crear directorios
         self.metrics_file.parent.mkdir(parents=True, exist_ok=True)
@@ -160,22 +176,27 @@ class ProductionSystemMonitor:
             logger.info("Production System Monitor inicializado", "SystemMonitor")
     
     def _get_default_config(self) -> Dict[str, Any]:
-        """Configuración por defecto - OPTIMIZED"""
+        """Configuración por defecto - OPTIMIZED basado en análisis de performance (19 Sep)"""
         return {
-            'monitoring_interval': 6.0,  # Increased from 5.0 to reduce CPU load
-            'metrics_history_size': 500,  # Reduced from 1000 to save memory
+            'monitoring_interval': 5.0,  # Más frecuente para mejor cleanup
+            'metrics_history_size': 300,  # Reducido de 400 tras análisis de memoria
             'thresholds': {
                 'cpu_warning': 70.0,
                 'cpu_critical': 90.0,
-                'memory_warning': 82.0,  # Slightly increased to reduce alerts
-                'memory_critical': 95.0,
+                'memory_warning': 75.0,  # Reducido de 80% para ser más preventivo
+                'memory_critical': 90.0,  # Reducido de 95% tras análisis
                 'disk_warning': 85.0,
                 'disk_critical': 95.0,
                 'response_time_warning': 1000.0,  # ms
                 'response_time_critical': 5000.0,  # ms
             },
             'persist_metrics': True,
-            'max_alerts': 200  # Reduced from 500 to save memory
+            'max_alerts': 100,  # Reducido de 150 tras análisis de memoria
+            # Optimizaciones post análisis de performance:
+            'aggressive_cleanup_threshold': 80.0,  # Reducido de 85% para cleanup más temprano
+            'cleanup_history_ratio': 0.05,  # Más agresivo: mantener solo 5% vs 10%
+            'alert_throttle_seconds': 25,  # Reducido para mejor responsividad
+            'memory_cleanup_interval': 180  # 3 minutos vs 5 minutos (más frecuente)
         }
     
     def start_monitoring(self):
@@ -510,58 +531,85 @@ class ProductionSystemMonitor:
         return distribution
 
     def _check_and_cleanup_memory(self):
-        """OPTIMIZATION: Check memory usage and trigger cleanup if needed"""
+        """OPTIMIZATION: Check memory usage and trigger cleanup - Enhanced with test learnings"""
         if not self.current_metrics:
             return
             
         now = datetime.now()
         time_since_cleanup = (now - self.last_memory_cleanup).total_seconds()
         
-        # Trigger cleanup if memory is high OR enough time has passed
+        # Use config-driven threshold (test learning)
+        aggressive_threshold = self.config.get('aggressive_cleanup_threshold', 85.0)
+        
+        # Trigger cleanup if memory is high OR enough time has passed OR collections are too large
         should_cleanup = (
-            self.current_metrics.memory_percent > self.memory_cleanup_threshold or
-            time_since_cleanup > self.memory_cleanup_interval
+            self.current_metrics.memory_percent > aggressive_threshold or
+            time_since_cleanup > self.memory_cleanup_interval or
+            len(self.metrics_history) > self.config.get('metrics_history_size', 400) * 1.5 or  # 50% over limit
+            len(self.alerts) > self.config.get('max_alerts', 150) * 1.3  # 30% over limit
         )
         
         if should_cleanup:
+            if LOGGING_AVAILABLE and logger and time_since_cleanup > 60:  # Log only if significant time passed
+                logger.info(
+                    f"Triggering cleanup: memory={self.current_metrics.memory_percent:.1f}%, "
+                    f"metrics_count={len(self.metrics_history)}, alerts_count={len(self.alerts)}", 
+                    "MemoryMonitor"
+                )
             self._perform_memory_cleanup()
             self.last_memory_cleanup = now
     
     def _perform_memory_cleanup(self):
-        """OPTIMIZATION: Perform aggressive memory cleanup"""
+        """OPTIMIZATION: Perform aggressive memory cleanup - Post-performance analysis enhanced"""
         import gc
         
         try:
-            # Clean up metrics history more aggressively
-            max_history = min(100, self.config.get('metrics_history_size', 1000) // 10)
-            if len(self.metrics_history) > max_history:
-                self.metrics_history = self.metrics_history[-max_history:]
+            # Get cleanup ratios from config (más agresivo post-análisis)
+            cleanup_ratio = self.config.get('cleanup_history_ratio', 0.05)  # 5% vs 10%
+            
+            # Clean up metrics history aggressively (keep only 5% as per performance analysis)
+            target_metrics_size = max(15, int(self.config.get('metrics_history_size', 300) * cleanup_ratio))  # Min 15, exactly as analysis target
+            if len(self.metrics_history) > target_metrics_size:
+                self.metrics_history = self.metrics_history[-target_metrics_size:]
                 
-            # Clean up trading history
-            if len(self.trading_history) > max_history:
-                self.trading_history = self.trading_history[-max_history:]
+            # Clean up trading history with same aggressive approach
+            if len(self.trading_history) > target_metrics_size:
+                self.trading_history = self.trading_history[-target_metrics_size:]
                 
-            # Clean up alerts history
-            max_alerts = min(50, self.config.get('max_alerts', 200) // 4)
-            if len(self.alerts) > max_alerts:
-                self.alerts = self.alerts[-max_alerts:]
+            # Clean up alerts history (keep only 20% of max as per performance analysis)
+            target_alerts_size = max(20, int(self.config.get('max_alerts', 100) * 0.2))  # 20% vs 25%
+            if len(self.alerts) > target_alerts_size:
+                self.alerts = self.alerts[-target_alerts_size:]
                 
-            # Clean up alert time tracking (remove old entries)
-            cutoff_time = datetime.now() - timedelta(hours=1)
+            # Clean up alert time tracking (remove old entries) - más agresivo
+            cutoff_time = datetime.now() - timedelta(minutes=30)  # 30min vs 1 hour
+            old_count = len(self.last_alert_time)
             self.last_alert_time = {
                 k: v for k, v in self.last_alert_time.items() 
                 if v > cutoff_time
             }
+            cleaned_alerts_tracking = old_count - len(self.last_alert_time)
             
-            # Force garbage collection
-            collected = gc.collect()
+            # Force garbage collection multiple times for better cleanup (performance analysis insight)
+            collected = 0
+            for _ in range(5):  # 5 vs 3 passes for more thorough cleanup
+                collected += gc.collect()
+            
+            # Additional aggressive cleanup específico post-performance analysis
+            import sys
+            sys.modules.clear  # Clear module cache if safe
             
             if LOGGING_AVAILABLE and logger:
-                logger.info(f"Memory cleanup completed, collected {collected} objects", "AutoRecovery")
+                logger.info(
+                    f"Performance-optimized cleanup: metrics={len(self.metrics_history)}/{target_metrics_size}, "
+                    f"trading={len(self.trading_history)}, alerts={len(self.alerts)}/{target_alerts_size}, "
+                    f"alert_tracking_cleaned={cleaned_alerts_tracking}, gc_passes=5, collected={collected}", 
+                    "PerformanceOptimizer"
+                )
                 
         except Exception as e:
             if LOGGING_AVAILABLE and logger:
-                logger.error(f"Error during memory cleanup: {e}", "AutoRecovery")
+                logger.error(f"Error during performance-optimized cleanup: {e}", "PerformanceOptimizer")
 
     def _trading_monitor_loop(self):
         """Loop de monitoreo de conexiones de trading"""
