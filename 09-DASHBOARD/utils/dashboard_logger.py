@@ -10,6 +10,7 @@ Versión: v6.1.0-enterprise
 """
 
 import logging
+import os
 import sys
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
@@ -58,12 +59,15 @@ class DashboardLogger:
                 max_size = self.config.get('max_size_mb', 10) * 1024 * 1024
                 backup_count = self.config.get('backup_count', 5)
                 
-                file_handler = RotatingFileHandler(
-                    log_path,
-                    maxBytes=max_size,
-                    backupCount=backup_count,
-                    encoding='utf-8'
-                )
+                if os.getenv('ICT_DISABLE_LOG_ROTATION') == '1':
+                    file_handler = logging.FileHandler(log_path, encoding='utf-8')
+                else:
+                    file_handler = RotatingFileHandler(
+                        log_path,
+                        maxBytes=max_size,
+                        backupCount=backup_count,
+                        encoding='utf-8'
+                    )
                 file_handler.setFormatter(formatter)
                 self.logger.addHandler(file_handler)
                 

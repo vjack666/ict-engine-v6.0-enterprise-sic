@@ -50,6 +50,8 @@ python tests/integrated_stress_test.py
 bash tools/validate_docs.sh
 ```
 
+> Nota de pruebas en Windows: para evitar errores de rotación de logs durante `pytest`, ver `DOCS/guides/test-logging-mode.md`.
+
 ---
 ## 📋 Resumen Ejecutivo
 ICT Engine v6.0 Enterprise es un sistema de trading automatizado institucional con memoria unificada, análisis multi‑patrón, dashboards duales y automatización de ejecución. Todo orquestado desde un único punto de entrada.

@@ -33,6 +33,7 @@ from typing import Protocol, Any, Optional, Dict, Union
 from dataclasses import dataclass
 from enum import Enum
 import logging
+import os
 import threading
 import sys
 import time
@@ -125,20 +126,25 @@ class ProductionCentralLogger:
         console_handler.setFormatter(console_formatter)
         self._logger.addHandler(console_handler)
         
-        # File handler with rotation
+        # File handler with rotation (or disabled in tests)
         if self.config.enable_file_logging:
             try:
-                from logging.handlers import RotatingFileHandler
                 log_dir = Path("05-LOGS") / "central"
                 log_dir.mkdir(parents=True, exist_ok=True)
-                
                 log_file = log_dir / f"{self.component_name.lower()}.log"
-                file_handler = RotatingFileHandler(
-                    log_file,
-                    maxBytes=self.config.max_file_size,
-                    backupCount=self.config.backup_count,
-                    encoding='utf-8'
-                )
+
+                disable_rotation = os.getenv('ICT_DISABLE_LOG_ROTATION') == '1'
+                if disable_rotation:
+                    file_handler = logging.FileHandler(log_file, encoding='utf-8')
+                else:
+                    from logging.handlers import RotatingFileHandler
+                    file_handler = RotatingFileHandler(
+                        log_file,
+                        maxBytes=self.config.max_file_size,
+                        backupCount=self.config.backup_count,
+                        encoding='utf-8'
+                    )
+
                 file_formatter = logging.Formatter(
                     '[%(asctime)s] [%(name)s] [%(levelname)s] [%(component)s] %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S'

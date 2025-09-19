@@ -302,9 +302,12 @@ class SmartTradingLogger:
         if _get_env_bool('ICT_LOG_EXPORT_JSON', False):
             try:
                 jsonl_file = self.log_dir / f"{self.component_name.lower()}_{self.date_str}.ndjson"
-                jsonl_handler = RotatingFileHandler(
-                    jsonl_file, mode='a', maxBytes=max_bytes, backupCount=backup_count, encoding='utf-8', delay=True
-                )
+                if _get_env_bool('ICT_DISABLE_LOG_ROTATION', False):
+                    jsonl_handler = logging.FileHandler(jsonl_file, encoding='utf-8')
+                else:
+                    jsonl_handler = RotatingFileHandler(
+                        jsonl_file, mode='a', maxBytes=max_bytes, backupCount=backup_count, encoding='utf-8', delay=True
+                    )
                 jsonl_handler.setFormatter(JSONLineFormatter())
                 jsonl_handler.setLevel(logging.INFO)
             except Exception:
@@ -339,9 +342,12 @@ class SmartTradingLogger:
 
             daily_log_file = log_dir / f"{component_name.lower()}_{self.date_str}.log"
 
-            file_handler = RotatingFileHandler(
-                daily_log_file, mode='a', maxBytes=max_bytes, backupCount=backup_count, encoding='utf-8', delay=True
-            )
+            if _get_env_bool('ICT_DISABLE_LOG_ROTATION', False):
+                file_handler = logging.FileHandler(daily_log_file, encoding='utf-8')
+            else:
+                file_handler = RotatingFileHandler(
+                    daily_log_file, mode='a', maxBytes=max_bytes, backupCount=backup_count, encoding='utf-8', delay=True
+                )
             daily_formatter = logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s', datefmt='%H:%M:%S')
             file_handler.setFormatter(daily_formatter)
             file_handler.setLevel(logging.DEBUG)
