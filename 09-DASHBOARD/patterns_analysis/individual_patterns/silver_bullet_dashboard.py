@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-?? PATTERN TEMPLATE - CONEXIÓN DIRECTA CON SISTEMA REAL
+ðŸŽ¯ PATTERN TEMPLATE - CONEXIÃ“N DIRECTA CON SISTEMA REAL
 ======================================================
 
-Template que se conecta ÚNICAMENTE con módulos reales del sistema ICT Engine v6.0 Enterprise.
+Template que se conecta ÃšNICAMENTE con mÃ³dulos reales del sistema ICT Engine v6.0 Enterprise.
 NO usa datos hardcodeados ni simulados.
 
 Auto-generado por PatternFactory
@@ -14,85 +14,85 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
-# Configurar rutas para acceso a módulos reales del core
+# Configurar rutas para acceso a mÃ³dulos reales del core
 dashboard_root = Path(__file__).parent.parent.parent
 project_root = dashboard_root.parent
 sys.path.insert(0, str(project_root / "01-CORE"))
 
-# Importar clases base con path correcto para módulos generados
+# Importar clases base con path correcto para mÃ³dulos generados
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from base_pattern_module import BasePatternDashboard, PatternAnalysisResult, PatternDashboardUtils
 
 
 class SilverBulletDashboard(BasePatternDashboard):
     """
-    Dashboard para patrón REAL conectado con sistema ICT Engine v6.0 Enterprise
+    Dashboard para patrÃ³n REAL conectado con sistema ICT Engine v6.0 Enterprise
     
     PRINCIPIO: NUNCA datos hardcodeados - SIEMPRE sistema real
     """
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__("silver_bullet", config)
-
-        # Configurar project_root para resolver warnings
-        self.project_root = Path(__file__).parent.parent.parent.parent.absolute()
         
-        # Variables para conexión con sistema real
+        # Variables para conexiÃ³n con sistema real
         self.real_pattern_detector = None
         self.real_data_manager = None
         self.real_config = None
         self.advanced_pattern_module = None
         
+        # Configurar rutas del proyecto
+        self.project_root = project_root
+        
         # Conectar con sistema real
         self._connect_to_real_system()
         
     def _connect_to_real_system(self):
-        """Conectar con los módulos reales del sistema ICT Engine"""
-        print(f"?? Conectando {self.pattern_name} con sistema real...")
+        """Conectar con los mÃ³dulos reales del sistema ICT Engine"""
+        print(f"ðŸ”Œ Conectando {self.pattern_name} con sistema real...")
         
         # 1. Conectar con Pattern Detector principal
         try:
             from ict_engine.pattern_detector import PatternDetector
             self.real_pattern_detector = PatternDetector()
-            print(f"? {self.pattern_name}: PatternDetector real conectado")
+            print(f"âœ… {self.pattern_name}: PatternDetector real conectado")
         except ImportError as e:
-            print(f"?? {self.pattern_name}: No se pudo conectar PatternDetector principal: {e}")
+            print(f"âš ï¸ {self.pattern_name}: No se pudo conectar PatternDetector principal: {e}")
         
-        # 2. Intentar conectar con módulo enterprise específico
+        # 2. Intentar conectar con mÃ³dulo enterprise especÃ­fico
         try:
             if self.pattern_name == 'silver_bullet':
                 from ict_engine.advanced_patterns.silver_bullet_enterprise import SilverBulletDetectorEnterprise
                 self.advanced_pattern_module = SilverBulletDetectorEnterprise()
-                print(f"? {self.pattern_name}: Módulo enterprise conectado")
+                print(f"âœ… {self.pattern_name}: MÃ³dulo enterprise conectado")
             elif self.pattern_name == 'judas_swing':
                 from ict_engine.advanced_patterns.judas_swing_enterprise import JudasSwingDetectorEnterprise
                 self.advanced_pattern_module = JudasSwingDetectorEnterprise()
-                print(f"? {self.pattern_name}: Módulo enterprise conectado")
+                print(f"âœ… {self.pattern_name}: MÃ³dulo enterprise conectado")
             elif self.pattern_name == 'liquidity_grab':
                 from ict_engine.advanced_patterns.liquidity_grab_enterprise import LiquidityGrabDetectorEnterprise
                 self.advanced_pattern_module = LiquidityGrabDetectorEnterprise()
-                print(f"? {self.pattern_name}: Módulo enterprise conectado")
+                print(f"âœ… {self.pattern_name}: MÃ³dulo enterprise conectado")
         except ImportError as e:
-            print(f"?? {self.pattern_name}: Módulo enterprise no disponible: {e}")
+            print(f"â„¹ï¸ {self.pattern_name}: MÃ³dulo enterprise no disponible: {e}")
         
-        # 3. Conectar con Data Manager real
+        # 3. Conectar con Data Manager real (Singleton optimizado)
         try:
             from data_management.ict_data_manager_singleton import get_ict_data_manager
             self.real_data_manager = get_ict_data_manager()
-            print(f"? {self.pattern_name}: ICTDataManager singleton conectado")
+            print(f"âœ… {self.pattern_name}: ICTDataManager singleton conectado")
         except ImportError:
             try:
                 from data_management.mt5_data_manager import MT5DataManager
                 self.real_data_manager = MT5DataManager()
-                print(f"? {self.pattern_name}: MT5DataManager real conectado")
+                print(f"âœ… {self.pattern_name}: MT5DataManager real conectado")
             except ImportError as e:
-                print(f"?? {self.pattern_name}: No se pudo conectar con DataManager: {e}")
+                print(f"âš ï¸ {self.pattern_name}: No se pudo conectar con DataManager: {e}")
         
-        # 4. Cargar configuración real del sistema
+        # 4. Cargar configuraciÃ³n real del sistema
         self._load_real_system_config()
     
     def _load_real_system_config(self):
-        """Cargar configuración real del sistema ICT Engine"""
+        """Cargar configuraciÃ³n real del sistema ICT Engine"""
         try:
             import json
             config_paths = [
@@ -107,17 +107,17 @@ class SilverBulletDashboard(BasePatternDashboard):
                     with open(config_path, 'r', encoding='utf-8') as f:
                         config_data = json.load(f)
                         self.real_config.update(config_data)
-                        print(f"? {self.pattern_name}: Configuración cargada desde {config_path.name}")
+                        print(f"âœ… {self.pattern_name}: ConfiguraciÃ³n cargada desde {config_path.name}")
             
             if not self.real_config:
-                print(f"?? {self.pattern_name}: No se encontraron configuraciones reales")
+                print(f"âš ï¸ {self.pattern_name}: No se encontraron configuraciones reales")
                 
         except Exception as e:
-            print(f"?? {self.pattern_name}: Error cargando configuración real: {e}")
+            print(f"âš ï¸ {self.pattern_name}: Error cargando configuraciÃ³n real: {e}")
             self.real_config = {}
     
     def _perform_pattern_analysis(self, symbol: str, timeframe: str) -> PatternAnalysisResult:
-        """Análisis REAL del patrón usando sistema ICT Engine"""
+        """AnÃ¡lisis REAL del patrÃ³n usando sistema ICT Engine"""
         
         # Crear resultado base
         result = PatternAnalysisResult(
@@ -136,62 +136,53 @@ class SilverBulletDashboard(BasePatternDashboard):
         
         try:
             # 1. Obtener datos reales del mercado
-            raw_market_data = self._get_real_market_data(symbol, timeframe)
-            if not raw_market_data:
+            market_data = self._get_real_market_data(symbol, timeframe)
+            if not market_data:
                 result.narrative = "Datos de mercado no disponibles en el sistema real"
                 return result
             
-            # ?? VALIDAR DATOS DE MERCADO ANTES DE USAR
-            market_data = self.validate_market_data(raw_market_data)
-            if not market_data or len(market_data) == 0:
-                result.narrative = "Datos de mercado inválidos - falló validación de seguridad"
-                return result
-            
-            # 2. Usar detector real del patrón
+            # 2. Usar detector real del patrÃ³n
             pattern_signals = self._detect_with_real_system(market_data, symbol, timeframe)
             
             if pattern_signals:
-                # Procesar señal real (NO inventar datos)
+                # Procesar seÃ±al real (NO inventar datos)
                 best_signal = max(pattern_signals, key=lambda x: x.get('confidence', 0))
                 
-                # ?? VALIDAR RESULTADO DEL PATRÓN ANTES DE USAR
-                validated_signal = self.validate_pattern_result(best_signal)
+                # Extraer datos REALES de la seÃ±al
+                result.confidence = float(best_signal.get('confidence', 0.0))
+                result.strength = float(best_signal.get('strength', 0.0))
+                result.direction = str(best_signal.get('direction', 'NEUTRAL')).upper()
                 
-                # Extraer datos VALIDADOS de la señal
-                result.confidence = float(validated_signal.get('confidence', 0.0))
-                result.strength = float(validated_signal.get('strength', 0.0))
-                result.direction = str(validated_signal.get('direction', 'NEUTRAL')).upper()
-                
-                # Niveles validados (NO hardcodeados)
-                entry_zone = validated_signal.get('entry_zone', (0.0, 0.0))
+                # Niveles reales (NO hardcodeados)
+                entry_zone = best_signal.get('entry_zone', (0.0, 0.0))
                 if isinstance(entry_zone, (list, tuple)) and len(entry_zone) >= 2:
                     result.entry_zone = (float(entry_zone[0]), float(entry_zone[1]))
                 
-                result.stop_loss = float(validated_signal.get('stop_loss', 0.0))
-                result.take_profit_1 = float(validated_signal.get('take_profit_1', 0.0))
-                result.take_profit_2 = validated_signal.get('take_profit_2')
+                result.stop_loss = float(best_signal.get('stop_loss', 0.0))
+                result.take_profit_1 = float(best_signal.get('take_profit_1', 0.0))
+                result.take_profit_2 = best_signal.get('take_profit_2')
                 if result.take_profit_2:
                     result.take_profit_2 = float(result.take_profit_2)
                 
-                # Métricas validadas
-                result.risk_reward_ratio = float(validated_signal.get('risk_reward_ratio', 0.0))
-                result.probability = float(validated_signal.get('probability', 0.0))
+                # MÃ©tricas reales
+                result.risk_reward_ratio = float(best_signal.get('risk_reward_ratio', 0.0))
+                result.probability = float(best_signal.get('probability', 0.0))
                 
-                # Contexto validado
-                result.session = str(validated_signal.get('session', 'UNKNOWN'))
-                result.confluences = validated_signal.get('confluences', [])
-                result.invalidation_criteria = str(validated_signal.get('invalidation_criteria', ''))
-                result.narrative = str(validated_signal.get('narrative', f'Patrón {self.pattern_name} detectado por sistema real'))
+                # Contexto real
+                result.session = str(best_signal.get('session', 'UNKNOWN'))
+                result.confluences = best_signal.get('confluences', [])
+                result.invalidation_criteria = str(best_signal.get('invalidation_criteria', ''))
+                result.narrative = str(best_signal.get('narrative', f'PatrÃ³n {self.pattern_name} detectado por sistema real'))
                 
-                # Guardar datos validados para debugging
-                result.raw_data = validated_signal
+                # Guardar datos brutos para debugging
+                result.raw_data = best_signal
                 
             else:
-                result.narrative = f"No se detectaron señales de {self.pattern_name} en el sistema real"
+                result.narrative = f"No se detectaron seÃ±ales de {self.pattern_name} en el sistema real"
         
         except Exception as e:
-            result.narrative = f"Error en análisis real: {str(e)}"
-            print(f"?? Error analizando {self.pattern_name} con sistema real: {e}")
+            result.narrative = f"Error en anÃ¡lisis real: {str(e)}"
+            print(f"âš ï¸ Error analizando {self.pattern_name} con sistema real: {e}")
         
         return result
     
@@ -199,45 +190,45 @@ class SilverBulletDashboard(BasePatternDashboard):
         """Obtener datos REALES del mercado (NO simulados)"""
         try:
             if self.real_data_manager is None:
-                print(f"?? {self.pattern_name}: DataManager no disponible")
+                print(f"âš ï¸ {self.pattern_name}: DataManager no disponible")
                 return None
             
-            # Usar método real del data manager
+            # Usar mÃ©todo real del data manager
             if hasattr(self.real_data_manager, 'get_candles'):
                 # MT5DataManager
                 candles = self.real_data_manager.get_candles(symbol, timeframe, 100)
-                print(f"? {self.pattern_name}: Datos reales obtenidos de MT5DataManager")
+                print(f"âœ… {self.pattern_name}: Datos reales obtenidos de MT5DataManager")
                 return candles
             elif hasattr(self.real_data_manager, 'get_current_data'):
                 # ICTDataManager
                 data = self.real_data_manager.get_current_data(symbol, timeframe)
-                print(f"? {self.pattern_name}: Datos reales obtenidos de ICTDataManager")
+                print(f"âœ… {self.pattern_name}: Datos reales obtenidos de ICTDataManager")
                 return data
             else:
-                print(f"?? {self.pattern_name}: Método de obtención de datos no encontrado")
+                print(f"âš ï¸ {self.pattern_name}: MÃ©todo de obtenciÃ³n de datos no encontrado")
                 return None
                 
         except Exception as e:
-            print(f"?? {self.pattern_name}: Error obteniendo datos reales: {e}")
+            print(f"âš ï¸ {self.pattern_name}: Error obteniendo datos reales: {e}")
             return None
     
     def _detect_with_real_system(self, market_data: Any, symbol: str, timeframe: str) -> List[Dict[str, Any]]:
-        """Detectar patrón usando sistema REAL (NO simulado)"""
+        """Detectar patrÃ³n usando sistema REAL (NO simulado)"""
         signals = []
         
         try:
-            # 1. Intentar usar módulo enterprise específico primero
+            # 1. Intentar usar mÃ³dulo enterprise especÃ­fico primero
             if self.advanced_pattern_module:
                 try:
                     if hasattr(self.advanced_pattern_module, 'detect'):
                         enterprise_result = self.advanced_pattern_module.detect(market_data, symbol, timeframe)
                         if enterprise_result:
                             signals.append(self._process_real_signal(enterprise_result))
-                            print(f"? {self.pattern_name}: Señal detectada por módulo enterprise")
+                            print(f"âœ… {self.pattern_name}: SeÃ±al detectada por mÃ³dulo enterprise")
                 except Exception as e:
-                    print(f"?? {self.pattern_name}: Error en módulo enterprise: {e}")
+                    print(f"âš ï¸ {self.pattern_name}: Error en mÃ³dulo enterprise: {e}")
             
-            # 2. Usar detector principal si no hay señales enterprise
+            # 2. Usar detector principal si no hay seÃ±ales enterprise
             if not signals and self.real_pattern_detector:
                 try:
                     detector_method_name = f'_detect_{self.pattern_name}'
@@ -252,7 +243,7 @@ class SilverBulletDashboard(BasePatternDashboard):
                         elif detection_result:
                             signals.append(self._process_real_signal(detection_result))
                         
-                        print(f"? {self.pattern_name}: Señal detectada por PatternDetector principal")
+                        print(f"âœ… {self.pattern_name}: SeÃ±al detectada por PatternDetector principal")
                     
                     # Fallback: usar detect_patterns general
                     elif hasattr(self.real_pattern_detector, 'detect_patterns'):
@@ -264,20 +255,20 @@ class SilverBulletDashboard(BasePatternDashboard):
                                 signals.append(self._process_real_signal(pattern))
                         
                         if signals:
-                            print(f"? {self.pattern_name}: Señal detectada por detect_patterns general")
+                            print(f"âœ… {self.pattern_name}: SeÃ±al detectada por detect_patterns general")
                     
                 except Exception as e:
-                    print(f"?? {self.pattern_name}: Error en detector principal: {e}")
+                    print(f"âš ï¸ {self.pattern_name}: Error en detector principal: {e}")
         
         except Exception as e:
-            print(f"?? {self.pattern_name}: Error general en detección: {e}")
+            print(f"âš ï¸ {self.pattern_name}: Error general en detecciÃ³n: {e}")
         
         return signals
     
     def _process_real_signal(self, signal: Any) -> Dict[str, Any]:
-        """Procesar señal REAL del sistema (NO generar datos fake)"""
+        """Procesar seÃ±al REAL del sistema (NO generar datos fake)"""
         try:
-            # Extraer información REAL según el tipo de señal
+            # Extraer informaciÃ³n REAL segÃºn el tipo de seÃ±al
             if hasattr(signal, '__dict__'):
                 # Objeto PatternSignal o similar
                 return {
@@ -293,7 +284,7 @@ class SilverBulletDashboard(BasePatternDashboard):
                     'session': str(getattr(signal, 'session', 'UNKNOWN')),
                     'confluences': getattr(signal, 'confluences', []),
                     'invalidation_criteria': getattr(signal, 'invalidation_criteria', ''),
-                    'narrative': getattr(signal, 'narrative', f'Patrón {self.pattern_name} del sistema real'),
+                    'narrative': getattr(signal, 'narrative', f'PatrÃ³n {self.pattern_name} del sistema real'),
                     'source': 'real_system'
                 }
             elif isinstance(signal, dict):
@@ -301,7 +292,7 @@ class SilverBulletDashboard(BasePatternDashboard):
                 signal['source'] = 'real_system'
                 return signal
             else:
-                # Intentar extraer propiedades básicas
+                # Intentar extraer propiedades bÃ¡sicas
                 return {
                     'confidence': getattr(signal, 'confidence', 0.0),
                     'strength': getattr(signal, 'strength', 0.0),
@@ -314,12 +305,12 @@ class SilverBulletDashboard(BasePatternDashboard):
                     'session': 'UNKNOWN',
                     'confluences': [],
                     'invalidation_criteria': '',
-                    'narrative': f'Señal de {self.pattern_name} detectada por sistema real',
+                    'narrative': f'SeÃ±al de {self.pattern_name} detectada por sistema real',
                     'source': 'real_system'
                 }
         
         except Exception as e:
-            print(f"?? {self.pattern_name}: Error procesando señal real: {e}")
+            print(f"âš ï¸ {self.pattern_name}: Error procesando seÃ±al real: {e}")
             return {
                 'confidence': 0.0,
                 'strength': 0.0,
@@ -332,7 +323,7 @@ class SilverBulletDashboard(BasePatternDashboard):
                 'session': 'UNKNOWN',
                 'confluences': [],
                 'invalidation_criteria': '',
-                'narrative': f'Error procesando señal real de {self.pattern_name}',
+                'narrative': f'Error procesando seÃ±al real de {self.pattern_name}',
                 'source': 'real_system_error'
             }
     
@@ -351,76 +342,76 @@ class SilverBulletDashboard(BasePatternDashboard):
         tf_display = utils.format_timeframe_display(result.timeframe)
         
         # Status del sistema real
-        system_status = "?? SISTEMA REAL" if has_real_data else "?? DATOS NO DISPONIBLES"
+        system_status = "ðŸ”Œ SISTEMA REAL" if has_real_data else "âš ï¸ DATOS NO DISPONIBLES"
         
         # Construir layout con datos reales
         layout = f"""
-[bold cyan]?? {self.pattern_name.upper().replace('_', ' ')} - {result.symbol}[/bold cyan]
-[cyan]{'-' * 50}[/cyan]
+[bold cyan]ðŸŽ¯ {self.pattern_name.upper().replace('_', ' ')} - {result.symbol}[/bold cyan]
+[cyan]{'â”€' * 50}[/cyan]
 {system_status}
 
-[bold]?? ANÁLISIS DEL SISTEMA REAL[/bold]
-• Timeframe: [bold]{tf_display}[/bold]
-• Dirección: {direction_emoji} [bold]{result.direction}[/bold]
-• Confianza: [{conf_color}]{result.confidence:.1f}%[/{conf_color}]
-• Fuerza: [bold]{result.strength:.1f}%[/bold]"""
+[bold]ðŸ’¡ ANÃLISIS DEL SISTEMA REAL[/bold]
+â€¢ Timeframe: [bold]{tf_display}[/bold]
+â€¢ DirecciÃ³n: {direction_emoji} [bold]{result.direction}[/bold]
+â€¢ Confianza: [{conf_color}]{result.confidence:.1f}%[/{conf_color}]
+â€¢ Fuerza: [bold]{result.strength:.1f}%[/bold]"""
 
         if has_real_data and result.entry_zone != (0.0, 0.0):
             layout += f"""
 
-[bold]?? NIVELES REALES DEL SISTEMA[/bold]
-• Zona Entrada: [{utils.format_price(result.entry_zone[0], result.symbol)} - {utils.format_price(result.entry_zone[1], result.symbol)}]
-• Stop Loss: [bold red]{utils.format_price(result.stop_loss, result.symbol)}[/bold red]
-• Take Profit 1: [bold green]{utils.format_price(result.take_profit_1, result.symbol)}[/bold green]"""
+[bold]ðŸ’° NIVELES REALES DEL SISTEMA[/bold]
+â€¢ Zona Entrada: [{utils.format_price(result.entry_zone[0], result.symbol)} - {utils.format_price(result.entry_zone[1], result.symbol)}]
+â€¢ Stop Loss: [bold red]{utils.format_price(result.stop_loss, result.symbol)}[/bold red]
+â€¢ Take Profit 1: [bold green]{utils.format_price(result.take_profit_1, result.symbol)}[/bold green]"""
 
             if result.take_profit_2:
-                layout += f"\n• Take Profit 2: [bold green]{utils.format_price(result.take_profit_2, result.symbol)}[/bold green]"
+                layout += f"\nâ€¢ Take Profit 2: [bold green]{utils.format_price(result.take_profit_2, result.symbol)}[/bold green]"
         
-        # Métricas reales
+        # MÃ©tricas reales
         if has_real_data:
             rr_color = "green" if result.risk_reward_ratio >= 2.0 else "yellow" if result.risk_reward_ratio >= 1.5 else "red"
             layout += f"""
 
-[bold]?? MÉTRICAS DEL SISTEMA REAL[/bold]
-• Risk/Reward: [{rr_color}]{result.risk_reward_ratio:.2f}[/{rr_color}]
-• Probabilidad: [bold]{result.probability:.1f}%[/bold]
-• Sesión: [bold]{result.session}[/bold]
+[bold]ðŸ“Š MÃ‰TRICAS DEL SISTEMA REAL[/bold]
+â€¢ Risk/Reward: [{rr_color}]{result.risk_reward_ratio:.2f}[/{rr_color}]
+â€¢ Probabilidad: [bold]{result.probability:.1f}%[/bold]
+â€¢ SesiÃ³n: [bold]{result.session}[/bold]
 
-[bold]?? RECOMENDACIONES BASADAS EN SISTEMA REAL[/bold]
-• Scalping: [bold]{result.scalping_viability}[/bold]
-• Intraday: [bold]{result.intraday_viability}[/bold]"""
+[bold]ðŸŽ¯ RECOMENDACIONES BASADAS EN SISTEMA REAL[/bold]
+â€¢ Scalping: [bold]{result.scalping_viability}[/bold]
+â€¢ Intraday: [bold]{result.intraday_viability}[/bold]"""
             
             if result.recommended_timeframes:
                 tf_list = ", ".join([utils.format_timeframe_display(tf) for tf in result.recommended_timeframes])
-                layout += f"\n• TFs Recomendados: [bold]{tf_list}[/bold]"
+                layout += f"\nâ€¢ TFs Recomendados: [bold]{tf_list}[/bold]"
         
         # Confluencias del sistema real
         if result.confluences:
             layout += f"""
 
-[bold]?? CONFLUENCIAS DEL SISTEMA REAL[/bold]"""
-            for confluence in result.confluences[:3]:  # Máximo 3
-                layout += f"\n• {confluence}"
+[bold]ðŸ”„ CONFLUENCIAS DEL SISTEMA REAL[/bold]"""
+            for confluence in result.confluences[:3]:  # MÃ¡ximo 3
+                layout += f"\nâ€¢ {confluence}"
         
         # Narrativa del sistema real
         if result.narrative:
             layout += f"""
 
-[bold]?? ANÁLISIS DEL SISTEMA[/bold]
+[bold]ðŸ“ ANÃLISIS DEL SISTEMA[/bold]
 {result.narrative}"""
         
-        # Criterios de invalidación reales
+        # Criterios de invalidaciÃ³n reales
         if result.invalidation_criteria:
             layout += f"""
 
-[bold red]?? INVALIDACIÓN (SISTEMA REAL)[/bold red]
+[bold red]âš ï¸ INVALIDACIÃ“N (SISTEMA REAL)[/bold red]
 {result.invalidation_criteria}"""
         
-        # Información de fuente
+        # InformaciÃ³n de fuente
         source_info = result.raw_data.get('source', 'unknown')
         layout += f"""
 
-[bold]?? FUENTE DE DATOS[/bold]
+[bold]ðŸ” FUENTE DE DATOS[/bold]
 Sistema: {source_info}
 Actualizado: {result.timestamp.strftime('%H:%M:%S')}
 ID: {result.analysis_id}
@@ -429,8 +420,7 @@ ID: {result.analysis_id}
         return layout
 
 
-# Función de creación para el factory
+# FunciÃ³n de creaciÃ³n para el factory
 def create_dashboard(config: Optional[Dict[str, Any]] = None) -> SilverBulletDashboard:
     """Crear instancia del dashboard de silver_bullet"""
     return SilverBulletDashboard(config)
-

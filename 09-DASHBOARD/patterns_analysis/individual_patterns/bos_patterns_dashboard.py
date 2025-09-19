@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from base_pattern_module import BasePatternDashboard, PatternAnalysisResult, PatternDashboardUtils
 
 
-class JudasSwingDashboard(BasePatternDashboard):
+class BosPatternsDashboard(BasePatternDashboard):
     """
     Dashboard para patrón REAL conectado con sistema ICT Engine v6.0 Enterprise
     
@@ -32,7 +32,7 @@ class JudasSwingDashboard(BasePatternDashboard):
     """
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
-        super().__init__("judas_swing", config)
+        super().__init__("bos_patterns", config)
         
         # Variables para conexión con sistema real
         self.real_pattern_detector = None
@@ -421,6 +421,6 @@ ID: {result.analysis_id}
 
 
 # Función de creación para el factory
-def create_dashboard(config: Optional[Dict[str, Any]] = None) -> JudasSwingDashboard:
-    """Crear instancia del dashboard de judas_swing"""
-    return JudasSwingDashboard(config)
+def create_dashboard(config: Optional[Dict[str, Any]] = None) -> BosPatternsDashboard:
+    """Crear instancia del dashboard de bos_patterns"""
+    return BosPatternsDashboard(config)

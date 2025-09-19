@@ -24,7 +24,7 @@ import json
 from datetime import datetime
 
 # Project paths
-project_root = Path(__file__).parent
+project_root = Path(__file__).parent.parent.parent  # Ahora en DOCS/reports/, necesitamos subir 3 niveles
 core_path = project_root / "01-CORE"
 sys.path.insert(0, str(core_path))
 
@@ -352,7 +352,7 @@ import sys
 from pathlib import Path
 
 # Add project paths
-project_root = Path(__file__).parent
+project_root = Path(__file__).parent.parent.parent  # Corregir ruta desde DOCS/reports/
 sys.path.insert(0, str(project_root / "01-CORE"))
 
 '''

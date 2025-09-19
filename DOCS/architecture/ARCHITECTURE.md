@@ -332,3 +332,11 @@ print(live.get('counters', {}))
 ```
 
 Nota: El archivo `09-DASHBOARD/metrics_api.py` (FastAPI) es opcional y no requerido para este flujo; se mantiene como utilidad futura.
+
+### Wrappers de uso rápido
+
+Para instrumentación simple sin acoplarse a implementaciones internas, utiliza los wrappers:
+- `01-CORE/monitoring/metrics_collector.py` → `record_counter`, `record_gauge`, `time_operation`, `export_snapshot`
+- `01-CORE/monitoring/baseline_calculator.py` → `ensure_started`, `baseline_summary`, `compare_metric`
+
+Guía práctica con ejemplos: `DOCS/guides/TRACKING_SETUP.md`.

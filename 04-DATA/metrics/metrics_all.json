@@ -1,0 +1,18 @@
+{
+  "live": {
+    "timestamp": "2025-09-19T13:04:56.340456+00:00",
+    "counters": {},
+    "gauges": {}
+  },
+  "summary": {
+    "timestamp": "2025-09-19T13:04:56.340507+00:00",
+    "counters": {},
+    "gauges": {}
+  },
+  "cumulative": {
+    "timestamp": "2025-09-19T13:04:56.340519+00:00",
+    "counters": {},
+    "gauges": {}
+  },
+  "timestamp": "2025-09-19T13:04:56.340525+00:00"
+}

@@ -1,0 +1,33 @@
+{
+  "live": {
+    "timestamp": "2025-09-19T12:59:44.586426+00:00",
+    "counters": {
+      "signals_processed": 5,
+      "risk_rejections": 1
+    },
+    "gauges": {
+      "last_latency_ms": 9.3
+    }
+  },
+  "summary": {
+    "timestamp": "2025-09-19T12:59:44.586483+00:00",
+    "counters": {
+      "signals_processed": 5,
+      "risk_rejections": 1
+    },
+    "gauges": {
+      "last_latency_ms": 9.3
+    }
+  },
+  "cumulative": {
+    "timestamp": "2025-09-19T12:59:44.586487+00:00",
+    "counters": {
+      "signals_processed": 5,
+      "risk_rejections": 1
+    },
+    "gauges": {
+      "last_latency_ms": 9.3
+    }
+  },
+  "timestamp": "2025-09-19T12:59:44.586490+00:00"
+}

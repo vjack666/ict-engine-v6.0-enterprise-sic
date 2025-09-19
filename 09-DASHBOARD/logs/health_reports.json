@@ -1,0 +1,175 @@
+[
+  {
+    "overall_status": "critical",
+    "components": [
+      {
+        "component_name": "WebServer",
+        "status": "offline",
+        "last_check": "2025-09-18T18:43:43.846557",
+        "response_time_ms": 20580.738067626953,
+        "memory_usage_mb": 25.1171875,
+        "cpu_usage_percent": 0.0,
+        "error_count": 0,
+        "warning_count": 0,
+        "uptime_seconds": 20.582181,
+        "custom_metrics": {
+          "host": "localhost",
+          "port": 8080,
+          "endpoints_checked": 4,
+          "endpoints_healthy": 0,
+          "response_times": {
+            "/": -1,
+            "/health": -1,
+            "/api/status": -1,
+            "/metrics": -1
+          }
+        },
+        "details": "No endpoints responding"
+      },
+      {
+        "component_name": "DataProcessor",
+        "status": "warning",
+        "last_check": "2025-09-18T18:43:43.848246",
+        "response_time_ms": 0.15211105346679688,
+        "memory_usage_mb": 35.9375,
+        "cpu_usage_percent": 0.0,
+        "error_count": 0,
+        "warning_count": 0,
+        "uptime_seconds": 20.583617,
+        "custom_metrics": {
+          "data_collector_active": false,
+          "data_sources_connected": 0,
+          "last_data_update": null,
+          "data_processing_rate": 0,
+          "buffer_size": 0,
+          "memory_buffers_count": 0
+        },
+        "details": "No data collector instance available"
+      },
+      {
+        "component_name": "UIComponents",
+        "status": "warning",
+        "last_check": "2025-09-18T18:43:43.849595",
+        "response_time_ms": 0.12135505676269531,
+        "memory_usage_mb": 35.9375,
+        "cpu_usage_percent": 0.0,
+        "error_count": 0,
+        "warning_count": 0,
+        "uptime_seconds": 20.584711,
+        "custom_metrics": {
+          "dashboard_instance_available": false,
+          "ui_components_count": 0,
+          "active_tabs": 0,
+          "widget_count": 0,
+          "layout_status": "unknown",
+          "rendering_issues": 0
+        },
+        "details": "No dashboard instance available"
+      }
+    ],
+    "system_metrics": {
+      "memory": {
+        "total_mb": 16014.0703125,
+        "used_mb": 13139.8671875,
+        "available_mb": 2874.203125,
+        "percent_used": 82.1
+      },
+      "cpu": {
+        "percent_used": 10.1,
+        "count": 20
+      },
+      "disk": {
+        "total_gb": 953.0283164978027,
+        "used_gb": 373.155704498291,
+        "free_gb": 579.8726119995117,
+        "percent_used": 39.154734233875345
+      },
+      "network": {
+        "bytes_sent": 4168205431,
+        "bytes_received": 5833356724,
+        "packets_sent": 5682559,
+        "packets_received": 8922492
+      },
+      "processes": 326,
+      "boot_time": "2025-09-14T08:16:40.865293"
+    },
+    "check_timestamp": "2025-09-18T18:43:44.865407",
+    "check_duration_ms": 21600.274324417114,
+    "recommendations": [
+      "\u26a1 WebServer: Optimize response time (20580.7ms)",
+      "\u26a0\ufe0f DataProcessor: No data collector instance available",
+      "\u26a0\ufe0f UIComponents: No dashboard instance available",
+      "\ud83e\udde0 System: High memory usage detected, consider reducing dashboard components"
+    ]
+  },
+  {
+    "overall_status": "unknown",
+    "components": [],
+    "system_metrics": {
+      "memory": {
+        "total_mb": 16014.0703125,
+        "used_mb": 13399.05078125,
+        "available_mb": 2615.01953125,
+        "percent_used": 83.7
+      },
+      "cpu": {
+        "percent_used": 9.2,
+        "count": 20
+      },
+      "disk": {
+        "total_gb": 953.0283164978027,
+        "used_gb": 373.16403579711914,
+        "free_gb": 579.8642807006836,
+        "percent_used": 39.15560842603563
+      },
+      "network": {
+        "bytes_sent": 4191073243,
+        "bytes_received": 5839083137,
+        "packets_sent": 5693681,
+        "packets_received": 8941912
+      },
+      "processes": 322,
+      "boot_time": "2025-09-14T08:16:41.166309"
+    },
+    "check_timestamp": "2025-09-18T18:52:23.167055",
+    "check_duration_ms": 1020.5614566802979,
+    "recommendations": [
+      "\ud83e\udde0 System: High memory usage detected, consider reducing dashboard components"
+    ]
+  },
+  {
+    "overall_status": "unknown",
+    "components": [],
+    "system_metrics": {
+      "memory": {
+        "total_mb": 16014.0703125,
+        "used_mb": 13421.08984375,
+        "available_mb": 2592.98046875,
+        "percent_used": 83.8
+      },
+      "cpu": {
+        "percent_used": 20.1,
+        "count": 20
+      },
+      "disk": {
+        "total_gb": 953.0283164978027,
+        "used_gb": 373.17768478393555,
+        "free_gb": 579.8506317138672,
+        "percent_used": 39.15704059615903
+      },
+      "network": {
+        "bytes_sent": 4208149736,
+        "bytes_received": 5847329786,
+        "packets_sent": 5706681,
+        "packets_received": 8961098
+      },
+      "processes": 328,
+      "boot_time": "2025-09-14T08:16:41.521778"
+    },
+    "check_timestamp": "2025-09-18T19:02:37.522707",
+    "check_duration_ms": 1031.7704677581787,
+    "recommendations": [
+      "\ud83e\udde0 System: High memory usage detected, consider reducing dashboard components"
+    ]
+  }
+]

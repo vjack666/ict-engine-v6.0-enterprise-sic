@@ -8,15 +8,19 @@
 
 ## 1) Métricas en Código (rápido)
 
-- [ ] Agregar `metrics_collector.py` (skeleton)
-- [ ] Exponer función `record_metric(name, value, tags=None)`
-- [ ] Persistir en `04-DATA/metrics/metrics.ndjson`
-- [ ] Cron para baseline cada 15 min
+- [x] Agregar `metrics_collector.py` (wrapper sin duplicación)
+- [x] Exponer helpers `record_metric/record_counter/record_gauge/time_operation`
+- [ ] Persistir en `04-DATA/metrics/metrics.ndjson` (opcional; hoy export a JSON via `MetricsJSONExporter`)
+- [ ] Cron para baseline cada 15 min (usar `baseline_calculator.ensure_started` por ahora)
 
 Ejemplo de uso:
 ```python
-from monitoring.metrics_collector import record_metric
-record_metric('mt5.latency_ms', 22.5, {'symbol': 'EURUSD'})
+from monitoring.metrics_collector import record_metric, time_operation
+
+record_metric('mt5.latency_ms', 22.5)  # gauge por defecto
+
+with time_operation('data_pipeline'):
+  process_data()
 ```
 
 ---
@@ -64,6 +68,24 @@ warning:
 
 ## 6) Próximos pasos
 
-- Implementar collectors por categoría
+- Implementar collectors por categoría (reutilizando `metrics_collector`)
 - Conectar alertas con AdvancedAlertManager
 - Añadir export a CSV/Parquet para análisis externo
+
+---
+
+## Anexo: Baselines
+
+- Wrapper disponible: `monitoring/baseline_calculator.py`
+- API: `ensure_started()`, `baseline_summary()`, `compare_metric(component, metric, value)`
+
+Ejemplo:
+```python
+from monitoring.baseline_calculator import ensure_started, compare_metric
+
+ensure_started()
+res = compare_metric('ict_process', 'cpu_usage_percent', 37.5)
+if res.get('exists') and res.get('status') == 'critical':
+  # tomar acción
+  pass
+```
