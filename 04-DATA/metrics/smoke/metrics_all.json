@@ -1,33 +1,45 @@
 {
   "live": {
-    "timestamp": "2025-09-19T12:59:44.586426+00:00",
+    "timestamp": "2025-09-19T14:23:23.295858+00:00",
     "counters": {
-      "signals_processed": 5,
-      "risk_rejections": 1
+      "rtp.data_events": 474
     },
     "gauges": {
-      "last_latency_ms": 9.3
+      "rtp.loop_avg_ms": 50.467999499232974,
+      "rtp.loop_p95_ms": 50.809400039725006,
+      "rtp.callback_p95_ms": 0.02989999484270811,
+      "rtp.feed_to_cb_p95_ms": 0.0,
+      "rtp.events_per_sec": 19.77647637576294,
+      "rtp.symbols_active": 1.0
     }
   },
   "summary": {
-    "timestamp": "2025-09-19T12:59:44.586483+00:00",
+    "timestamp": "2025-09-19T14:23:23.295910+00:00",
     "counters": {
-      "signals_processed": 5,
-      "risk_rejections": 1
+      "rtp.data_events": 474
     },
     "gauges": {
-      "last_latency_ms": 9.3
+      "rtp.loop_avg_ms": 50.467999499232974,
+      "rtp.loop_p95_ms": 50.809400039725006,
+      "rtp.callback_p95_ms": 0.02989999484270811,
+      "rtp.feed_to_cb_p95_ms": 0.0,
+      "rtp.events_per_sec": 19.77647637576294,
+      "rtp.symbols_active": 1.0
     }
   },
   "cumulative": {
-    "timestamp": "2025-09-19T12:59:44.586487+00:00",
+    "timestamp": "2025-09-19T14:23:23.295920+00:00",
     "counters": {
-      "signals_processed": 5,
-      "risk_rejections": 1
+      "rtp.data_events": 474
     },
     "gauges": {
-      "last_latency_ms": 9.3
+      "rtp.loop_avg_ms": 50.467999499232974,
+      "rtp.loop_p95_ms": 50.809400039725006,
+      "rtp.callback_p95_ms": 0.02989999484270811,
+      "rtp.feed_to_cb_p95_ms": 0.0,
+      "rtp.events_per_sec": 19.77647637576294,
+      "rtp.symbols_active": 1.0
     }
   },
-  "timestamp": "2025-09-19T12:59:44.586490+00:00"
+  "timestamp": "2025-09-19T14:23:23.295926+00:00"
 }

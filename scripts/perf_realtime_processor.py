@@ -4,6 +4,7 @@ import sys
 import time
 import statistics
 from datetime import datetime
+from typing import Optional
 
 # Ensure core path
 ROOT = Path(__file__).resolve().parents[1]
@@ -13,6 +14,7 @@ if str(CORE) not in sys.path:
 
 # Import processor directly by path to avoid shims
 import importlib.util
+import importlib
 
 def load_module(name: str, path: Path):
     spec = importlib.util.spec_from_file_location(name, str(path))
@@ -26,6 +28,14 @@ def load_module(name: str, path: Path):
 rt_mod = load_module('core_realtime_proc', CORE / 'production' / 'realtime_data_processor.py')
 RealTimeDataProcessor = getattr(rt_mod, 'RealTimeDataProcessor')
 
+# Metrics wiring: import monitoring package modules so instances align
+perf_mod = importlib.import_module('monitoring.performance_metrics_aggregator')
+collector_pkg = importlib.import_module('monitoring.metrics_collector')
+exporter_pkg = importlib.import_module('monitoring.metrics_json_exporter')
+PerformanceMetricsAggregator = getattr(perf_mod, 'PerformanceMetricsAggregator')
+set_aggregator = getattr(collector_pkg, 'set_aggregator')
+MetricsJSONExporter = getattr(exporter_pkg, 'MetricsJSONExporter')
+
 
 def main(duration_sec: float = 12.0):
     cfg = {
@@ -33,10 +43,20 @@ def main(duration_sec: float = 12.0):
         'shutdown_timeout': 2.0,
         'performance_log_interval': 3600,  # silence internal perf log
         'data_validation': True,
+        # Enable internal perf metrics emission
+        'debug_perf_metrics': True,
+        'perf_emit_interval': 2.0,
     }
     symbols = ['EURUSD', 'GBPUSD']
 
     proc = RealTimeDataProcessor(symbols=symbols, config=cfg)
+
+    # Set up shared aggregator + JSON exporter to smoke dir
+    agg = PerformanceMetricsAggregator()
+    set_aggregator(agg)
+    smoke_dir = ROOT / '04-DATA' / 'metrics' / 'smoke'
+    exporter = MetricsJSONExporter(agg, smoke_dir, interval_sec=2.0)
+    exporter_started = exporter.start()
 
     # Hook to capture tick timestamps and compute inter-arrival/processing latency
     latencies_ms = []
@@ -65,6 +85,13 @@ def main(duration_sec: float = 12.0):
 
     time.sleep(duration_sec)
     proc.stop()
+
+    # Stop exporter
+    try:
+        if exporter_started:
+            exporter.stop()
+    except Exception:
+        pass
 
     # Compute stats
     count = events['count']

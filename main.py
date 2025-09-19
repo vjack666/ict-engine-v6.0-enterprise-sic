@@ -1563,8 +1563,6 @@ class ICTEnterpriseManager:
                     print("   🔄 Control devuelto al menú principal")
                     print("   🟢 Sistema listo para nueva operación")
                     print("="*60)
-                    print("\n[PRODUCCIÓN] 🚀 Menú principal se mostrará en 3 segundos...")
-                    time.sleep(3)
                 else:
                     print(f"\n[WARN] ⚠️ Dashboard finalizó con código: {result_code}")
                     print("[INFO] 🔄 Regresando automáticamente al menú principal...")

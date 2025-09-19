@@ -135,6 +135,7 @@ class RealTimeDataProcessor:
     _perf_enabled: bool
     _loop_intervals: Deque[float]
     _cb_latencies: Deque[float]
+    _feed_to_cb_latencies: Deque[float]
     _last_perf_emit: datetime
     _last_tick_count: int
     
@@ -185,6 +186,8 @@ class RealTimeDataProcessor:
         self._loop_intervals = deque(maxlen=max(50, _hist))
         self._cb_latencies = deque(maxlen=max(100, _hist * 2))
         self._last_perf_emit = datetime.now()
+        # Internal latency buffers
+        self._feed_to_cb_latencies = deque(maxlen=int(self.config.get("perf_history", 1024)))
         self._last_tick_count = 0
         
         # Components
@@ -571,6 +574,14 @@ class RealTimeDataProcessor:
                         _t0 = time.perf_counter()
                         callback(symbol, timeframe, tick_data)
                         self._cb_latencies.append((time.perf_counter() - _t0) * 1000.0)
+                        try:
+                            if tick_data and isinstance(tick_data.timestamp, datetime):
+                                feed_to_cb = (datetime.now() - tick_data.timestamp).total_seconds() * 1000.0
+                                # Avoid negatives due to clock/source jitter
+                                if feed_to_cb >= 0:
+                                    self._feed_to_cb_latencies.append(feed_to_cb)
+                        except Exception:
+                            pass
                     else:
                         callback(symbol, timeframe, tick_data)
                 except TypeError:
@@ -580,6 +591,13 @@ class RealTimeDataProcessor:
                             _t0 = time.perf_counter()
                             callback(symbol, state)
                             self._cb_latencies.append((time.perf_counter() - _t0) * 1000.0)
+                            try:
+                                if state.current_tick and isinstance(state.current_tick.timestamp, datetime):
+                                    feed_to_cb = (datetime.now() - state.current_tick.timestamp).total_seconds() * 1000.0
+                                    if feed_to_cb >= 0:
+                                        self._feed_to_cb_latencies.append(feed_to_cb)
+                            except Exception:
+                                pass
                         else:
                             callback(symbol, state)
                     except Exception as e:
@@ -638,6 +656,15 @@ class RealTimeDataProcessor:
                 if cvals:
                     p95_cb = sorted(cvals)[max(0, int(0.95 * len(cvals)) - 1)]
                     record_gauge("rtp.callback_p95_ms", float(p95_cb))
+
+            # Feed-to-callback latency metrics (tick timestamp -> callback time)
+            if getattr(self, "_feed_to_cb_latencies", None) is not None:
+                fvals = list(self._feed_to_cb_latencies)
+                if fvals:
+                    p95_feed_cb = sorted(fvals)[max(0, int(0.95 * len(fvals)) - 1)]
+                    record_gauge("rtp.feed_to_cb_p95_ms", float(p95_feed_cb))
+                else:
+                    record_gauge("rtp.feed_to_cb_p95_ms", 0.0)
 
             # Event rate
             elapsed = max(1e-6, (now - self._last_perf_emit).total_seconds())
