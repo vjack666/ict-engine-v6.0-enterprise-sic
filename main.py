@@ -2439,7 +2439,6 @@ def main():
         
         # Ejecutar menú principal
         print("Iniciando interfaz principal...")
-        print("🔇 Configurando modo silencioso para interfaz...")
         time.sleep(2)  # Dar tiempo a que se completen las inicializaciones
         
         # Ejecutar menú principal (una sola vez)
@@ -2450,7 +2449,6 @@ def main():
         manager.shutdown()
         
         print("Sistema cerrado exitosamente")
-        print("Adiós 👋")
         
     except KeyboardInterrupt:
         print("\nInterrupción por teclado detectada - cerrando sistema...")

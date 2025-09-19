@@ -103,7 +103,18 @@ class ExecutionMetricsRecorder:
                 self._cumulative = json.loads(path.read_text(encoding="utf-8"))
             except Exception:
                 self._cumulative = {"orders_total":0, "orders_ok":0, "orders_failed":0, "sessions":0, "last_update":None}
-        self._cumulative["sessions"] = self._cumulative.get("sessions",0) + 1
+        # Normalizar estructura para compatibilidad
+        if not isinstance(self._cumulative, dict):
+            self._cumulative = {}
+        if 'orders_total' not in self._cumulative or not isinstance(self._cumulative.get('orders_total'), (int, float)):
+            self._cumulative['orders_total'] = 0
+        if 'orders_ok' not in self._cumulative or not isinstance(self._cumulative.get('orders_ok'), (int, float)):
+            self._cumulative['orders_ok'] = 0
+        if 'orders_failed' not in self._cumulative or not isinstance(self._cumulative.get('orders_failed'), (int, float)):
+            self._cumulative['orders_failed'] = 0
+        if 'sessions' not in self._cumulative or not isinstance(self._cumulative.get('sessions'), (int, float)):
+            self._cumulative['sessions'] = 0
+        self._cumulative["sessions"] = int(self._cumulative.get("sessions",0)) + 1
 
     # ------------- Percentiles -------------
     def _percentile(self, sorted_list: List[float], p: float) -> float:
@@ -153,9 +164,16 @@ class ExecutionMetricsRecorder:
         self._atomic_write(self.config.summary_filename, summary)
 
     def persist_cumulative(self) -> None:
-        self._cumulative["orders_total"] += self._orders_total
-        self._cumulative["orders_ok"] += self._orders_ok
-        self._cumulative["orders_failed"] += self._orders_failed
+        # Garantizar claves mínimas
+        if 'orders_total' not in self._cumulative or not isinstance(self._cumulative.get('orders_total'), (int, float)):
+            self._cumulative['orders_total'] = 0
+        if 'orders_ok' not in self._cumulative or not isinstance(self._cumulative.get('orders_ok'), (int, float)):
+            self._cumulative['orders_ok'] = 0
+        if 'orders_failed' not in self._cumulative or not isinstance(self._cumulative.get('orders_failed'), (int, float)):
+            self._cumulative['orders_failed'] = 0
+        self._cumulative["orders_total"] = int(self._cumulative.get("orders_total", 0)) + int(self._orders_total)
+        self._cumulative["orders_ok"] = int(self._cumulative.get("orders_ok", 0)) + int(self._orders_ok)
+        self._cumulative["orders_failed"] = int(self._cumulative.get("orders_failed", 0)) + int(self._orders_failed)
         self._cumulative["last_update"] = datetime.now(timezone.utc).isoformat()
         self._atomic_write(self.config.cumulative_filename, self._cumulative)
         self.force_persist()

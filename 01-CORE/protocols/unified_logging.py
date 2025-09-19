@@ -29,6 +29,8 @@ from __future__ import annotations
 
 import logging
 import sys
+import time
+import os
 from typing import Protocol, Any, Optional, Dict, Union
 from pathlib import Path
 
@@ -70,6 +72,18 @@ class SmartTradingLoggerAdapter:
         self.component_name = component_name
         self.smart_logger = smart_logger_instance
         self._methods_cache: Dict[str, bool] = {}
+        # de-dup state
+        self._last_sig: Optional[tuple[str, str, str]] = None
+        self._last_ts: float = 0.0
+
+    def _should_emit(self, method_name: str, message: str, component: str) -> bool:
+        sig = (method_name, component or self.component_name, message.strip())
+        now = time.monotonic()
+        if self._last_sig == sig and (now - self._last_ts) < 1.0:
+            return False
+        self._last_sig = sig
+        self._last_ts = now
+        return True
     
     def _has_method(self, method_name: str) -> bool:
         """Cached method existence check"""
@@ -80,6 +94,11 @@ class SmartTradingLoggerAdapter:
     def _safe_call(self, method_name: str, message: str, component: str = "", **kwargs: Any) -> None:
         """Llamada segura a método de SmartTradingLogger"""
         try:
+            # Filtro global anti-duplicados para mensajes de apagado
+            if not _global_should_emit(method_name, component or self.component_name, message):
+                return
+            if not self._should_emit(method_name, message, component):
+                return
             if self._has_method(method_name):
                 method = getattr(self.smart_logger, method_name)
                 method(message, component or self.component_name, **kwargs)
@@ -120,6 +139,9 @@ class StandardLoggerAdapter:
                 logger.addHandler(handler)
                 logger.setLevel(logging.INFO)
         self.logger = logger
+        # de-dup state
+        self._last_sig: Optional[tuple[str, str, str]] = None
+        self._last_ts: float = 0.0
     
     def _format_message(self, message: str, component: str = "") -> str:
         """Formatear mensaje con componente"""
@@ -128,19 +150,64 @@ class StandardLoggerAdapter:
         return message
     
     def info(self, message: str, component: str = "", **kwargs: Any) -> None:
-        self.logger.info(self._format_message(message, component))
+        formatted = self._format_message(message, component)
+        if not _global_should_emit("info", component or self.component_name, formatted):
+            return
+        sig = ("info", component or self.component_name, formatted)
+        now = time.monotonic()
+        if self._last_sig == sig and (now - self._last_ts) < 1.0:
+            return
+        self._last_sig = sig
+        self._last_ts = now
+        self.logger.info(formatted)
     
     def warning(self, message: str, component: str = "", **kwargs: Any) -> None:
-        self.logger.warning(self._format_message(message, component))
+        formatted = self._format_message(message, component)
+        if not _global_should_emit("warning", component or self.component_name, formatted):
+            return
+        sig = ("warning", component or self.component_name, formatted)
+        now = time.monotonic()
+        if self._last_sig == sig and (now - self._last_ts) < 1.0:
+            return
+        self._last_sig = sig
+        self._last_ts = now
+        self.logger.warning(formatted)
     
     def error(self, message: str, component: str = "", **kwargs: Any) -> None:
-        self.logger.error(self._format_message(message, component))
+        formatted = self._format_message(message, component)
+        if not _global_should_emit("error", component or self.component_name, formatted):
+            return
+        sig = ("error", component or self.component_name, formatted)
+        now = time.monotonic()
+        if self._last_sig == sig and (now - self._last_ts) < 1.0:
+            return
+        self._last_sig = sig
+        self._last_ts = now
+        self.logger.error(formatted)
     
     def debug(self, message: str, component: str = "", **kwargs: Any) -> None:
-        self.logger.debug(self._format_message(message, component))
+        formatted = self._format_message(message, component)
+        if not _global_should_emit("debug", component or self.component_name, formatted):
+            return
+        sig = ("debug", component or self.component_name, formatted)
+        now = time.monotonic()
+        if self._last_sig == sig and (now - self._last_ts) < 1.0:
+            return
+        self._last_sig = sig
+        self._last_ts = now
+        self.logger.debug(formatted)
     
     def critical(self, message: str, component: str = "", **kwargs: Any) -> None:
-        self.logger.critical(self._format_message(message, component))
+        formatted = self._format_message(message, component)
+        if not _global_should_emit("critical", component or self.component_name, formatted):
+            return
+        sig = ("critical", component or self.component_name, formatted)
+        now = time.monotonic()
+        if self._last_sig == sig and (now - self._last_ts) < 1.0:
+            return
+        self._last_sig = sig
+        self._last_ts = now
+        self.logger.critical(formatted)
 
 
 class MinimalLoggerAdapter:
@@ -148,22 +215,97 @@ class MinimalLoggerAdapter:
     
     def __init__(self, component_name: str):
         self.component_name = component_name
+        self._last_sig: Optional[tuple[str, str, str]] = None
+        self._last_ts: float = 0.0
+
+    def _should_emit(self, level: str, message: str, component: str) -> bool:
+        sig = (level, component or self.component_name, message.strip())
+        now = time.monotonic()
+        if self._last_sig == sig and (now - self._last_ts) < 1.0:
+            return False
+        self._last_sig = sig
+        self._last_ts = now
+        return True
     
     def info(self, message: str, component: str = "", **kwargs: Any) -> None:
+        if not _global_should_emit("info", component or self.component_name, message):
+            return
+        if not self._should_emit("info", message, component):
+            return
         print(f"[INFO][{self.component_name}][{component}] {message}")
     
     def warning(self, message: str, component: str = "", **kwargs: Any) -> None:
+        if not _global_should_emit("warning", component or self.component_name, message):
+            return
+        if not self._should_emit("warning", message, component):
+            return
         print(f"[WARNING][{self.component_name}][{component}] {message}")
     
     def error(self, message: str, component: str = "", **kwargs: Any) -> None:
+        if not _global_should_emit("error", component or self.component_name, message):
+            return
+        if not self._should_emit("error", message, component):
+            return
         print(f"[ERROR][{self.component_name}][{component}] {message}")
     
     def debug(self, message: str, component: str = "", **kwargs: Any) -> None:
         # Debug messages are typically suppressed in minimal mode
-        pass
+        if not _global_should_emit("debug", component or self.component_name, message):
+            return
+        if not self._should_emit("debug", message, component):
+            return
+        # usually suppressed; keep noop
     
     def critical(self, message: str, component: str = "", **kwargs: Any) -> None:
+        if not _global_should_emit("critical", component or self.component_name, message):
+            return
+        if not self._should_emit("critical", message, component):
+            return
         print(f"[CRITICAL][{self.component_name}][{component}] {message}")
+
+# =============================================================================
+# Global de-dup solo para mensajes de apagado/parada
+# =============================================================================
+
+_DEDUP_WINDOW_SEC = float(os.getenv('ICT_LOG_DEDUP_WINDOW_SEC', '1.0'))
+# clave: (nivel, componente, mensaje_normalizado)
+_DEDUP_CACHE: Dict[tuple[str, str, str], float] = {}
+_DEDUP_KEYWORDS = (
+    'shutdown',
+    'stopped',
+    'shutting down',
+    'shutdown completado',
+    'system monitoring stopped',
+    'desconectado de mt5',
+    'forzando cierre inmediato',
+    'real-time data processing stopped',
+    'alert integration system stopped',
+    'production system shutdown complete',
+    'shutdown successfully'
+)
+
+def _global_should_emit(level: str, component: str, message: str) -> bool:
+    try:
+        msg = (message or '').strip()
+        low = msg.lower()
+        # Solo activar de-dup para mensajes de cierre/parada
+        if not any(k in low for k in _DEDUP_KEYWORDS):
+            return True
+        key = (level, (component or '').strip(), low)
+        now = time.monotonic()
+        last = _DEDUP_CACHE.get(key)
+        if last is not None and (now - last) < _DEDUP_WINDOW_SEC:
+            return False
+        _DEDUP_CACHE[key] = now
+        # poda simple para evitar crecimiento
+        if len(_DEDUP_CACHE) > 512:
+            cutoff = now - max(_DEDUP_WINDOW_SEC, 1.0)
+            for k in list(_DEDUP_CACHE.keys())[:256]:
+                if _DEDUP_CACHE.get(k, 0.0) < cutoff:
+                    _DEDUP_CACHE.pop(k, None)
+        return True
+    except Exception:
+        return True
 
 
 # =============================================================================

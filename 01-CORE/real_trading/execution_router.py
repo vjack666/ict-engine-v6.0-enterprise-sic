@@ -689,7 +689,19 @@ class ExecutionRouter:
                 'sessions': 0,
                 'last_update': None
             }
-        self._cumulative['sessions'] = self._cumulative.get('sessions', 0) + 1
+        # Normalizar estructura para compatibilidad hacia atrás
+        if not isinstance(self._cumulative, dict):
+            self._cumulative = {}
+        if 'orders_total' not in self._cumulative or not isinstance(self._cumulative.get('orders_total'), (int, float)):
+            self._cumulative['orders_total'] = 0
+        if 'orders_ok' not in self._cumulative or not isinstance(self._cumulative.get('orders_ok'), (int, float)):
+            self._cumulative['orders_ok'] = 0
+        if 'orders_failed' not in self._cumulative or not isinstance(self._cumulative.get('orders_failed'), (int, float)):
+            self._cumulative['orders_failed'] = 0
+        if 'sessions' not in self._cumulative or not isinstance(self._cumulative.get('sessions'), (int, float)):
+            self._cumulative['sessions'] = 0
+        # last_update puede ser str|None, no forzar tipo
+        self._cumulative['sessions'] = int(self._cumulative.get('sessions', 0)) + 1
 
     def _persist_live(self, avg_latency: float):
         lf = self._live_file()
@@ -803,9 +815,16 @@ class ExecutionRouter:
         path = self._cumulative_file()
         if not path:
             return
-        self._cumulative['orders_total'] += self._metrics['orders_total']
-        self._cumulative['orders_ok'] += self._metrics['orders_ok']
-        self._cumulative['orders_failed'] += self._metrics['orders_failed']
+        # Asegurar claves mínimas antes de sumar
+        if 'orders_total' not in self._cumulative or not isinstance(self._cumulative.get('orders_total'), (int, float)):
+            self._cumulative['orders_total'] = 0
+        if 'orders_ok' not in self._cumulative or not isinstance(self._cumulative.get('orders_ok'), (int, float)):
+            self._cumulative['orders_ok'] = 0
+        if 'orders_failed' not in self._cumulative or not isinstance(self._cumulative.get('orders_failed'), (int, float)):
+            self._cumulative['orders_failed'] = 0
+        self._cumulative['orders_total'] = int(self._cumulative.get('orders_total', 0)) + int(self._metrics.get('orders_total', 0))
+        self._cumulative['orders_ok'] = int(self._cumulative.get('orders_ok', 0)) + int(self._metrics.get('orders_ok', 0))
+        self._cumulative['orders_failed'] = int(self._cumulative.get('orders_failed', 0)) + int(self._metrics.get('orders_failed', 0))
         self._cumulative['last_update'] = datetime.now(timezone.utc).isoformat()
         try:
             with open(path, 'w', encoding='utf-8') as f:
