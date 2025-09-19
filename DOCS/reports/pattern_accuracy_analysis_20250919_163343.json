@@ -1,0 +1,87 @@
+{
+  "analysis_date": "2025-09-19T16:33:43.795739",
+  "systems_analyzed": [
+    "Order Blocks",
+    "CHoCH"
+  ],
+  "current_performance": {
+    "order_blocks": {
+      "detection_success_rate": 100.0,
+      "high_confidence_ratio": 0.0,
+      "avg_confidence_score": 0.0,
+      "false_positive_rate": 0.0,
+      "performance_grade": "Fair"
+    },
+    "choch": {
+      "overall_accuracy": 0.0,
+      "direction_balance": 0.0,
+      "alignment_quality": 0.0,
+      "multi_tf_consistency": 0.0,
+      "performance_grade": "Unknown"
+    }
+  },
+  "priority_optimizations": {
+    "order_blocks": [
+      "Increase minimum confidence threshold",
+      "Implement dynamic confidence adjustment",
+      "Add volume validation for Order Blocks"
+    ],
+    "choch": [
+      "Improve multi-timeframe alignment logic",
+      "Adjust swing size parameters",
+      "Enhance trend detection algorithm"
+    ],
+    "combined_priority": [
+      "Increase minimum confidence threshold",
+      "Implement dynamic confidence adjustment",
+      "Add volume validation for Order Blocks",
+      "Improve multi-timeframe alignment logic",
+      "Adjust swing size parameters",
+      "Enhance trend detection algorithm"
+    ]
+  },
+  "implementation_phases": {
+    "phase_1_immediate": {
+      "description": "Ajustes de parámetros simples",
+      "tasks": [
+        "Adjust Order Blocks min_confidence to 72%",
+        "Increase CHoCH base_confidence to 75%",
+        "Update lookback periods"
+      ],
+      "expected_duration": "1-2 hours",
+      "expected_improvement": "5-8%"
+    },
+    "phase_2_advanced": {
+      "description": "Optimizaciones algorítmicas",
+      "tasks": [
+        "Implement dynamic confidence adjustment",
+        "Enhance multi-timeframe alignment",
+        "Add volume validation"
+      ],
+      "expected_duration": "4-6 hours",
+      "expected_improvement": "10-15%"
+    },
+    "phase_3_validation": {
+      "description": "Testing y validación",
+      "tasks": [
+        "Backtest with historical data",
+        "A/B test against current system",
+        "Performance monitoring setup"
+      ],
+      "expected_duration": "2-3 hours",
+      "expected_improvement": "Validation of improvements"
+    }
+  },
+  "success_metrics": {
+    "order_blocks": {
+      "target_accuracy": "85%+",
+      "target_confidence": "75%+",
+      "false_positive_reduction": "15%+"
+    },
+    "choch": {
+      "target_overall_accuracy": "85%+",
+      "target_alignment_quality": "80%+",
+      "multi_tf_consistency": "75%+"
+    }
+  }
+}

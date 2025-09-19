@@ -299,6 +299,35 @@ class MarketContextV6:
                 self.choch_events.append(choch_event)
                 if len(self.choch_events) > self.max_choch_events:
                     self.choch_events = self.choch_events[-self.max_choch_events:]
+
+            # NUEVO: Integrar CHoCH desde datos genéricos de patrón (pattern_type == 'CHoCH')
+            if str(analysis_results.get('pattern_type', '')).upper() == 'CHOCH':
+                # Normalizar estructura mínima requerida por consumidores
+                # Normalizar confianza a escala 0-100 si viene en 0-1
+                raw_conf = analysis_results.get('confidence', 0.0)
+                try:
+                    conf_val = float(raw_conf or 0.0)
+                except Exception:
+                    conf_val = 0.0
+                confidence_pct = conf_val * 100.0 if conf_val <= 1.0 else conf_val
+
+                choch_data = {
+                    'direction': analysis_results.get('direction', analysis_results.get('metadata', {}).get('direction', 'NEUTRAL') if isinstance(analysis_results.get('metadata'), dict) else 'NEUTRAL'),
+                    'confidence': confidence_pct,
+                    'timeframe': analysis_results.get('timeframe', 'UNKNOWN'),
+                    'break_level': analysis_results.get('break_level', analysis_results.get('entry_price', self.current_price)),
+                    'target_level': analysis_results.get('target_level', analysis_results.get('entry_price', self.current_price)),
+                    'symbol': analysis_results.get('symbol', None),
+                    'metadata': analysis_results.get('metadata', {})
+                }
+                choch_event = {
+                    'timestamp': self.last_updated,
+                    'data': choch_data,
+                    'price': self.current_price
+                }
+                self.choch_events.append(choch_event)
+                if len(self.choch_events) > self.max_choch_events:
+                    self.choch_events = self.choch_events[-self.max_choch_events:]
             
             # Actualizar swing points - TRADING CRITICAL VALIDATION
             if 'swing_points' in analysis_results:
@@ -423,6 +452,123 @@ class MarketContextV6:
             'recent_lows': lows_list[-periods:] if lows_list else [],
             'last_high': self.swing_points.get('last_high', 0.0),
             'last_low': self.swing_points.get('last_low', 0.0)
+        }
+    
+    def get_last_choch_for_trading(self, symbol: Optional[str] = None, timeframe: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """
+        🎯 TRADING CRITICAL: Obtiene el último CHoCH válido para trading
+        
+        Returns:
+            Dict con información del último CHoCH o None si no hay
+            
+        Structure:
+            {
+                'timestamp': datetime,
+                'direction': 'BULLISH'|'BEARISH',
+                'price': float,
+                'confidence': float,
+                'timeframe': str,
+                'break_level': float,
+                'target_level': float,
+                'age_minutes': int,
+                'is_valid_for_trading': bool,
+                'strength': 'STRONG'|'MODERATE'|'WEAK'
+            }
+        """
+        if not self.choch_events:
+            return None
+
+        # Seleccionar el evento más reciente, con filtrado opcional por símbolo/TF si se especifica
+        last_choch = None
+        if symbol or timeframe:
+            for ev in reversed(self.choch_events):
+                data = ev.get('data', {}) if isinstance(ev, dict) else {}
+                if symbol and data.get('symbol') != symbol:
+                    continue
+                if timeframe and data.get('timeframe') != timeframe:
+                    continue
+                last_choch = ev
+                break
+            if last_choch is None:
+                return None
+        else:
+            last_choch = self.choch_events[-1]
+        
+        try:
+            # Extraer datos del CHoCH
+            choch_data = last_choch.get('data', {})
+            timestamp = last_choch.get('timestamp')
+            price = last_choch.get('price', 0.0)
+            
+            # Calcular edad en minutos
+            age_minutes = 0
+            if timestamp and self.last_updated:
+                age_delta = self.last_updated - timestamp
+                age_minutes = age_delta.total_seconds() / 60
+            
+            # Determinar si es válido para trading (max 4 horas)
+            is_valid = age_minutes <= 240  # 4 horas
+            
+            # Extraer información específica del CHoCH
+            direction = choch_data.get('direction', 'NEUTRAL')
+            confidence = choch_data.get('confidence', 0.0)
+            timeframe = choch_data.get('timeframe', 'UNKNOWN')
+            break_level = choch_data.get('break_level', price)
+            target_level = choch_data.get('target_level', price)
+            
+            # Determinar fuerza basada en confianza y edad
+            if confidence >= 85 and age_minutes <= 60:
+                strength = 'STRONG'
+            elif confidence >= 75 and age_minutes <= 120:
+                strength = 'MODERATE'
+            else:
+                strength = 'WEAK'
+            
+            return {
+                'timestamp': timestamp,
+                'direction': direction,
+                'price': price,
+                'confidence': confidence,
+                'timeframe': timeframe,
+                'break_level': break_level,
+                'target_level': target_level,
+                'age_minutes': int(age_minutes),
+                'is_valid_for_trading': is_valid,
+                'strength': strength
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error processing last CHoCH: {e}", component="market_memory")
+            return None
+    
+    def get_valid_choch_levels_for_trading(self, symbol: Optional[str] = None, timeframe: Optional[str] = None) -> Dict[str, Any]:
+        """
+        🎯 TRADING CRITICAL: Obtiene niveles CHoCH válidos para trading
+        
+        Returns:
+            Dict con niveles clave del último CHoCH válido
+        """
+        last_choch = self.get_last_choch_for_trading(symbol=symbol, timeframe=timeframe)
+        
+        if not last_choch or not last_choch['is_valid_for_trading']:
+            return {
+                'has_valid_choch': False,
+                'break_level': 0.0,
+                'target_level': 0.0,
+                'direction': 'NEUTRAL',
+                'confidence': 0.0
+            }
+        
+        return {
+            'has_valid_choch': True,
+            'break_level': last_choch['break_level'],
+            'target_level': last_choch['target_level'],
+            'direction': last_choch['direction'],
+            'confidence': last_choch['confidence'],
+            'timeframe': last_choch['timeframe'],
+            'age_minutes': last_choch['age_minutes'],
+            'strength': last_choch['strength'],
+            'trading_bias': 'BUY' if last_choch['direction'] == 'BULLISH' else 'SELL' if last_choch['direction'] == 'BEARISH' else 'NEUTRAL'
         }
     
     def _get_timeframe_correlation(self) -> Dict[str, str]:
@@ -585,7 +731,37 @@ class MarketContextV6:
             
             with open(memory_file, 'r', encoding='utf-8') as f:
                 memory_state = json.load(f)
+
+            # Helper: parse ISO timestamps back to datetime
+            def _to_datetime(value):
+                from datetime import datetime, timezone
+                if isinstance(value, datetime):
+                    return value
+                if isinstance(value, str):
+                    try:
+                        # Support possible 'Z' suffix
+                        iso = value.replace('Z', '+00:00')
+                        dt = datetime.fromisoformat(iso)
+                        return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
+                    except Exception:
+                        return self.last_updated
+                return self.last_updated
+
+            def _normalize_event_timestamps(events):
+                if not isinstance(events, list):
+                    return events
+                for ev in events:
+                    try:
+                        if isinstance(ev, dict) and 'timestamp' in ev:
+                            ev['timestamp'] = _to_datetime(ev['timestamp'])
+                    except Exception:
+                        pass
+                return events
             
+            # Restaurar timestamp global del estado si existe
+            if 'timestamp' in memory_state:
+                self.last_updated = _to_datetime(memory_state.get('timestamp'))
+
             # Restaurar contexto de mercado
             if 'market_context' in memory_state:
                 mc = memory_state['market_context']
@@ -598,12 +774,12 @@ class MarketContextV6:
             # Restaurar memoria de patrones - TRADING SAFE
             if 'pattern_memory' in memory_state:
                 pm = memory_state['pattern_memory']
-                self.previous_pois = pm.get('previous_pois', [])
-                self.bos_events = pm.get('bos_events', [])
-                self.choch_events = pm.get('choch_events', [])
-                self.order_blocks = pm.get('order_blocks', [])
-                self.fvg_events = pm.get('fvg_events', [])
-                self.displacement_events = pm.get('displacement_events', [])
+                self.previous_pois = _normalize_event_timestamps(pm.get('previous_pois', []))
+                self.bos_events = _normalize_event_timestamps(pm.get('bos_events', []))
+                self.choch_events = _normalize_event_timestamps(pm.get('choch_events', []))
+                self.order_blocks = _normalize_event_timestamps(pm.get('order_blocks', []))
+                self.fvg_events = _normalize_event_timestamps(pm.get('fvg_events', []))
+                self.displacement_events = _normalize_event_timestamps(pm.get('displacement_events', []))
             
             # Restaurar contexto Smart Money
             if 'smart_money_context' in memory_state:

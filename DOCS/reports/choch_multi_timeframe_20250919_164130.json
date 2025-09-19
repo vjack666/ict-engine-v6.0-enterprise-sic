@@ -1,0 +1,200 @@
+{
+  "analysis_time": "2025-09-19T16:41:14.269294",
+  "symbols_analyzed": [
+    "EURUSD",
+    "GBPUSD",
+    "USDJPY"
+  ],
+  "individual_analysis": {
+    "EURUSD": {
+      "symbol": "EURUSD",
+      "analysis_time": "2025-09-19T16:41:20.245555",
+      "detection_method": "REAL_DETECTOR",
+      "timeframes_analysis": {
+        "H4": {
+          "timeframe": "H4",
+          "choch_detected": false,
+          "direction": "NEUTRAL",
+          "confidence": 0.0,
+          "structure_type": "UNKNOWN",
+          "break_level": 0.0,
+          "target_level": 0.0,
+          "trend_change": "No change",
+          "swing_data": {},
+          "analysis_status": "REAL_DATA"
+        },
+        "M15": {
+          "timeframe": "M15",
+          "choch_detected": false,
+          "direction": "NEUTRAL",
+          "confidence": 0.0,
+          "structure_type": "UNKNOWN",
+          "break_level": 0.0,
+          "target_level": 0.0,
+          "trend_change": "No change",
+          "swing_data": {},
+          "analysis_status": "REAL_DATA"
+        },
+        "M5": {
+          "timeframe": "M5",
+          "choch_detected": false,
+          "direction": "NEUTRAL",
+          "confidence": 0.0,
+          "structure_type": "UNKNOWN",
+          "break_level": 0.0,
+          "target_level": 0.0,
+          "trend_change": "No change",
+          "swing_data": {},
+          "analysis_status": "REAL_DATA"
+        }
+      },
+      "multi_tf_summary": {
+        "overall_detected": false,
+        "primary_direction": "NEUTRAL",
+        "overall_confidence": 0.0,
+        "timeframes_with_choch": 0,
+        "alignment_analysis": {},
+        "trend_change_confirmed": false
+      },
+      "market_structure": {
+        "dominant_trend": "NEUTRAL",
+        "structure_strength": "WEAK",
+        "key_levels": {
+          "resistance": 0.0,
+          "support": 0.0,
+          "pivot": 0.0
+        },
+        "trading_bias": "NEUTRAL"
+      }
+    },
+    "GBPUSD": {
+      "symbol": "GBPUSD",
+      "analysis_time": "2025-09-19T16:41:25.413986",
+      "detection_method": "REAL_DETECTOR",
+      "timeframes_analysis": {
+        "H4": {
+          "timeframe": "H4",
+          "choch_detected": false,
+          "direction": "NEUTRAL",
+          "confidence": 0.0,
+          "structure_type": "UNKNOWN",
+          "break_level": 0.0,
+          "target_level": 0.0,
+          "trend_change": "No change",
+          "swing_data": {},
+          "analysis_status": "REAL_DATA"
+        },
+        "M15": {
+          "timeframe": "M15",
+          "choch_detected": false,
+          "direction": "NEUTRAL",
+          "confidence": 0.0,
+          "structure_type": "UNKNOWN",
+          "break_level": 0.0,
+          "target_level": 0.0,
+          "trend_change": "No change",
+          "swing_data": {},
+          "analysis_status": "REAL_DATA"
+        },
+        "M5": {
+          "timeframe": "M5",
+          "choch_detected": false,
+          "direction": "NEUTRAL",
+          "confidence": 0.0,
+          "structure_type": "UNKNOWN",
+          "break_level": 0.0,
+          "target_level": 0.0,
+          "trend_change": "No change",
+          "swing_data": {},
+          "analysis_status": "REAL_DATA"
+        }
+      },
+      "multi_tf_summary": {
+        "overall_detected": false,
+        "primary_direction": "NEUTRAL",
+        "overall_confidence": 0.0,
+        "timeframes_with_choch": 0,
+        "alignment_analysis": {},
+        "trend_change_confirmed": false
+      },
+      "market_structure": {
+        "dominant_trend": "NEUTRAL",
+        "structure_strength": "WEAK",
+        "key_levels": {
+          "resistance": 0.0,
+          "support": 0.0,
+          "pivot": 0.0
+        },
+        "trading_bias": "NEUTRAL"
+      }
+    },
+    "USDJPY": {
+      "symbol": "USDJPY",
+      "analysis_time": "2025-09-19T16:41:30.385898",
+      "detection_method": "REAL_DETECTOR",
+      "timeframes_analysis": {
+        "H4": {
+          "timeframe": "H4",
+          "choch_detected": false,
+          "direction": "NEUTRAL",
+          "confidence": 0.0,
+          "structure_type": "UNKNOWN",
+          "break_level": 0.0,
+          "target_level": 0.0,
+          "trend_change": "No change",
+          "swing_data": {},
+          "analysis_status": "REAL_DATA"
+        },
+        "M15": {
+          "timeframe": "M15",
+          "choch_detected": false,
+          "direction": "NEUTRAL",
+          "confidence": 0.0,
+          "structure_type": "UNKNOWN",
+          "break_level": 0.0,
+          "target_level": 0.0,
+          "trend_change": "No change",
+          "swing_data": {},
+          "analysis_status": "REAL_DATA"
+        },
+        "M5": {
+          "timeframe": "M5",
+          "choch_detected": false,
+          "direction": "NEUTRAL",
+          "confidence": 0.0,
+          "structure_type": "UNKNOWN",
+          "break_level": 0.0,
+          "target_level": 0.0,
+          "trend_change": "No change",
+          "swing_data": {},
+          "analysis_status": "REAL_DATA"
+        }
+      },
+      "multi_tf_summary": {
+        "overall_detected": false,
+        "primary_direction": "NEUTRAL",
+        "overall_confidence": 0.0,
+        "timeframes_with_choch": 0,
+        "alignment_analysis": {},
+        "trend_change_confirmed": false
+      },
+      "market_structure": {
+        "dominant_trend": "NEUTRAL",
+        "structure_strength": "WEAK",
+        "key_levels": {
+          "resistance": 0.0,
+          "support": 0.0,
+          "pivot": 0.0
+        },
+        "trading_bias": "NEUTRAL"
+      }
+    }
+  },
+  "market_overview": {
+    "total_symbols": 3,
+    "symbols_with_choch": 0,
+    "dominant_market_direction": "NEUTRAL",
+    "market_strength": "WEAK",
+    "trading_opportunities": []
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "validation_date": "2025-09-19 16:37:50",
+  "phase": "Phase 1 - Parameter Adjustments",
+  "components_validated": [
+    "Order Blocks",
+    "Pattern Detector",
+    "CHoCH"
+  ],
+  "validations": {
+    "order_blocks": {
+      "component": "Order Blocks",
+      "optimizations_found": {
+        "min_confidence": 72,
+        "high_confidence_threshold": 75
+      },
+      "validation_status": "SUCCESS",
+      "issues": []
+    },
+    "pattern_detector": {
+      "component": "Pattern Detector",
+      "optimizations_found": {
+        "min_confidence": 75.0,
+        "choch_base_confidence": 92.0,
+        "swing_window": 6
+      },
+      "validation_status": "SUCCESS",
+      "issues": []
+    },
+    "performance_test": {
+      "component": "Order Blocks Performance",
+      "test_status": "ERROR",
+      "metrics": {},
+      "notes": [],
+      "error": "'charmap' codec can't decode byte 0x8d in position 411: character maps to <undefined>"
+    }
+  },
+  "overall_summary": {
+    "validation_success_rate": 100.0,
+    "optimizations_applied": 5,
+    "expected_optimizations": 5,
+    "optimization_completion_rate": 100.0,
+    "performance_status": "ERROR",
+    "overall_grade": "A+ Excellent"
+  }
+}

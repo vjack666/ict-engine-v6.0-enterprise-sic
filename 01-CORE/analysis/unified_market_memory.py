@@ -30,7 +30,7 @@ from pathlib import Path
 # === IMPORTS MEMORY COMPONENTS v6.0 ===
 from analysis.market_context_v6 import MarketContextV6
 from analysis.ict_historical_analyzer_v6 import ICTHistoricalAnalyzerV6
-from smart_trading_logger import SmartTradingLogger, TradingDecisionCacheV6
+from smart_trading_logger import TradingDecisionCacheV6
 
 class UnifiedMarketMemory:
     """
@@ -52,7 +52,7 @@ class UnifiedMarketMemory:
         # === CONFIGURACIÓN ENTERPRISE ===
         self.memory_config_path = memory_config_path
         self.cache_config_path = cache_config_path
-        self.logger = SmartTradingLogger(name="UnifiedMemorySystem")
+        self.logger = get_unified_logger("UnifiedMemorySystem")
         
         self.logger.info(
             "🧠 Inicializando Unified Market Memory v6.0 Enterprise",
@@ -499,6 +499,63 @@ def get_trading_insights(symbol: str, timeframes: List[str]) -> Dict[str, Any]:
 def persist_memory() -> bool:
     """💾 Persistir memoria completa"""
     return get_unified_market_memory().persist_unified_memory_state()
+
+def get_last_choch_for_trading(symbol: str = "EURUSD", timeframe: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """
+    🎯 TRADING CRITICAL: Obtener último CHoCH válido para trading
+    
+    Args:
+        symbol: Símbolo a consultar
+        
+    Returns:
+        Dict con información del último CHoCH válido o None
+    """
+    try:
+        memory = get_unified_market_memory()
+        
+        # Acceder al MarketContext para obtener el último CHoCH
+        if hasattr(memory, 'market_context') and memory.market_context:
+            return memory.market_context.get_last_choch_for_trading(symbol=symbol, timeframe=timeframe)
+        
+        return None
+    except Exception as e:
+        memory = get_unified_market_memory()
+        memory.logger.error(f"Error obteniendo último CHoCH: {e}", component="unified_memory")
+        return None
+
+def get_choch_trading_levels(symbol: str = "EURUSD", timeframe: Optional[str] = None) -> Dict[str, Any]:
+    """
+    🎯 TRADING CRITICAL: Obtener niveles de trading del último CHoCH
+    
+    Args:
+        symbol: Símbolo a consultar
+        
+    Returns:
+        Dict con niveles clave para trading basados en CHoCH
+    """
+    try:
+        memory = get_unified_market_memory()
+        
+        if hasattr(memory, 'market_context') and memory.market_context:
+            return memory.market_context.get_valid_choch_levels_for_trading(symbol=symbol, timeframe=timeframe)
+        
+        return {
+            'has_valid_choch': False,
+            'break_level': 0.0,
+            'target_level': 0.0,
+            'direction': 'NEUTRAL',
+            'confidence': 0.0
+        }
+    except Exception as e:
+        memory = get_unified_market_memory()
+        memory.logger.error(f"Error obteniendo niveles CHoCH: {e}", component="unified_memory")
+        return {
+            'has_valid_choch': False,
+            'break_level': 0.0,
+            'target_level': 0.0,
+            'direction': 'NEUTRAL',
+            'confidence': 0.0
+        }
 
 def restore_memory() -> bool:
     """📚 Restaurar memoria completa"""

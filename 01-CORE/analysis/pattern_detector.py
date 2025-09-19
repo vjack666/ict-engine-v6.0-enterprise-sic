@@ -431,7 +431,7 @@ class PatternDetector:
             # General
             'enable_debug': True,
             'enable_cache': True,
-            'min_confidence': 70.0,
+            'min_confidence': 75.0,  # 🚀 OPTIMIZED: Increased from 70.0% to 75.0% (Phase 1)
             'max_patterns_per_analysis': 5,
             
             # Patrones específicos
@@ -1143,7 +1143,7 @@ class PatternDetector:
                 return {"detected": False, "reason": "Insufficient data"}
             
             # 1. 🔍 DETECTAR SWING POINTS PARA CHoCH
-            swing_data = self._detect_swing_points_for_bos(candles, window=5)
+            swing_data = self._detect_swing_points_for_bos(candles, window=6)  # 🚀 OPTIMIZED: Increased from window=5 to window=6 (Phase 1)
             swing_highs = swing_data.get('highs', [])
             swing_lows = swing_data.get('lows', [])
             
@@ -1180,7 +1180,7 @@ class PatternDetector:
                 current_price > prev_low['price'] and 
                 last_low['price'] > prev_low['price']):
                 
-                confidence = 90.0  # CHoCH tiene alta confianza
+                confidence = 92.0  # 🚀 OPTIMIZED: Increased CHoCH base confidence from 90.0% to 92.0% (Phase 1)
                 break_level = prev_low['price']
                 target_level = last_high['price']
                 
@@ -1207,7 +1207,7 @@ class PatternDetector:
                   current_price < prev_high['price'] and
                   last_high['price'] < prev_high['price']):
                 
-                confidence = 90.0  # CHoCH tiene alta confianza
+                confidence = 92.0  # 🚀 OPTIMIZED: Increased CHoCH base confidence from 90.0% to 92.0% (Phase 1)
                 break_level = prev_high['price']
                 target_level = last_low['price']
                 

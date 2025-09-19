@@ -112,7 +112,7 @@ class SimpleOrderBlockDetector:
         self.config = config or {}
         self.lookback_period = self.config.get('lookback_period', 20)
         self.max_distance_pips = self.config.get('max_distance_pips', 30)
-        self.min_confidence = self.config.get('min_confidence', 55)
+        self.min_confidence = self.config.get('min_confidence', 72)  # 🚀 OPTIMIZED: Increased from 55% to 72% (Phase 1)
         self.volume_threshold = self.config.get('volume_threshold', 1.2)
         
         # Configurar logger para Order Blocks
@@ -445,7 +445,7 @@ class SimpleOrderBlockDetector:
         return sorted_blocks[:limit]
     
     def filter_high_confidence(self, blocks: List[BasicOrderBlock], 
-                              min_confidence: float = 70) -> List[BasicOrderBlock]:
+                              min_confidence: float = 75) -> List[BasicOrderBlock]:  # 🚀 OPTIMIZED: Increased from 70% to 75% (Phase 1)
         """Filtrar solo blocks de alta confidence para validación enterprise"""
         
         return [block for block in blocks if block.confidence >= min_confidence]

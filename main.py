@@ -2446,6 +2446,21 @@ def main():
             pass
         print("ICT Engine v6.0 Enterprise - Inicio")
         print(f"Inicio: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+        # CLI shortcut: run CHoCH Analyzer demo and exit
+        try:
+            import argparse  # local import to avoid top-level dependency
+            parser = argparse.ArgumentParser(add_help=False)
+            parser.add_argument("--demo-choch", action="store_true", help="Run CHoCH Analyzer demo and exit")
+            args, _ = parser.parse_known_args()
+            if getattr(args, "demo_choch", False):
+                from analysis.choch_trading_analyzer import demo_choch_analysis
+                ok = demo_choch_analysis()
+                # Return early; finally block will still run for clean up
+                return 0 if ok else 1
+        except Exception as _arg_e:
+            # Non-fatal: continue normal startup if parsing/import fails
+            print(f"Aviso: no se pudo procesar --demo-choch: {_arg_e}")
         
         # Crear instancia del sistema enterprise
         print("Creando ICTEnterpriseManager...")
