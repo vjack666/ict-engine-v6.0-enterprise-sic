@@ -56,7 +56,12 @@ def get_unified_logger(name: str):
 
 # Import core modules
 try:
-    from analysis.unified_market_memory import get_unified_market_memory, get_last_choch_for_trading, get_choch_trading_levels
+    from analysis.unified_market_memory import (
+        get_unified_market_memory,
+        get_last_choch_for_trading,
+        get_choch_trading_levels,
+        update_market_memory,
+    )
     MEMORY_AVAILABLE = True
 except ImportError as e:
     print(f"⚠️ Warning: Memory system not available: {e}")
@@ -278,17 +283,36 @@ class CHoCHTradingAnalyzer:
             choch_result = detector.detect_choch(symbol, mode='live_ready')
             
             if choch_result and choch_result.get('detected'):
-                signals = choch_result.get('signals', [])
-                if signals:
-                    signal = signals[0]  # Usar primera señal
-                    
+                all_signals = choch_result.get('all_signals', [])
+                if all_signals:
+                    primary = choch_result.get('primary_signal') or all_signals[0]
+
+                    # Persist to unified memory so other processes can see CHoCH
+                    try:
+                        if MEMORY_AVAILABLE:
+                            payload = {
+                                'pattern_type': 'CHOCH_MULTI_TIMEFRAME',
+                                'symbol': symbol,
+                                'detected': True,
+                                'direction': choch_result.get('direction', primary.get('direction', 'NEUTRAL')),
+                                'confidence': choch_result.get('confidence', primary.get('confidence', 0.0)),
+                                'all_signals': all_signals,
+                                'tf_results': choch_result.get('tf_results', {}),
+                                'trend_change_confirmed': choch_result.get('trend_change_confirmed', False),
+                                'execution_summary': choch_result.get('execution_summary', {}),
+                            }
+                            update_market_memory(payload)
+                    except Exception as e:
+                        self.logger.warning(f"No se pudo actualizar memoria unificada: {e}", "MEMORY")
+
                     return CHoCHAnalysisResult(
                         symbol=symbol,
                         has_valid_choch=True,
-                        direction=signal.get('direction', 'NEUTRAL'),
-                        confidence=signal.get('confidence', 0.0),
-                        break_level=signal.get('price', 0.0),
-                        timeframe=signal.get('timeframe', 'M15'),
+                        direction=primary.get('direction', 'NEUTRAL'),
+                        confidence=primary.get('confidence', 0.0),
+                        break_level=primary.get('break_level', primary.get('price', 0.0)),
+                        target_level=primary.get('target_level', 0.0),
+                        timeframe=primary.get('timeframe', 'M15'),
                         strength="DETECTED"
                     )
             

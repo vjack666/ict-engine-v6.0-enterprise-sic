@@ -33,6 +33,7 @@ from typing import Dict, List, Any, Optional, Tuple
 # Agregar paths necesarios
 repo_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(repo_root / "01-CORE"))
+from analysis.unified_market_memory import update_market_memory  # Ingest results into memory
 
 class ChochMultiTimeframeAnalyzer:
     """Analizador de CHoCH en múltiples temporalidades"""
@@ -82,6 +83,22 @@ class ChochMultiTimeframeAnalyzer:
                 print(f"  ⚙️ Usando Pattern Detector real...")
                 # Análisis real usando el detector optimizado
                 choch_result = self.pattern_detector.detect_choch(symbol, self.timeframes, mode='live_ready')
+                # Ingestar resultado en memoria unificada para persistencia de CHoCH
+                try:
+                    payload = {
+                        'pattern_type': 'CHOCH_MULTI_TIMEFRAME',
+                        'symbol': symbol,
+                        'detected': choch_result.get('detected', False),
+                        'direction': choch_result.get('direction', 'NEUTRAL'),
+                        'confidence': choch_result.get('confidence', 0.0),
+                        'all_signals': choch_result.get('all_signals', []),
+                        'tf_results': choch_result.get('tf_results', {}),
+                        'trend_change_confirmed': choch_result.get('trend_change_confirmed', False),
+                        'execution_summary': choch_result.get('execution_summary', {})
+                    }
+                    update_market_memory(payload)
+                except Exception as ie:
+                    print(f"⚠️ No se pudo actualizar la memoria unificada: {ie}")
                 analysis = self._process_real_choch_results(choch_result, symbol)
             else:
                 print(f"  🎭 Pattern Detector no disponible, usando simulación...")

@@ -174,6 +174,13 @@ class UnifiedMarketMemory:
                 f"Coherence: {self.unified_state['coherence_score']:.3f}",
                 component="unified_memory"
             )
+
+            # Auto-persistencia para que otras ejecuciones vean cambios inmediatamente
+            try:
+                self.persistence_manager.persist_complete_state()
+            except Exception:
+                # Evitar romper el flujo si la persistencia falla; ya registramos errores adentro
+                pass
             
             return unified_result
             

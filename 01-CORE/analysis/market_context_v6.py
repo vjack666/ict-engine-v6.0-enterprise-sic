@@ -270,6 +270,27 @@ class MarketContextV6:
     def _update_pattern_memory(self, analysis_results: Dict[str, Any]) -> None:
         """Actualiza memoria de patrones ICT detectados."""
         try:
+            # Helper local para parsear timestamps externos
+            def _parse_to_datetime(value):
+                from datetime import datetime, timezone
+                if value is None:
+                    return None
+                if isinstance(value, datetime):
+                    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+                if isinstance(value, (int, float)):
+                    try:
+                        return datetime.fromtimestamp(float(value), tz=timezone.utc)
+                    except Exception:
+                        return None
+                if isinstance(value, str):
+                    try:
+                        iso = value.replace('Z', '+00:00') if 'Z' in value and '+' not in value else value
+                        dt = datetime.fromisoformat(iso)
+                        return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
+                    except Exception:
+                        return None
+                return None
+
             # Actualizar POIs
             if 'pois_detected' in analysis_results:
                 new_pois = analysis_results['pois_detected']
@@ -291,43 +312,109 @@ class MarketContextV6:
             
             # Actualizar CHoCH events
             if 'choch_detected' in analysis_results:
+                choch_payload = analysis_results['choch_detected']
+                # Permitir timestamp histórico si viene provisto
+                external_ts = (
+                    analysis_results.get('event_timestamp')
+                    or (choch_payload.get('timestamp') if isinstance(choch_payload, dict) else None)
+                )
+                event_ts = _parse_to_datetime(external_ts) or self.last_updated
                 choch_event = {
-                    'timestamp': self.last_updated,
-                    'data': analysis_results['choch_detected'],
+                    'timestamp': event_ts,
+                    'data': choch_payload,
                     'price': self.current_price
                 }
                 self.choch_events.append(choch_event)
+                self.logger.info(
+                    f"➕ CHoCH añadido (legacy) | tf={choch_payload.get('timeframe', 'UNKNOWN')} "
+                    f"dir={choch_payload.get('direction', 'NEUTRAL')} conf={choch_payload.get('confidence', 0.0)}",
+                    component="market_memory"
+                )
                 if len(self.choch_events) > self.max_choch_events:
                     self.choch_events = self.choch_events[-self.max_choch_events:]
 
-            # NUEVO: Integrar CHoCH desde datos genéricos de patrón (pattern_type == 'CHoCH')
-            if str(analysis_results.get('pattern_type', '')).upper() == 'CHOCH':
-                # Normalizar estructura mínima requerida por consumidores
-                # Normalizar confianza a escala 0-100 si viene en 0-1
-                raw_conf = analysis_results.get('confidence', 0.0)
-                try:
-                    conf_val = float(raw_conf or 0.0)
-                except Exception:
-                    conf_val = 0.0
-                confidence_pct = conf_val * 100.0 if conf_val <= 1.0 else conf_val
+            # NUEVO: Integrar CHoCH desde datos genéricos/multi-timeframe (pattern_type contiene 'CHOCH')
+            pattern_type_str = str(analysis_results.get('pattern_type', '')).upper()
+            if 'CHOCH' in pattern_type_str:
+                # Caso multi-timeframe: ingestar cada señal individual si está disponible
+                if 'ALL_SIGNALS' in {k.upper() for k in analysis_results.keys()}:
+                    try:
+                        all_signals = analysis_results.get('all_signals', []) or []
+                        symbol_val = analysis_results.get('symbol')
+                        ingested = 0
+                        for sig in all_signals:
+                            # Normalizar confianza 0-1 a 0-100
+                            raw_conf = sig.get('confidence', 0.0)
+                            try:
+                                cval = float(raw_conf or 0.0)
+                            except Exception:
+                                cval = 0.0
+                            conf_pct = cval * 100.0 if cval <= 1.0 else cval
 
-                choch_data = {
-                    'direction': analysis_results.get('direction', analysis_results.get('metadata', {}).get('direction', 'NEUTRAL') if isinstance(analysis_results.get('metadata'), dict) else 'NEUTRAL'),
-                    'confidence': confidence_pct,
-                    'timeframe': analysis_results.get('timeframe', 'UNKNOWN'),
-                    'break_level': analysis_results.get('break_level', analysis_results.get('entry_price', self.current_price)),
-                    'target_level': analysis_results.get('target_level', analysis_results.get('entry_price', self.current_price)),
-                    'symbol': analysis_results.get('symbol', None),
-                    'metadata': analysis_results.get('metadata', {})
-                }
-                choch_event = {
-                    'timestamp': self.last_updated,
-                    'data': choch_data,
-                    'price': self.current_price
-                }
-                self.choch_events.append(choch_event)
-                if len(self.choch_events) > self.max_choch_events:
-                    self.choch_events = self.choch_events[-self.max_choch_events:]
+                            # Timestamp por señal si viene provisto
+                            sig_ts = _parse_to_datetime(sig.get('timestamp')) or self.last_updated
+
+                            choch_data = {
+                                'direction': sig.get('direction', 'NEUTRAL'),
+                                'confidence': conf_pct,
+                                'timeframe': sig.get('timeframe', 'UNKNOWN'),
+                                'break_level': sig.get('break_level', self.current_price),
+                                'target_level': sig.get('target_level', self.current_price),
+                                'symbol': symbol_val or sig.get('symbol'),
+                                'metadata': {'source': 'CHOCH_MULTI_TIMEFRAME'}
+                            }
+                            choch_event = {
+                                'timestamp': sig_ts,
+                                'data': choch_data,
+                                'price': self.current_price
+                            }
+                            self.choch_events.append(choch_event)
+                            ingested += 1
+                            self.logger.info(
+                                f"➕ CHoCH añadido | tf={choch_data['timeframe']} dir={choch_data['direction']} "
+                                f"conf={choch_data['confidence']:.1f} symbol={choch_data.get('symbol')}",
+                                component="market_memory"
+                            )
+                        if ingested == 0:
+                            self.logger.warning("⚠️ Resultado CHOCH_MULTI_TIMEFRAME sin señales para ingestar", component="market_memory")
+                        if len(self.choch_events) > self.max_choch_events:
+                            self.choch_events = self.choch_events[-self.max_choch_events:]
+                    except Exception as e:
+                        self.logger.error(f"Error ingresando CHOCH_MULTI_TIMEFRAME: {e}", component="market_memory")
+                else:
+                    # Caso simple: tratar como evento único CHOCH
+                    raw_conf = analysis_results.get('confidence', 0.0)
+                    try:
+                        conf_val = float(raw_conf or 0.0)
+                    except Exception:
+                        conf_val = 0.0
+                    confidence_pct = conf_val * 100.0 if conf_val <= 1.0 else conf_val
+
+                    external_ts = analysis_results.get('event_timestamp')
+                    event_ts = _parse_to_datetime(external_ts) or self.last_updated
+
+                    choch_data = {
+                        'direction': analysis_results.get('direction', analysis_results.get('metadata', {}).get('direction', 'NEUTRAL') if isinstance(analysis_results.get('metadata'), dict) else 'NEUTRAL'),
+                        'confidence': confidence_pct,
+                        'timeframe': analysis_results.get('timeframe', 'UNKNOWN'),
+                        'break_level': analysis_results.get('break_level', analysis_results.get('entry_price', self.current_price)),
+                        'target_level': analysis_results.get('target_level', analysis_results.get('entry_price', self.current_price)),
+                        'symbol': analysis_results.get('symbol', None),
+                        'metadata': analysis_results.get('metadata', {})
+                    }
+                    choch_event = {
+                        'timestamp': event_ts,
+                        'data': choch_data,
+                        'price': self.current_price
+                    }
+                    self.choch_events.append(choch_event)
+                    self.logger.info(
+                        f"➕ CHoCH añadido (simple) | tf={choch_data['timeframe']} dir={choch_data['direction']} "
+                        f"conf={choch_data['confidence']:.1f} symbol={choch_data.get('symbol')}",
+                        component="market_memory"
+                    )
+                    if len(self.choch_events) > self.max_choch_events:
+                        self.choch_events = self.choch_events[-self.max_choch_events:]
             
             # Actualizar swing points - TRADING CRITICAL VALIDATION
             if 'swing_points' in analysis_results:
@@ -503,7 +590,22 @@ class MarketContextV6:
             # Calcular edad en minutos
             age_minutes = 0
             if timestamp and self.last_updated:
-                age_delta = self.last_updated - timestamp
+                # Normalizar timestamp si viene como string o epoch
+                ts = timestamp
+                try:
+                    if isinstance(ts, str):
+                        # Soportar ISO8601 con 'Z'
+                        ts_norm = ts.replace('Z', '+00:00') if 'Z' in ts and '+' not in ts else ts
+                        ts_dt = datetime.fromisoformat(ts_norm)
+                        if ts_dt.tzinfo is None:
+                            ts_dt = ts_dt.replace(tzinfo=timezone.utc)
+                        ts = ts_dt
+                    elif isinstance(ts, (int, float)):
+                        ts = datetime.fromtimestamp(float(ts), tz=timezone.utc)
+                except Exception:
+                    # Fallback: usar last_updated para evitar romper flujo
+                    ts = self.last_updated
+                age_delta = self.last_updated - ts
                 age_minutes = age_delta.total_seconds() / 60
             
             # Determinar si es válido para trading (max 4 horas)
