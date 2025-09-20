@@ -1,17 +1,17 @@
-# ⚡ QUICK REFERENCE - PYLANCE FIXES
-## ICT Engine v6.0 Enterprise - Developer Cheat Sheet
+# ⚡ REFERENCIA RÁPIDA - CORRECCIONES PYLANCE
+## ICT Engine v6.0 Enterprise - Guía Rápida para Desarrolladores
 
 ---
 
-## 🚨 **CRITICAL ERRORS - FIX FIRST**
+## 🚨 **ERRORES CRÍTICOS - ARREGLAR PRIMERO**
 
-### 1. **ConfigManager Logger** (`config_manager.py:168`)
+### 1. **Logger en ConfigManager** (`config_manager.py:168`)
 ```python
-# BEFORE (❌ Error):
+# ANTES (❌ Error):
 def _setup_logger(self) -> logging.Logger:
     return SmartTradingLogger("ConfigManager")
 
-# AFTER (✅ Fixed):
+# DESPUÉS (✅ Corregido):
 from typing import Union
 def _setup_logger(self) -> Union[logging.Logger, Any]:
     return SmartTradingLogger("ConfigManager")
@@ -20,10 +20,10 @@ def _setup_logger(self) -> Union[logging.Logger, Any]:
 ### 2. **Notification Manager** (COMPLETADO)
 ```python
 # Cambios clave:
-# - Import get_config estable con fallback
-# - Dataclasses usan field(default_factory=...)
-# - Parámetros Optional para evitar None type errors
-# - Adaptador logger para SmartTradingLogger
+# - Import de `get_config` estable con fallback
+# - Dataclasses usan `field(default_factory=...)`
+# - Parámetros `Optional[...]` para evitar errores por `None`
+# - Adaptador de logger para `SmartTradingLogger`
 ```
 
 ### 3. **Enterprise Tabs Manager (LISTO)**
@@ -31,13 +31,13 @@ Implementado `enterprise_tabs_manager.py` minimal (sin UI web). No requiere acci
 
 ---
 
-## 📦 **MISSING IMPORTS - INSTALL THESE**
+## 📦 **IMPORTS FALTANTES - INSTALAR**
 
 ```bash
-# Required packages
+# Paquetes requeridos
 pip install fastapi uvicorn joblib
 
-# Add to requirements.txt:
+# Agregar a requirements.txt:
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
 joblib>=1.3.0
@@ -45,12 +45,12 @@ joblib>=1.3.0
 
 ---
 
-## 🔧 **TYPE FIXES - QUICK PATCHES**
+## 🔧 **CORRECCIONES DE TIPOS - PARCHES RÁPIDOS**
 
 ### Web Dashboard (DEPRECADO)
-`web_dashboard.py` y cualquier UI Dash/Plotly fueron retirados. Mantener stub solo para evitar fallos de import. No realizar más cambios ni reintroducir dependencias UI.
+`web_dashboard.py` y cualquier UI Dash/Plotly fueron retirados. Mantener un stub solo para evitar fallos de import. No realizar más cambios ni reintroducir dependencias de UI.
 
-### None Assignment Fixes
+### Correcciones de Asignación de None
 ```python
 # CHANGE FROM:
 self.channels: List[str] = None  # ❌
@@ -62,25 +62,25 @@ self.metadata: Dict[str, Any] = {}  # ✅
 
 ---
 
-## 🧠 **MACHINE LEARNING FIXES**
+## 🧠 **CORRECCIONES DE MACHINE LEARNING**
 
 ### Add to `machine_learning/__init__.py`:
 ```python
-# Missing functions
+# Funciones faltantes
 def get_unified_memory_system(): 
     return {"type": "memory_system"}
 
 def log_trading_decision_smart_v6(data): 
     logging.info(f"Decision: {data}")
 
-# Safe joblib import
+# Import seguro de joblib
 try:
     import joblib
 except ImportError:
     joblib = None
 ```
 
-### Add to POI class: (COMPLETADO)
+### Añadir a la clase POI: (COMPLETADO)
 ```python
 class POI:
     def __init__(self, ...):
@@ -89,23 +89,23 @@ class POI:
 
 ---
 
-## 🎨 **DASHBOARD COMPONENT FIXES**
+## 🎨 **CORRECCIONES DE COMPONENTES DEL DASHBOARD**
 
 ### Componentes HTML (REMOVIDOS)
 Soporte de componentes Dash eliminado. No recrear wrappers.
 
 ---
 
-## 🧪 **QUICK TESTS**
+## 🧪 **PRUEBAS RÁPIDAS**
 
-### Test ConfigManager:
+### Probar ConfigManager:
 ```python
 from config.config_manager import ConfigManager
 cm = ConfigManager()
 print(f"Logger type: {type(cm.logger)}")  # Should not error
 ```
 
-### Test Imports:
+### Probar Imports:
 ```python
 # Test all critical imports
 import enterprise_tabs_manager  # Should work after creating
@@ -114,14 +114,14 @@ from machine_learning import get_unified_memory_system  # Should work
 
 ---
 
-## 📁 **FILES TO CREATE/MODIFY**
+## 📁 **ARCHIVOS PARA CREAR/MODIFICAR**
 
-### CREATE NEW:
+### CREAR NUEVOS:
 - [x] `enterprise_tabs_manager.py` (minimal)
 - [ ] `tests/test_config_manager.py`
 - [ ] `tests/test_enterprise_tabs_manager.py`
 
-### MODIFY EXISTING (Pendientes relevantes vigentes):
+### MODIFICAR EXISTENTES (Pendientes relevantes vigentes):
 - [x] `01-CORE/config/config_manager.py`
 - [x] `01-CORE/machine_learning/__init__.py`
 - [x] `01-CORE/analysis/poi_system.py`
@@ -131,7 +131,7 @@ El archivo `09-DASHBOARD/web_dashboard.py` queda marcado como deprecated (sin ac
 
 ---
 
-## ⚡ **IMPLEMENTATION ORDER**
+## ⚡ **ORDEN DE IMPLEMENTACIÓN**
 
 1. **ConfigManager fix** (5 min)
 2. **Create enterprise_tabs_manager** (15 min)  
@@ -140,19 +140,19 @@ El archivo `09-DASHBOARD/web_dashboard.py` queda marcado como deprecated (sin ac
 5. **Dashboard type fixes** (10 min)
 6. **Test everything** (15 min)
 
-**Total Time (recalculado):** ~1h15m (incluye refactor Notification Manager)
+**Tiempo total (recalculado):** ~1h15m (incluye refactor de Notification Manager)
 
 ---
 
-Sync Policy: Cada vez que una tarea se marca como completada en la lista principal, este documento se actualiza inmediatamente.
+Política de sincronización: Cada vez que una tarea se marca como completada en la lista principal, este documento se actualiza inmediatamente.
 
 ---
 
-## 🎯 **SUCCESS VALIDATION**
+## 🎯 **VALIDACIÓN DE ÉXITO**
 
 ```bash
-# Zero errors in VS Code Pylance
-# All these should work:
+# Cero errores en VS Code Pylance
+# Todo esto debe funcionar:
 python -c "from config.config_manager import ConfigManager; print('OK')"
 python -c "import enterprise_tabs_manager; print('OK')"  
 python -c "from machine_learning import get_unified_memory_system; print('OK')"
@@ -160,10 +160,10 @@ python -c "from machine_learning import get_unified_memory_system; print('OK')"
 
 ---
 
-## 🆘 **EMERGENCY ROLLBACK**
+## 🆘 **ROLLBACK DE EMERGENCIA**
 
 ```bash
-# If something breaks:
+# Si algo falla:
 git stash  # Save current changes
 git reset --hard HEAD  # Rollback to last commit
 # Then implement fixes one by one
@@ -171,4 +171,4 @@ git reset --hard HEAD  # Rollback to last commit
 
 ---
 
-**Last Updated:** 15 Sept 2025 | **Status:** Ready to implement
+**Última actualización:** 15 Sept 2025 | **Estado:** Listo para implementar

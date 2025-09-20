@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "v1",
-    "last_updated": "2025-09-20T00:32:22.318773+00:00",
+    "last_updated": "2025-09-20T16:41:49.745995+00:00",
     "retention_days": 180,
     "max_records": 1000
   },
@@ -256,6 +256,373 @@
       "time_to_target": null,
       "context": {
         "source": "CHOCH_MULTI_TIMEFRAME"
+      }
+    },
+    {
+      "id": "CHOCH_EURUSD_H4_20250920T131621.9083330000",
+      "symbol": "EURUSD",
+      "timeframe": "H4",
+      "timestamp": "2025-09-20T13:16:21.908333+00:00",
+      "direction": "BULLISH",
+      "break_level": 1.17365,
+      "target_level": 1.17595,
+      "stop_level": null,
+      "confidence": 90.0,
+      "price_at_break": null,
+      "session": null,
+      "volatility": null,
+      "trend_strength": null,
+      "outcome": "PENDING",
+      "pips_moved": null,
+      "time_to_target": null,
+      "context": {
+        "source": "CHOCH_MULTI_TIMEFRAME"
+      }
+    },
+    {
+      "id": "CHOCH_EURUSD_M15_20250920T131621.9083330000",
+      "symbol": "EURUSD",
+      "timeframe": "M15",
+      "timestamp": "2025-09-20T13:16:21.908333+00:00",
+      "direction": "BEARISH",
+      "break_level": 1.17793,
+      "target_level": 1.1772,
+      "stop_level": null,
+      "confidence": 90.0,
+      "price_at_break": null,
+      "session": null,
+      "volatility": null,
+      "trend_strength": null,
+      "outcome": "PENDING",
+      "pips_moved": null,
+      "time_to_target": null,
+      "context": {
+        "source": "CHOCH_MULTI_TIMEFRAME"
+      }
+    },
+    {
+      "id": "CHOCH_EURUSD_M5_20250920T131621.9083330000",
+      "symbol": "EURUSD",
+      "timeframe": "M5",
+      "timestamp": "2025-09-20T13:16:21.908333+00:00",
+      "direction": "BEARISH",
+      "break_level": 1.17834,
+      "target_level": 1.17754,
+      "stop_level": null,
+      "confidence": 87.60000000000005,
+      "price_at_break": null,
+      "session": null,
+      "volatility": null,
+      "trend_strength": null,
+      "outcome": "PENDING",
+      "pips_moved": null,
+      "time_to_target": null,
+      "context": {
+        "source": "CHOCH_MULTI_TIMEFRAME"
+      }
+    },
+    {
+      "id": "CHOCH_GBPUSD_H4_20250920T131626.2521020000",
+      "symbol": "GBPUSD",
+      "timeframe": "H4",
+      "timestamp": "2025-09-20T13:16:26.252102+00:00",
+      "direction": "BULLISH",
+      "break_level": 1.35827,
+      "target_level": 1.36717,
+      "stop_level": null,
+      "confidence": 90.0,
+      "price_at_break": null,
+      "session": null,
+      "volatility": null,
+      "trend_strength": null,
+      "outcome": "PENDING",
+      "pips_moved": null,
+      "time_to_target": null,
+      "context": {
+        "source": "CHOCH_MULTI_TIMEFRAME"
+      }
+    },
+    {
+      "id": "CHOCH_GBPUSD_M15_20250920T131626.2521020000",
+      "symbol": "GBPUSD",
+      "timeframe": "M15",
+      "timestamp": "2025-09-20T13:16:26.252102+00:00",
+      "direction": "BEARISH",
+      "break_level": 1.35685,
+      "target_level": 1.3552,
+      "stop_level": null,
+      "confidence": 87.99999999999935,
+      "price_at_break": null,
+      "session": null,
+      "volatility": null,
+      "trend_strength": null,
+      "outcome": "PENDING",
+      "pips_moved": null,
+      "time_to_target": null,
+      "context": {
+        "source": "CHOCH_MULTI_TIMEFRAME"
+      }
+    },
+    {
+      "id": "CHOCH_GBPUSD_M5_20250920T131626.2521020000",
+      "symbol": "GBPUSD",
+      "timeframe": "M5",
+      "timestamp": "2025-09-20T13:16:26.252102+00:00",
+      "direction": "BEARISH",
+      "break_level": 1.35465,
+      "target_level": 1.35416,
+      "stop_level": null,
+      "confidence": 90.0,
+      "price_at_break": null,
+      "session": null,
+      "volatility": null,
+      "trend_strength": null,
+      "outcome": "PENDING",
+      "pips_moved": null,
+      "time_to_target": null,
+      "context": {
+        "source": "CHOCH_MULTI_TIMEFRAME"
+      }
+    },
+    {
+      "id": "CHOCH_USDCAD_H4_20250920T131630.5516640000",
+      "symbol": "USDCAD",
+      "timeframe": "H4",
+      "timestamp": "2025-09-20T13:16:30.551664+00:00",
+      "direction": "BEARISH",
+      "break_level": 1.38261,
+      "target_level": 1.37266,
+      "stop_level": null,
+      "confidence": 90.0,
+      "price_at_break": null,
+      "session": null,
+      "volatility": null,
+      "trend_strength": null,
+      "outcome": "PENDING",
+      "pips_moved": null,
+      "time_to_target": null,
+      "context": {
+        "source": "CHOCH_MULTI_TIMEFRAME"
+      }
+    },
+    {
+      "id": "CHOCH_USDCAD_M15_20250920T131630.5516640000",
+      "symbol": "USDCAD",
+      "timeframe": "M15",
+      "timestamp": "2025-09-20T13:16:30.551664+00:00",
+      "direction": "BEARISH",
+      "break_level": 1.37714,
+      "target_level": 1.37635,
+      "stop_level": null,
+      "confidence": 90.0,
+      "price_at_break": null,
+      "session": null,
+      "volatility": null,
+      "trend_strength": null,
+      "outcome": "PENDING",
+      "pips_moved": null,
+      "time_to_target": null,
+      "context": {
+        "source": "CHOCH_MULTI_TIMEFRAME"
+      }
+    },
+    {
+      "id": "CHOCH_USDCAD_M5_20250920T131630.5516640000",
+      "symbol": "USDCAD",
+      "timeframe": "M5",
+      "timestamp": "2025-09-20T13:16:30.551664+00:00",
+      "direction": "BULLISH",
+      "break_level": 1.37967,
+      "target_level": 1.37997,
+      "stop_level": null,
+      "confidence": 84.95000000000046,
+      "price_at_break": null,
+      "session": null,
+      "volatility": null,
+      "trend_strength": null,
+      "outcome": "PENDING",
+      "pips_moved": null,
+      "time_to_target": null,
+      "context": {
+        "source": "CHOCH_MULTI_TIMEFRAME"
+      }
+    },
+    {
+      "id": "CHOCH_AUDUSD_H4_20250920T131635.3820830000",
+      "symbol": "AUDUSD",
+      "timeframe": "H4",
+      "timestamp": "2025-09-20T13:16:35.382083+00:00",
+      "direction": "BULLISH",
+      "break_level": 0.65051,
+      "target_level": 0.656,
+      "stop_level": null,
+      "confidence": 90.0,
+      "price_at_break": null,
+      "session": null,
+      "volatility": null,
+      "trend_strength": null,
+      "outcome": "PENDING",
+      "pips_moved": null,
+      "time_to_target": null,
+      "context": {
+        "source": "CHOCH_MULTI_TIMEFRAME"
+      }
+    },
+    {
+      "id": "CHOCH_AUDUSD_M15_20250920T131635.3820830000",
+      "symbol": "AUDUSD",
+      "timeframe": "M15",
+      "timestamp": "2025-09-20T13:16:35.382083+00:00",
+      "direction": "BEARISH",
+      "break_level": 0.66432,
+      "target_level": 0.66332,
+      "stop_level": null,
+      "confidence": 90.0,
+      "price_at_break": null,
+      "session": null,
+      "volatility": null,
+      "trend_strength": null,
+      "outcome": "PENDING",
+      "pips_moved": null,
+      "time_to_target": null,
+      "context": {
+        "source": "CHOCH_MULTI_TIMEFRAME"
+      }
+    },
+    {
+      "id": "CHOCH_AUDUSD_M5_20250920T131635.3820830000",
+      "symbol": "AUDUSD",
+      "timeframe": "M5",
+      "timestamp": "2025-09-20T13:16:35.382083+00:00",
+      "direction": "BEARISH",
+      "break_level": 0.66357,
+      "target_level": 0.66069,
+      "stop_level": null,
+      "confidence": 90.0,
+      "price_at_break": null,
+      "session": null,
+      "volatility": null,
+      "trend_strength": null,
+      "outcome": "PENDING",
+      "pips_moved": null,
+      "time_to_target": null,
+      "context": {
+        "source": "CHOCH_MULTI_TIMEFRAME"
+      }
+    },
+    {
+      "id": "CHOCH_EURUSD_M15_20250920T145916.0192260000",
+      "symbol": "EURUSD",
+      "timeframe": "M15",
+      "timestamp": "2025-09-20T14:59:16.019226+00:00",
+      "direction": "NEUTRAL",
+      "break_level": 1.1013000000000002,
+      "target_level": 1.1013000000000002,
+      "stop_level": null,
+      "confidence": 90.0,
+      "price_at_break": null,
+      "session": null,
+      "volatility": null,
+      "trend_strength": null,
+      "outcome": "PENDING",
+      "pips_moved": null,
+      "time_to_target": null,
+      "context": {
+        "basic_detection": true,
+        "memory_enhanced": true,
+        "original_confidence": 0.65
+      }
+    },
+    {
+      "id": "CHOCH_EURUSD_M15_20250920T151530.5788760000",
+      "symbol": "EURUSD",
+      "timeframe": "M15",
+      "timestamp": "2025-09-20T15:15:30.578876+00:00",
+      "direction": "NEUTRAL",
+      "break_level": 1.1013000000000002,
+      "target_level": 1.1013000000000002,
+      "stop_level": null,
+      "confidence": 90.0,
+      "price_at_break": null,
+      "session": null,
+      "volatility": null,
+      "trend_strength": null,
+      "outcome": "PENDING",
+      "pips_moved": null,
+      "time_to_target": null,
+      "context": {
+        "basic_detection": true,
+        "memory_enhanced": true,
+        "original_confidence": 0.65
+      }
+    },
+    {
+      "id": "CHOCH_EURUSD_M15_20250920T152017.8579880000",
+      "symbol": "EURUSD",
+      "timeframe": "M15",
+      "timestamp": "2025-09-20T15:20:17.857988+00:00",
+      "direction": "NEUTRAL",
+      "break_level": 1.1013000000000002,
+      "target_level": 1.1013000000000002,
+      "stop_level": null,
+      "confidence": 90.0,
+      "price_at_break": null,
+      "session": null,
+      "volatility": null,
+      "trend_strength": null,
+      "outcome": "PENDING",
+      "pips_moved": null,
+      "time_to_target": null,
+      "context": {
+        "basic_detection": true,
+        "memory_enhanced": true,
+        "original_confidence": 0.65
+      }
+    },
+    {
+      "id": "CHOCH_EURUSD_M15_20250920T162958.7236410000",
+      "symbol": "EURUSD",
+      "timeframe": "M15",
+      "timestamp": "2025-09-20T16:29:58.723641+00:00",
+      "direction": "NEUTRAL",
+      "break_level": 1.1013000000000002,
+      "target_level": 1.1013000000000002,
+      "stop_level": null,
+      "confidence": 90.0,
+      "price_at_break": null,
+      "session": null,
+      "volatility": null,
+      "trend_strength": null,
+      "outcome": "PENDING",
+      "pips_moved": null,
+      "time_to_target": null,
+      "context": {
+        "basic_detection": true,
+        "memory_enhanced": true,
+        "original_confidence": 0.65
+      }
+    },
+    {
+      "id": "CHOCH_EURUSD_M15_20250920T164149.7453270000",
+      "symbol": "EURUSD",
+      "timeframe": "M15",
+      "timestamp": "2025-09-20T16:41:49.745327+00:00",
+      "direction": "NEUTRAL",
+      "break_level": 1.1013000000000002,
+      "target_level": 1.1013000000000002,
+      "stop_level": null,
+      "confidence": 90.0,
+      "price_at_break": null,
+      "session": null,
+      "volatility": null,
+      "trend_strength": null,
+      "outcome": "PENDING",
+      "pips_moved": null,
+      "time_to_target": null,
+      "context": {
+        "basic_detection": true,
+        "memory_enhanced": true,
+        "original_confidence": 0.65
       }
     }
   ]

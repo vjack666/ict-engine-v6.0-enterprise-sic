@@ -1795,35 +1795,46 @@ class AdvancedCandleDownloader:
             # Obtener pandas de forma lazy si es necesario
             pd = self._get_pandas_lazy()
 
-            concurrent_downloads = 0
             max_concurrent = self.max_concurrent_downloads
+            active_threads: List[threading.Thread] = []
 
-            while self.download_queue and not self.stop_event.is_set():
-                # Controlar concurrencia
-                if concurrent_downloads >= max_concurrent:
+            while not self.stop_event.is_set():
+                # Limpiar threads terminados y refrescar lista
+                active_threads = [t for t in active_threads if t.is_alive()]
+
+                # Salir si ya no hay más en cola y no quedan hilos activos
+                if not self.download_queue and not active_threads:
+                    break
+
+                # Respetar límite de concurrencia; esperar si está al máximo
+                if len(active_threads) >= max_concurrent:
                     time.sleep(0.1)
                     continue
 
-                # Obtener siguiente solicitud
+                # Si hay capacidad y elementos en cola, lanzar siguiente
+                request = None
                 with self.lock:
-                    if not self.download_queue:
-                        break
-                    request = self.download_queue.pop(0)
+                    if self.download_queue:
+                        request = self.download_queue.pop(0)
 
-                # Crear thread para descarga individual
+                if request is None:
+                    # Nada que despachar ahora; breve espera antes de reintentar
+                    time.sleep(0.05)
+                    continue
+
                 download_thread = threading.Thread(
                     target=self._process_single_download,
                     args=(request, pd),
-                    daemon=True
+                    daemon=True,
+                    name=f"Download-{request.symbol}-{request.timeframe}"
                 )
                 download_thread.start()
-                concurrent_downloads += 1
+                active_threads.append(download_thread)
 
-            # Esperar que terminen todas las descargas
-            while concurrent_downloads > 0:
-                time.sleep(0.5)
-                concurrent_downloads = len([t for t in threading.enumerate()
-                                          if t.name.startswith('Download-')])
+            # Esperar que terminen todas las descargas restantes respetando stop_event
+            for t in list(active_threads):
+                # join con timeout para no bloquear indefinidamente
+                t.join(timeout=1.0)
 
             self._finalize_batch_download()
 

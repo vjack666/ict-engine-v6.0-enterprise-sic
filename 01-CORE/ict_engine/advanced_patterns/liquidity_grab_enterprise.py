@@ -29,6 +29,42 @@ import numpy as np
 # ThreadSafe pandas import para runtime
 from data_management.advanced_candle_downloader import _pandas_manager
 
+# ✅ Integración con memoria histórica de CHoCH
+try:
+    from memory.choch_historical_memory import (
+        adjust_confidence_with_memory as choch_adjust_confidence_with_memory,
+        predict_target_based_on_history as choch_predict_target,
+        find_similar_choch_in_history,
+        calculate_historical_success_rate,
+    )
+    from memory.choch_helpers import estimate_break_level_from_swings as choch_estimate_break_level
+    CHOCH_MEMORY_AVAILABLE = True
+except Exception:
+    CHOCH_MEMORY_AVAILABLE = False
+
+    def choch_adjust_confidence_with_memory(base_confidence: float, symbol: str, timeframe: str, break_level: float) -> float:
+        return float(base_confidence)
+
+    def choch_predict_target(symbol: str, timeframe: str, direction: str, break_level: float, default_target: Optional[float] = None) -> Optional[float]:
+        return default_target
+
+    def find_similar_choch_in_history(symbol: str, timeframe: str, direction: Optional[str] = None, break_level_range: Optional[Tuple[float, float]] = None):
+        return []
+
+    def calculate_historical_success_rate(symbol: str, timeframe: str, direction: Optional[str] = None) -> float:
+        return 0.0
+
+    def choch_estimate_break_level(data: Any, direction: str, lookback: int = 20) -> float:
+        try:
+            recent = data.tail(lookback)
+            if direction.lower() in ("buy", "bullish"):
+                return float(recent['high'].max())
+            elif direction.lower() in ("sell", "bearish"):
+                return float(recent['low'].min())
+            return float(recent['close'].iloc[-1])
+        except Exception:
+            return 0.0
+
 # Import pandas solo para tipado estático
 if TYPE_CHECKING:
     from typing import Any as DataFrameType
@@ -150,6 +186,12 @@ class LiquidityGrabSignal:
     symbol: str
     timeframe: str
     
+    # ✅ CHoCH MEMORY INTEGRATION
+    choch_confidence_bonus: float = 0.0
+    similar_choch_count: int = 0
+    historical_success_rate: float = 0.0
+    choch_level_estimate: float = 0.0
+    
     # 🔄 Lifecycle 
     status: LiquidityGrabStatus = LiquidityGrabStatus.SETUP_BUILDING
     expiry_time: Optional[datetime] = None
@@ -204,7 +246,12 @@ class LiquidityGrabDetectorEnterprise:
             # Bonos por confluencias
             'smart_money_bonus': 0.12,
             'session_timing_bonus': 0.08,
-            'multiple_timeframe_bonus': 0.10
+            'multiple_timeframe_bonus': 0.10,
+            
+            # ✅ CONFIGURACIÓN CHOCH MEMORIA
+            'use_choch_memory': True,
+            'choch_confidence_max_bonus': 10.0,
+            'choch_level_lookback': 20
         }
         
         # 🌊 LIQUIDITY LEVELS MAPPING
@@ -392,9 +439,10 @@ class LiquidityGrabDetectorEnterprise:
             )
             
             # 7. 🧮 CALCULAR CONFIANZA TOTAL ENTERPRISE
-            total_confidence = self._calculate_liquidity_grab_confidence_enterprise(
+            total_confidence, choch_bonus = self._calculate_liquidity_grab_confidence_enterprise(
                 stop_hunt_score, reversal_score, volume_score, 
-                institutional_score, density_score
+                institutional_score, density_score,
+                symbol=symbol, grab_price=hunt_details.get('hunt_price', current_price)
             )
             
             # 8. ✅ VALIDAR THRESHOLD
@@ -416,6 +464,7 @@ class LiquidityGrabDetectorEnterprise:
                 institutional_score=institutional_score,
                 density_score=density_score,
                 smart_money_confirmed=smart_money_confirmed,
+                choch_bonus=choch_bonus,
                 symbol=symbol,
                 timeframe=timeframe,
                 data=data
@@ -701,7 +750,10 @@ class LiquidityGrabDetectorEnterprise:
                                                        reversal_score: float,
                                                        volume_score: float,
                                                        institutional_score: float,
-                                                       density_score: float) -> float:
+                                                       density_score: float,
+                                                       symbol: str = "",
+                                                       timeframe: str = "",
+                                                       grab_price: float = 0.0) -> Tuple[float, float]:
         """🧮 Cálculo de confianza Liquidity Grab enterprise ponderado"""
         try:
             total_confidence = (
@@ -721,14 +773,33 @@ class LiquidityGrabDetectorEnterprise:
             if volume_score > 0.7 and density_score > 0.6:
                 bonus += 5.0  # Volume + density confirmation
             
-            final_confidence = min(total_confidence + bonus, 95.0)  # Max 95%
+            # ✅ BONUS MEMORIA CHOCH
+            choch_bonus = 0.0
+            if (self.config['use_choch_memory'] and symbol and timeframe and grab_price > 0.0):
+                try:
+                    base_before_choch = total_confidence + bonus
+                    adjusted = choch_adjust_confidence_with_memory(
+                        base_confidence=base_before_choch,
+                        symbol=symbol,
+                        timeframe=timeframe,
+                        break_level=grab_price,
+                    )
+                    choch_bonus = float(adjusted) - float(base_before_choch)
+                    choch_bonus = max(-self.config['choch_confidence_max_bonus'], min(self.config['choch_confidence_max_bonus'], choch_bonus))
+                    if abs(choch_bonus) > 0:
+                        log_debug(f"🔥 CHoCH Memory Bonus: {choch_bonus:+.1f}% para nivel {grab_price}")
+                except Exception as e:
+                    log_error(f"Error aplicando CHoCH memory bonus: {e}")
+                    choch_bonus = 0.0
             
-            log_debug(f"🧮 Liquidity Grab Confidence: {final_confidence:.1f}% (base: {total_confidence:.1f}%, bonus: {bonus:.1f}%)")
-            return final_confidence
+            final_confidence = min(max(0.0, total_confidence + bonus + choch_bonus), 95.0)  # Max 95%
+            
+            log_debug(f"🧮 Liquidity Grab Confidence: {final_confidence:.1f}% (base: {total_confidence:.1f}%, bonus: {bonus:.1f}%, choch: {choch_bonus:.1f}%)")
+            return final_confidence, choch_bonus
             
         except Exception as e:
             log_error(f"Error calculando confidence: {e}")
-            return 50.0
+            return 50.0, 0.0
 
     def _generate_liquidity_grab_signal_enterprise(self, **kwargs) -> Optional[LiquidityGrabSignal]:
         """🌊 Generar señal Liquidity Grab enterprise completa"""
@@ -742,6 +813,35 @@ class LiquidityGrabDetectorEnterprise:
             current_price = kwargs.get('current_price', 0.0)
             symbol = kwargs.get('symbol', '')
             timeframe = kwargs.get('timeframe', '')
+            
+            # ✅ RECOPILAR DATOS CHOCH
+            choch_bonus = 0.0
+            similar_count = 0
+            success_rate = 0.0
+            choch_level = 0.0
+            
+            if self.config['use_choch_memory'] and symbol and timeframe and grab_price > 0.0:
+                try:
+                    # Buscar CHoCH similares 
+                    similar_chochs = find_similar_choch_in_history(symbol=symbol, timeframe=timeframe)
+                    similar_count = len(similar_chochs)
+                    
+                    # Calcular tasa de éxito histórica
+                    if similar_count > 0:
+                        dir_val = direction.value if hasattr(direction, 'value') else str(direction)
+                        dir_str = 'BULLISH' if str(dir_val).lower() in ('buy','bullish') else ('BEARISH' if str(dir_val).lower() in ('sell','bearish') else None)
+                        success_rate = calculate_historical_success_rate(symbol=symbol, timeframe=timeframe, direction=dir_str)
+                    
+                    # Obtener CHoCH level estimate
+                    data_for_est = kwargs.get('data')
+                    dir_val = direction.value if hasattr(direction, 'value') else str(direction)
+                    choch_level = choch_estimate_break_level(data_for_est, dir_val, lookback=self.config.get('liquidity_density_periods', 20))
+                    
+                    # Bonus ya calculado en confidence
+                    choch_bonus = kwargs.get('choch_bonus', 0.0)
+                    
+                except Exception as e:
+                    log_error(f"Error recopilando datos CHoCH: {e}")
             
             # 📊 CALCULAR NIVELES DE TRADING
             entry_zone, stop_loss, tp1, tp2 = self._calculate_liquidity_grab_trading_levels_enterprise(
@@ -776,6 +876,10 @@ class LiquidityGrabDetectorEnterprise:
                 session_context=self._build_liquidity_grab_session_context(kwargs),
                 symbol=symbol,
                 timeframe=timeframe,
+                choch_confidence_bonus=choch_bonus,
+                similar_choch_count=similar_count,
+                historical_success_rate=success_rate,
+                choch_level_estimate=choch_level,
                 status=LiquidityGrabStatus.REVERSAL_ACTIVE,
                 expiry_time=datetime.now() + timedelta(hours=3),
                 analysis_id=f"LG_{symbol}_{int(datetime.now().timestamp())}"

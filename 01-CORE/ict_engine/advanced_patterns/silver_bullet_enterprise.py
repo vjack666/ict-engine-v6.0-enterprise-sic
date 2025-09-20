@@ -29,6 +29,30 @@ import numpy as np
 # ThreadSafe pandas import para runtime
 from data_management.advanced_candle_downloader import _pandas_manager
 
+# ✅ Integración con memoria histórica de CHoCH
+try:
+    from memory.choch_historical_memory import (
+        adjust_confidence_with_memory as choch_adjust_confidence,
+        predict_target_based_on_history as choch_predict_target,
+        find_similar_choch_in_history as choch_find_similar,
+        calculate_historical_success_rate as choch_success_rate,
+    )
+    CHOCH_MEMORY_AVAILABLE = True
+except Exception:
+    CHOCH_MEMORY_AVAILABLE = False
+
+    def choch_adjust_confidence(base_confidence: float, symbol: str, timeframe: str, break_level: float) -> float:
+        return float(base_confidence)
+
+    def choch_predict_target(symbol: str, timeframe: str, direction: str, break_level: float, default_target: Optional[float] = None) -> Optional[float]:
+        return default_target
+
+    def choch_find_similar(symbol: str, timeframe: str, direction: Optional[str] = None, break_level_range: Optional[Tuple[float, float]] = None):
+        return []
+
+    def choch_success_rate(symbol: str, timeframe: str, direction: Optional[str] = None) -> float:
+        return 0.0
+
 # Import pandas solo para tipado estático
 if TYPE_CHECKING:
     from typing import Any as DataFrameType
@@ -105,6 +129,7 @@ class SilverBulletSignal:
     timeframe: str
     
     # 🔄 Lifecycle 
+    choch_target_hint: Optional[float] = None
     status: str = "ACTIVE"
     expiry_time: Optional[datetime] = None
     analysis_id: str = ""
@@ -157,7 +182,11 @@ class SilverBulletDetectorEnterprise:
             'min_displacement_strength': 0.6,
             # ⭐ NUEVO: Quality scoring del sistema validado
             'min_quality_score': 0.6,      # Quality score mínimo
-            'enable_quality_filtering': True  # Habilitar filtrado por calidad
+            'enable_quality_filtering': True,  # Habilitar filtrado por calidad
+            # ⭐ Integración memoria CHoCH
+            'use_choch_memory': True,
+            'choch_confidence_max_bonus': 10.0,   # Máximo bonus de confianza por historial CHoCH
+            'choch_level_lookback': 20,           # Velas para estimar nivel de ruptura
         }
         
         # 💾 MEMORY INTEGRATION ENTERPRISE
@@ -260,6 +289,22 @@ class SilverBulletDetectorEnterprise:
             total_confidence = self._calculate_enterprise_confidence(
                 timing_score, structure_score, confluence_score, mtf_score, memory_score
             )
+
+            # 6.1 💾 BONUS POR MEMORIA CHoCH (si disponible)
+            choch_target_hint = None
+            if self.config.get('use_choch_memory', True) and CHOCH_MEMORY_AVAILABLE:
+                try:
+                    total_confidence, choch_target_hint, choch_bonus = self._apply_choch_memory(
+                        base_confidence=total_confidence,
+                        data=data,
+                        symbol=symbol,
+                        timeframe=timeframe,
+                        direction=market_direction,
+                        current_price=current_price,
+                    )
+                    self._log_debug(f"💾 CHoCH memory bonus aplicado: {choch_bonus:+.2f} → conf {total_confidence:.1f}%")
+                except Exception as e:
+                    self._log_warning(f"⚠️ No se pudo aplicar bonus CHoCH: {e}")
             
             # 7. ✅ VALIDAR THRESHOLD
             if total_confidence < self.config['min_confidence']:
@@ -280,7 +325,8 @@ class SilverBulletDetectorEnterprise:
                 symbol=symbol,
                 timeframe=timeframe,
                 data=data,
-                best_order_block=best_ob
+                best_order_block=best_ob,
+                choch_target_hint=choch_target_hint
             )
             
             # 9. 💾 GUARDAR EN MEMORIA ENTERPRISE
@@ -566,7 +612,7 @@ class SilverBulletDetectorEnterprise:
             
             # 📊 CALCULAR NIVELES DE TRADING
             entry_zone, stop_loss, tp1, tp2 = self._calculate_trading_levels_enterprise(
-                current_price, direction, data
+                current_price, direction, data, kwargs.get('choch_target_hint')
             )
             
             # 📝 GENERAR NARRATIVA
@@ -582,6 +628,7 @@ class SilverBulletDetectorEnterprise:
                 stop_loss=stop_loss,
                 take_profit_1=tp1,
                 take_profit_2=tp2,
+                choch_target_hint=kwargs.get('choch_target_hint'),
                 structure_confluence=kwargs.get('structure_confluence', False),
                 killzone_timing=kwargs.get('killzone_timing', False),
                 order_block_present=kwargs.get('order_block_present', False),
@@ -610,7 +657,8 @@ class SilverBulletDetectorEnterprise:
     def _calculate_trading_levels_enterprise(self,
                                             current_price: float,
                                             direction: TradingDirection,
-                                            data: Any) -> Tuple[Tuple[float, float], float, float, float]:
+                                            data: Any,
+                                            choch_target_hint: Optional[float] = None) -> Tuple[Tuple[float, float], float, float, float]:
         """📊 Calcular niveles de trading enterprise"""
         try:
             if direction == TradingDirection.BUY:
@@ -623,7 +671,17 @@ class SilverBulletDetectorEnterprise:
                 stop_loss = current_price + 0.0025
                 take_profit_1 = current_price - 0.0040
                 take_profit_2 = current_price - 0.0070
-            
+            # 🎯 Ajuste de objetivos basado en memoria CHoCH (si hay hint válido)
+            if choch_target_hint is not None:
+                try:
+                    if direction == TradingDirection.BUY and choch_target_hint > current_price:
+                        take_profit_2 = float(choch_target_hint)
+                        take_profit_1 = current_price + (take_profit_2 - current_price) * 0.5
+                    elif direction == TradingDirection.SELL and choch_target_hint < current_price:
+                        take_profit_2 = float(choch_target_hint)
+                        take_profit_1 = current_price - (current_price - take_profit_2) * 0.5
+                except Exception:
+                    pass
             return entry_zone, stop_loss, take_profit_1, take_profit_2
             
         except Exception:
@@ -651,6 +709,8 @@ class SilverBulletDetectorEnterprise:
                 base_narrative += f" con {', '.join(confluences)}"
             
             base_narrative += f". Confianza: {confidence:.1f}%"
+            if context.get('choch_target_hint') is not None:
+                base_narrative += " (ajuste CHoCH histórico aplicado)"
             
             return base_narrative
             
@@ -667,6 +727,51 @@ class SilverBulletDetectorEnterprise:
             'memory_backed': kwargs.get('memory_confirmation', False),
             'institutional_bias': kwargs.get('confidence', 0) / 100.0
         }
+
+    # ===========================================
+    # 💾 CHoCH MEMORY INTEGRATION HELPERS
+    # ===========================================
+    def _estimate_choch_break_level(self, data: Any, direction: TradingDirection) -> float:
+        """Estimación simple del nivel de ruptura CHoCH según dirección."""
+        try:
+            pd = _pandas_manager.get_safe_pandas_instance()
+            recent = data.tail(int(self.config.get('choch_level_lookback', 20)))
+            if direction == TradingDirection.BUY:
+                return float(recent['high'].max())
+            elif direction == TradingDirection.SELL:
+                return float(recent['low'].min())
+            else:
+                return float(recent['close'].iloc[-1])
+        except Exception:
+            try:
+                return float(data['close'].iloc[-1])
+            except Exception:
+                return 0.0
+
+    def _apply_choch_memory(self,
+                             base_confidence: float,
+                             data: Any,
+                             symbol: str,
+                             timeframe: str,
+                             direction: TradingDirection,
+                             current_price: float) -> Tuple[float, Optional[float], float]:
+        """Aplica ajuste de confianza y target basado en memoria CHoCH.
+
+        Retorna: (confianza_ajustada, choch_target_hint, bonus_aplicado)
+        """
+        break_level = self._estimate_choch_break_level(data, direction)
+
+        # Ajustar confianza usando historial CHoCH
+        adjusted = choch_adjust_confidence(base_confidence, symbol, timeframe, break_level)
+        raw_bonus = float(adjusted) - float(base_confidence)
+        max_bonus = float(self.config.get('choch_confidence_max_bonus', 10.0))
+        bonus = max(-max_bonus, min(max_bonus, raw_bonus))
+        final_conf = max(0.0, min(100.0, float(base_confidence) + bonus))
+
+        dir_str = 'BULLISH' if direction == TradingDirection.BUY else ('BEARISH' if direction == TradingDirection.SELL else 'NEUTRAL')
+        target_hint = choch_predict_target(symbol, timeframe, dir_str, break_level, default_target=None)
+
+        return final_conf, target_hint, bonus
 
     # ===========================================
     # 🛠️ HELPER METHODS
@@ -1260,6 +1365,7 @@ class SilverBulletDetectorEnterprise:
                 'stop_loss': best_signal.stop_loss,
                 'take_profit_1': best_signal.take_profit_1,
                 'take_profit_2': best_signal.take_profit_2,
+                'choch_target_hint': getattr(best_signal, 'choch_target_hint', None),
                 'institutional_bias': getattr(best_signal, 'institutional_bias', 0.0),
                 'structure_confluence': getattr(best_signal, 'structure_confluence', False),
                 'killzone_timing': getattr(best_signal, 'killzone_timing', False),

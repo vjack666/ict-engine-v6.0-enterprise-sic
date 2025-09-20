@@ -35,6 +35,42 @@ if TYPE_CHECKING:
 else:
     DataFrameType = Any
 
+# ✅ CHOCH MEMORY IMPORTS 
+try:
+    from memory.choch_historical_memory import (
+        find_similar_choch_in_history,
+        calculate_historical_success_rate,
+        adjust_confidence_with_memory as choch_adjust_confidence_with_memory,
+        predict_target_based_on_history,
+        update_choch_outcome,
+    )
+    from memory.choch_helpers import estimate_break_level_from_swings as choch_estimate_break_level
+    CHOCH_MEMORY_AVAILABLE = True
+except ImportError:
+    # Fallbacks por compatibilidad con firmas reales
+    from typing import Optional as _Opt, Tuple as _Tpl
+    def find_similar_choch_in_history(symbol: str, timeframe: str, direction: _Opt[str] = None, break_level_range: _Opt[_Tpl[float, float]] = None):
+        return []
+    def calculate_historical_success_rate(symbol: str, timeframe: str, direction: _Opt[str] = None) -> float:
+        return 0.0
+    def choch_adjust_confidence_with_memory(base_confidence: float, symbol: str, timeframe: str, break_level: float) -> float:
+        return float(base_confidence)
+    def predict_target_based_on_history(symbol: str, timeframe: str, direction: str, break_level: float, default_target: _Opt[float] = None) -> _Opt[float]:
+        return default_target
+    def update_choch_outcome(event_id: str, outcome: str, pips_moved: _Opt[float] = None, time_to_target: _Opt[str] = None) -> bool:
+        return False
+    def choch_estimate_break_level(data: Any, direction: str, lookback: int = 20) -> float:
+        try:
+            recent = data.tail(lookback)
+            if direction.lower() in ("buy", "bullish"):
+                return float(recent['high'].max())
+            elif direction.lower() in ("sell", "bearish"):
+                return float(recent['low'].min())
+            return float(recent['close'].iloc[-1])
+        except Exception:
+            return 0.0
+    CHOCH_MEMORY_AVAILABLE = False
+
 # 🏗️ ENTERPRISE ARCHITECTURE v6.0 - UNIFIED LOGGING OPTIMIZADO
 try:
     from ..unified_logging import log_info, log_warning, log_error, log_debug, SmartTradingLogger, create_unified_logger
@@ -202,6 +238,12 @@ class OrderBlockMitigationSignal:
     symbol: str
     timeframe: str
     
+    # ✅ CHoCH MEMORY INTEGRATION
+    choch_confidence_bonus: float = 0.0
+    similar_choch_count: int = 0
+    historical_success_rate: float = 0.0
+    choch_level_estimate: float = 0.0
+    
     # 🔄 Lifecycle 
     status: OrderBlockStatus = OrderBlockStatus.ACTIVE
     expiry_time: Optional[datetime] = None
@@ -260,7 +302,12 @@ class OrderBlockMitigationDetectorEnterprise:
             'smart_money_bonus': 0.15,
             'fair_value_gap_bonus': 0.10,
             'breaker_block_bonus': 0.12,
-            'session_timing_bonus': 0.08
+            'session_timing_bonus': 0.08,
+            
+            # ✅ CONFIGURACIÓN CHOCH MEMORIA
+            'use_choch_memory': True,
+            'choch_confidence_max_bonus': 8.0,
+            'choch_level_lookback': 20
         }
         
         # 🎯 ORDER BLOCK STRENGTH MAPPING
@@ -369,9 +416,10 @@ class OrderBlockMitigationDetectorEnterprise:
                 )
                 
                 # 5. 🧮 CALCULAR CONFIANZA TOTAL ENTERPRISE
-                total_confidence = self._calculate_order_block_mitigation_confidence_enterprise(
+                total_confidence, choch_bonus = self._calculate_order_block_mitigation_confidence_enterprise(
                     mitigation_score, volume_score, institutional_score, 
-                    order_block, mitigation_details
+                    order_block, mitigation_details,
+                    symbol=symbol, mitigation_level=mitigation_details.get('mitigation_level', 0.0)
                 )
                 
                 # 6. ✅ VALIDAR THRESHOLD
@@ -388,6 +436,7 @@ class OrderBlockMitigationDetectorEnterprise:
                     volume_strength=volume_strength,
                     institutional_score=institutional_score,
                     smart_money_confirmed=smart_money_confirmed,
+                    choch_bonus=choch_bonus,
                     symbol=symbol,
                     timeframe=timeframe,
                     data=data
@@ -835,7 +884,10 @@ class OrderBlockMitigationDetectorEnterprise:
                                                                volume_score: float,
                                                                institutional_score: float,
                                                                order_block: Dict[str, Any],
-                                                               mitigation_details: Dict[str, Any]) -> float:
+                                                               mitigation_details: Dict[str, Any],
+                                                               symbol: str = "",
+                                                               timeframe: str = "",
+                                                               mitigation_level: float = 0.0) -> Tuple[float, float]:
         """🧮 Cálculo de confianza Order Block Mitigation enterprise ponderado"""
         try:
             # Calcular block quality score
@@ -873,14 +925,33 @@ class OrderBlockMitigationDetectorEnterprise:
             if mitigation_details.get('full_mitigation', False):
                 bonus += 8.0  # Full mitigation bonus
             
-            final_confidence = min(total_confidence + bonus, 95.0)  # Max 95%
+            # ✅ BONUS MEMORIA CHOCH
+            choch_bonus = 0.0
+            if (self.config['use_choch_memory'] and symbol and timeframe and mitigation_level > 0.0):
+                try:
+                    base_before_choch = total_confidence + bonus
+                    adjusted = choch_adjust_confidence_with_memory(
+                        base_confidence=base_before_choch,
+                        symbol=symbol,
+                        timeframe=timeframe,
+                        break_level=mitigation_level,
+                    )
+                    choch_bonus = float(adjusted) - float(base_before_choch)
+                    choch_bonus = max(-self.config['choch_confidence_max_bonus'], min(self.config['choch_confidence_max_bonus'], choch_bonus))
+                    if abs(choch_bonus) > 0:
+                        log_debug(f"🔥 CHoCH Memory Bonus OB: {choch_bonus:+.1f}% para nivel {mitigation_level}", "order_block_mitigation_enterprise")
+                except Exception as e:
+                    log_error(f"Error aplicando CHoCH memory bonus: {e}", "order_block_mitigation_enterprise")
+                    choch_bonus = 0.0
             
-            log_debug(f"🧮 Order Block Mitigation Confidence: {final_confidence:.1f}% (base: {total_confidence:.1f}%, bonus: {bonus:.1f}%)", "order_block_mitigation_enterprise")
-            return final_confidence
+            final_confidence = min(total_confidence + bonus + choch_bonus, 95.0)  # Max 95%
+            
+            log_debug(f"🧮 Order Block Mitigation Confidence: {final_confidence:.1f}% (base: {total_confidence:.1f}%, bonus: {bonus:.1f}%, choch: {choch_bonus:.1f}%)", "order_block_mitigation_enterprise")
+            return final_confidence, choch_bonus
             
         except Exception as e:
             log_error(f"Error calculando confidence: {e}", "order_block_mitigation_enterprise")
-            return 50.0
+            return 50.0, 0.0
 
     def _generate_order_block_mitigation_signal_enterprise(self, **kwargs) -> Optional[OrderBlockMitigationSignal]:
         """🎯 Generar señal Order Block Mitigation enterprise completa"""
@@ -892,6 +963,33 @@ class OrderBlockMitigationDetectorEnterprise:
             current_price = kwargs.get('current_price', 0.0)
             symbol = kwargs.get('symbol', '')
             timeframe = kwargs.get('timeframe', '')
+            mitigation_level = mitigation_details.get('mitigation_level', current_price)
+            
+            # ✅ RECOPILAR DATOS CHOCH
+            choch_bonus = kwargs.get('choch_bonus', 0.0)
+            similar_count = 0
+            success_rate = 0.0
+            choch_level = 0.0
+            
+            if self.config['use_choch_memory'] and symbol and timeframe and mitigation_level > 0.0:
+                try:
+                    # Buscar CHoCH similares 
+                    similar_chochs = find_similar_choch_in_history(symbol=symbol, timeframe=timeframe)
+                    similar_count = len(similar_chochs)
+                    
+                    # Calcular tasa de éxito histórica
+                    if similar_count > 0:
+                        dir_val = order_block['direction'].value if hasattr(order_block['direction'], 'value') else str(order_block['direction'])
+                        dir_str = 'BULLISH' if str(dir_val).lower() in ('buy','bullish') else ('BEARISH' if str(dir_val).lower() in ('sell','bearish') else None)
+                        success_rate = calculate_historical_success_rate(symbol=symbol, timeframe=timeframe, direction=dir_str)
+                    
+                    # Obtener CHoCH level estimate
+                    data_for_est = kwargs.get('data')
+                    dir_val = order_block['direction'].value if hasattr(order_block['direction'], 'value') else str(order_block['direction'])
+                    choch_level = choch_estimate_break_level(data_for_est, dir_val, lookback=self.config.get('mitigation_analysis_lookback', 20))
+                    
+                except Exception as e:
+                    log_error(f"Error recopilando datos CHoCH: {e}", "order_block_mitigation_enterprise")
             
             # 📊 CALCULAR STRENGTH
             strength = self._calculate_order_block_strength_enterprise(order_block, kwargs)
@@ -937,6 +1035,10 @@ class OrderBlockMitigationDetectorEnterprise:
                 session_context=self._build_order_block_session_context(kwargs),
                 symbol=symbol,
                 timeframe=timeframe,
+                choch_confidence_bonus=choch_bonus,
+                similar_choch_count=similar_count,
+                historical_success_rate=success_rate,
+                choch_level_estimate=choch_level,
                 status=OrderBlockStatus.PARTIALLY_MITIGATED if mitigation_details.get('block_penetration', False) else OrderBlockStatus.ACTIVE,
                 expiry_time=datetime.now() + timedelta(hours=4),
                 analysis_id=f"OBM_{symbol}_{int(datetime.now().timestamp())}"
@@ -945,6 +1047,8 @@ class OrderBlockMitigationDetectorEnterprise:
             return signal
             
         except Exception as e:
+            log_error(f"Error generando señal Order Block Mitigation: {e}", "order_block_mitigation_enterprise")
+            return None
             log_error(f"Error generando señal Order Block Mitigation: {e}", "order_block_mitigation_enterprise")
             return None
 

@@ -40,11 +40,11 @@
 - Event types: `TAB_ACTIVATED`, `DATA_UPDATED`, `STATE_CHANGED`, etc.
 
 #### 📊 8 Tabs Registrados por Defecto
-1. **overview** - System Overview
-2. **metrics** - Performance Metrics  
-3. **trading** - Trading Status
-4. **patterns** - Pattern Analysis
-5. **market_structure** - Market Structure
+1. **overview** - Vista General del Sistema
+2. **metrics** - Métricas de Rendimiento  
+3. **trading** - Estado de Trading
+4. **patterns** - Análisis de Patrones
+5. **market_structure** - Estructura de Mercado
 6. **order_blocks** - Order Blocks
 7. **fvg** - Fair Value Gaps
 8. **smart_money** - Smart Money

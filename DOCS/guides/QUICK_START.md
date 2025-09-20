@@ -1,4 +1,4 @@
-# 🚀 QUICK START - ICT Engine v6.0 Enterprise
+# 🚀 INICIO RÁPIDO - ICT Engine v6.0 Enterprise
 
 **Tiempo estimado:** 5-10 minutos para sistema completo  
 **Requisitos:** Python 3.9+, MetaTrader 5 instalado  
@@ -57,13 +57,13 @@ python activate_auto_trading.py --test --demo-only
 
 ## 🔧 CONFIGURACIÓN BÁSICA
 
-### **MT5 Connection**
+### **Conexión MT5**
 1. Abrir MetaTrader 5
 2. Conectar cuenta FTMO Demo
 3. Activar "Permitir importación de DLL"
 4. Verificar conexión con comando de test
 
-### **Python Environment**
+### **Entorno Python**
 ```bash
 # Instalar dependencias (si es necesario)
 pip install pandas plotly dash textual MetaTrader5
@@ -84,9 +84,9 @@ pip install pandas plotly dash textual MetaTrader5
 - Logs no contienen información sensible de cuenta
 - Sistema diseñado para compliance enterprise
 
-## 📞 TROUBLESHOOTING RÁPIDO
+## 📞 SOLUCIÓN RÁPIDA DE PROBLEMAS
 
-### **❌ Error MT5 Connection**
+### **❌ Error de Conexión MT5**
 ```bash
 # 1. Verificar MT5 está abierto y conectado
 # 2. Reiniciar MT5 si es necesario  
@@ -94,7 +94,7 @@ pip install pandas plotly dash textual MetaTrader5
 # 4. Ejecutar diagnóstico: python diagnostic_real_state.py
 ```
 
-### **❌ Dashboard no carga**
+### **❌ El Dashboard no carga**
 ```bash
 # Terminal dashboard
 python main.py --dashboard-terminal
@@ -103,7 +103,7 @@ python main.py --dashboard-terminal
 # 2. Revisar logs en 05-LOGS/application/
 ```
 
-### **❌ Patterns no detectan**
+### **❌ No se detectan patrones**
 ```bash
 # Verificar datos MT5
 python -c "from data_management.mt5_data_manager import MT5DataManager; print(MT5DataManager().get_current_data('EURUSD', 'M15', 5))"

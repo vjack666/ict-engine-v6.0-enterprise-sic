@@ -23,6 +23,8 @@ import numpy as np
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Tuple, Any
 from dataclasses import dataclass, field
+from pathlib import Path
+import json
 import logging
 
 # 🏗️ ENTERPRISE ARCHITECTURE v6.0 - Thread-safe pandas
@@ -103,6 +105,9 @@ class DisplacementSignal:
     relative_equal_highs_lows: bool = False
     fair_value_gap_created: bool = False
     market_structure_shift: bool = False
+    # ML scoring for MSS (optional)
+    ml_score: float = 0.0
+    ml_confidence: float = 0.0
 
 class DisplacementDetectorEnterprise:
     """🎯 Displacement Detector Enterprise con ICT Smart Money Concepts v6.0"""
@@ -135,6 +140,62 @@ class DisplacementDetectorEnterprise:
                 "ict_compliance": "FULL"
             }, symbol="SYSTEM"
         )
+        # CHoCH memory availability check (lazy import with fallback)
+        self._choch_available = False
+        try:
+            from memory.choch_historical_memory import (
+                compute_historical_bonus,
+                calculate_historical_success_rate,
+            )  # type: ignore
+            self._compute_choch_bonus = compute_historical_bonus
+            self._choch_success_rate = calculate_historical_success_rate
+            self._choch_available = True
+        except Exception as e:
+            self._compute_choch_bonus = lambda **kwargs: {"historical_bonus": 0.0, "samples": 0}
+            self._choch_success_rate = lambda **kwargs: 0.0
+            self.logger.warning(f"CHoCH memory not available: {e}")
+
+        # MSS ML scorer (optional)
+        self._mss_scorer = None
+        try:
+            from machine_learning.mss.service import MSSShiftScorer  # type: ignore
+            self._mss_scorer = MSSShiftScorer()
+        except Exception as e:
+            self.logger.warning(f"MSSShiftScorer not available: {e}")
+
+        # Pip cache for symbols
+        self._pip_cache: Dict[str, float] = {}
+
+    def _get_pip_value(self, symbol: str) -> float:
+        """Obtener pip_value por símbolo desde config, con heurística de fallback."""
+        try:
+            if symbol in self._pip_cache:
+                return self._pip_cache[symbol]
+
+            # Buscar archivo de configuración relativo al módulo
+            config_path = Path(__file__).resolve().parents[1] / 'config' / 'trading_symbols_config.json'
+            pip_val = None
+            if config_path.exists():
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    cfg = json.load(f)
+                sym_cfg = (cfg.get('symbol_configurations', {}) or {}).get(symbol.upper())
+                if sym_cfg and 'pip_value' in sym_cfg:
+                    pip_val = float(sym_cfg['pip_value'])
+
+            # Heurística si no está en config
+            if pip_val is None:
+                s = symbol.upper()
+                if 'JPY' in s or s.endswith('JPY'):
+                    pip_val = 0.01
+                elif s in {'XAUUSD', 'GOLD', 'XAU'}:
+                    pip_val = 0.01
+                else:
+                    pip_val = 0.0001
+
+            self._pip_cache[symbol] = pip_val
+            return pip_val
+        except Exception:
+            return 0.0001
     
     def _get_pandas_manager(self):
         """🐼 Obtener instancia thread-safe de pandas"""
@@ -188,6 +249,31 @@ class DisplacementDetectorEnterprise:
                 displacement_signal = self._enhance_with_memory(displacement_signal, symbol)
                 displacement_signal = self._enhance_with_sic_stats(displacement_signal, analysis_window)
                 displacement_signal = self._enhance_with_market_structure(displacement_signal, analysis_window)
+
+                # ML scoring for MSS (optional)
+                try:
+                    if self._mss_scorer is not None:
+                        ml = self._mss_scorer.score(analysis_window, symbol=symbol, timeframe=timeframe)
+                        displacement_signal.ml_score = float(ml.get('prob_shift', 0.0) or 0.0)
+                        displacement_signal.ml_confidence = float(ml.get('confidence', 0.0) or 0.0)
+                        # If ML strongly indicates shift, enforce flag
+                        if displacement_signal.ml_score >= 0.8 and displacement_signal.ml_confidence >= 0.6:
+                            displacement_signal.market_structure_shift = True
+                except Exception as e:
+                    self.logger.warning(f"MSS ML scoring failed: {e}")
+
+                # Mild CHoCH-based enrichment for MSS context
+                try:
+                    if self._choch_available:
+                        bonus_info = self._compute_choch_bonus(symbol=symbol, timeframe=timeframe, break_level=float(displacement_signal.end_price))
+                        hist_bonus = float(bonus_info.get('historical_bonus', 0.0) or 0.0)
+                        # Reflect bonus by adjusting target estimation slightly and embedding stats
+                        displacement_signal.target_estimation = displacement_signal.target_estimation * (1.0 + (hist_bonus / 500.0))
+                        signal_sr = self._choch_success_rate(symbol=symbol, timeframe=timeframe)
+                        displacement_signal.sic_stats["choch_bonus"] = hist_bonus
+                        displacement_signal.sic_stats["choch_success_rate"] = signal_sr
+                except Exception as e:
+                    self.logger.warning(f"CHoCH enrichment failed: {e}")
                 
                 displacement_signals.append(displacement_signal)
                 
@@ -223,7 +309,8 @@ class DisplacementDetectorEnterprise:
         start_price = window.iloc[0]['open']
         end_price = window.iloc[-1]['close']
         price_movement = end_price - start_price
-        displacement_pips = abs(price_movement) * 10000  # Para EURUSD
+        pip = self._get_pip_value(symbol)
+        displacement_pips = abs(price_movement) / max(pip, 1e-9)
         
         # Filtro mínimo ICT
         if displacement_pips < self.min_displacement_pips:
@@ -540,19 +627,93 @@ class DisplacementDetectorEnterprise:
         return False
     
     def _detect_structure_shift(self, window: pd.DataFrame) -> bool:
-        """🏗️ Detect market structure shift"""
-        if len(window) < 5:
-            return False
-        
-        # Simplified: Detect significant change in trend
-        first_half = window.iloc[:len(window)//2]
-        second_half = window.iloc[len(window)//2:]
-        
-        first_trend = first_half.iloc[-1]['close'] - first_half.iloc[0]['open']
-        second_trend = second_half.iloc[-1]['close'] - second_half.iloc[0]['open']
-        
-        # Structure shift if trends are opposite and significant
-        return (first_trend * second_trend < 0) and (abs(first_trend) > 0.0020 or abs(second_trend) > 0.0020)
+        """🏗️ Detect market structure shift (MSS) with robust swing/BOS logic"""
+        try:
+            if len(window) < 10:
+                return False
+
+            # Volatility gate using simple ATR-like measure
+            high_np = window['high'].to_numpy(dtype=float)
+            low_np = window['low'].to_numpy(dtype=float)
+            close_np = window['close'].to_numpy(dtype=float)
+            tr = np.maximum(
+                high_np[1:] - low_np[1:],
+                np.maximum(
+                    np.abs(high_np[1:] - close_np[:-1]),
+                    np.abs(low_np[1:] - close_np[:-1]),
+                ),
+            )
+            avg_tr = float(np.mean(tr)) if len(tr) else 0.0
+            if avg_tr <= 0:
+                return False
+
+            # Identify recent swings (zigzag-lite): a point is swing high if high prev<curr>next, swing low if low prev>curr<next
+            highs = window['high'].values
+            lows = window['low'].values
+            closes = window['close'].values
+
+            swing_highs: List[int] = []
+            swing_lows: List[int] = []
+            for i in range(1, len(window) - 1):
+                if highs[i] > highs[i - 1] and highs[i] > highs[i + 1]:
+                    swing_highs.append(i)
+                if lows[i] < lows[i - 1] and lows[i] < lows[i + 1]:
+                    swing_lows.append(i)
+
+            if len(swing_highs) < 2 and len(swing_lows) < 2:
+                return False
+
+            # Determine current bias using last two closes
+            bias_up = closes[-1] > closes[-2]
+
+            # Define BOS thresholds relative to volatility (e.g., 1.2x ATR)
+            bos_buffer = 1.2 * avg_tr
+
+            # Check bearish shift: break below last confirmed swing low after making a lower high
+            bearish_shift = False
+            if len(swing_lows) >= 2 and len(swing_highs) >= 1:
+                last_low_idx = swing_lows[-1]
+                prior_low = lows[last_low_idx]
+                # Require a lower high structure before break (optional for robustness)
+                last_high_idx = swing_highs[-1]
+                prior_high = highs[last_high_idx]
+                # Price currently below last swing low by buffer
+                if closes[-1] < (prior_low - bos_buffer):
+                    bearish_shift = True
+
+            # Check bullish shift: break above last confirmed swing high after making a higher low
+            bullish_shift = False
+            if len(swing_highs) >= 2 and len(swing_lows) >= 1:
+                last_high_idx = swing_highs[-1]
+                prior_high = highs[last_high_idx]
+                last_low_idx = swing_lows[-1]
+                prior_low = lows[last_low_idx]
+                if closes[-1] > (prior_high + bos_buffer):
+                    bullish_shift = True
+
+            # Optional confirmation: candle body close beyond level and displacement body size > 0.8*ATR
+            body = abs(window['close'].iloc[-1] - window['open'].iloc[-1])
+            if body < 0.8 * avg_tr:
+                # If body is small, demand stronger breach
+                if bullish_shift and closes[-1] <= (prior_high + 1.5 * bos_buffer):
+                    bullish_shift = False
+                if bearish_shift and closes[-1] >= (prior_low - 1.5 * bos_buffer):
+                    bearish_shift = False
+
+            # Final decision
+            return bool(bullish_shift or bearish_shift)
+
+        except Exception:
+            # Fallback to previous simple trend reversal heuristic
+            if len(window) < 5:
+                return False
+            first_half = window.iloc[: len(window) // 2]
+            second_half = window.iloc[len(window) // 2 :]
+            first_trend = first_half.iloc[-1]['close'] - first_half.iloc[0]['open']
+            second_trend = second_half.iloc[-1]['close'] - second_half.iloc[0]['open']
+            return (first_trend * second_trend < 0) and (
+                abs(first_trend) > 0.0020 or abs(second_trend) > 0.0020
+            )
 
 # 🚀 Enterprise factory function
 def create_displacement_detector_enterprise() -> DisplacementDetectorEnterprise:

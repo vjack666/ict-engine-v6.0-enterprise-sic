@@ -163,6 +163,25 @@ if not TRADING_READY:
 else:
     _logger.info("✅ TRADING_READY: TRUE - Sistema listo para trading en vivo", "CORE")
 
+# 🧠 CHoCH Historical Memory integration (para enriquecer BOS/MSS/FVG) con fallbacks seguros
+_CHOCH_MEM_AVAILABLE = False
+try:
+    from memory.choch_historical_memory import (
+        compute_historical_bonus,
+        calculate_historical_success_rate,
+        adjust_confidence_with_memory,
+    )  # type: ignore
+    _CHOCH_MEM_AVAILABLE = True
+    _logger.info("✅ CHoCH Historical Memory disponible", "IMPORT")
+except Exception as e:
+    _logger.warning(f"CHoCH Historical Memory no disponible - usando fallbacks: {e}", "IMPORT")
+    def compute_historical_bonus(*args, **kwargs):  # type: ignore
+        return {"historical_bonus": 0.0, "samples": 0}
+    def calculate_historical_success_rate(*args, **kwargs):  # type: ignore
+        return 0.0
+    def adjust_confidence_with_memory(base_confidence: float, *args, **kwargs) -> float:  # type: ignore
+        return float(base_confidence)
+
 # 🛡️ FUNCIONES AUXILIARES SEGURAS PARA TRADING
 def safe_numpy_mean(array_like) -> float:
     """Función segura para calcular la media usando numpy o fallback"""
@@ -737,6 +756,30 @@ class PatternDetector:
                     momentum_score = self._analyze_bos_momentum(candles, pattern['type'])
                     pattern['momentum_score'] = momentum_score
                     pattern['strength'] = min(95.0, pattern['strength'] * momentum_score)
+
+                    # 🧠 Ajuste de confianza usando CHoCH Historical Memory (seguro y opt-in)
+                    try:
+                        if _CHOCH_MEM_AVAILABLE:
+                            symbol_for_mem = symbol
+                            tf_for_mem = timeframe
+                            break_lvl = float(pattern.get('break_level', pattern.get('current_price', 0.0)))
+                            base_conf = float(pattern['strength'])
+                            adjusted = adjust_confidence_with_memory(base_conf, symbol_for_mem, tf_for_mem, break_lvl)
+                            bonus = adjusted - base_conf
+                            pattern['strength'] = adjusted
+                            # Adjuntar metadatos CHoCH
+                            if 'metadata' not in pattern:
+                                pattern['metadata'] = {}
+                            pattern['metadata']['choch_historical_bonus'] = bonus
+                            pattern['metadata']['choch_success_rate'] = calculate_historical_success_rate(symbol_for_mem, tf_for_mem)
+                    except Exception as e:
+                        try:
+                            if _logger is not None and hasattr(_logger, 'warning'):
+                                _logger.warning(f"CHOCH bonus no aplicado en BOS: {e}", "BOS")
+                            else:
+                                print(f"[BOS] CHOCH bonus no aplicado: {e}")
+                        except Exception:
+                            print(f"[BOS] CHOCH bonus no aplicado: {e}")
                     
                     confirmed_patterns.append(pattern)
             
@@ -757,7 +800,7 @@ class PatternDetector:
                     entry_zone=(best_pattern['break_level'] * 0.9999, best_pattern['break_level'] * 1.0001),
                     stop_loss=self._calculate_bos_stop_loss(best_pattern),
                     take_profit_1=best_pattern['target_level'],
-                    narrative=best_pattern['narrative'],
+                    narrative=(best_pattern['narrative'] + (f" | CHOCH+{best_pattern.get('metadata',{}).get('choch_historical_bonus', 0):+.1f}" if best_pattern.get('metadata') else "")),
                     confluences=['BOS_PATTERN', 'STRUCTURE_BREAK'],
                     risk_reward_ratio=self._calculate_bos_rr(best_pattern)
                 )

@@ -35,6 +35,42 @@ if TYPE_CHECKING:
 else:
     DataFrameType = Any
 
+# ✅ CHOCH MEMORY IMPORTS
+try:
+    from memory.choch_historical_memory import (
+        find_similar_choch_in_history,
+        calculate_historical_success_rate,
+        adjust_confidence_with_memory as choch_adjust_confidence_with_memory,
+        predict_target_based_on_history,
+        update_choch_outcome,
+    )
+    from memory.choch_helpers import estimate_break_level_from_swings as choch_estimate_break_level
+    CHOCH_MEMORY_AVAILABLE = True
+except ImportError:
+    # Fallbacks por compatibilidad con firmas reales
+    from typing import Optional as _Opt, Tuple as _Tpl
+    def find_similar_choch_in_history(symbol: str, timeframe: str, direction: _Opt[str] = None, break_level_range: _Opt[_Tpl[float, float]] = None) -> List[Dict[str, Any]]:
+        return []
+    def calculate_historical_success_rate(symbol: str, timeframe: str, direction: _Opt[str] = None) -> float:
+        return 0.0
+    def choch_adjust_confidence_with_memory(base_confidence: float, symbol: str, timeframe: str, break_level: float) -> float:
+        return float(base_confidence)
+    def predict_target_based_on_history(symbol: str, timeframe: str, direction: str, break_level: float, default_target: _Opt[float] = None) -> _Opt[float]:
+        return default_target
+    def update_choch_outcome(event_id: str, outcome: str, pips_moved: _Opt[float] = None, time_to_target: _Opt[str] = None) -> bool:
+        return False
+    def choch_estimate_break_level(data: Any, direction: str, lookback: int = 20) -> float:
+        try:
+            recent = data.tail(lookback)
+            if direction.lower() in ("buy", "bullish"):
+                return float(recent['high'].max())
+            elif direction.lower() in ("sell", "bearish"):
+                return float(recent['low'].min())
+            return float(recent['close'].iloc[-1])
+        except Exception:
+            return 0.0
+    CHOCH_MEMORY_AVAILABLE = False
+
 # 🏗️ ENTERPRISE ARCHITECTURE v6.0 - UNIFIED LOGGING
 try:
     from ..unified_logging import log_info, log_warning, log_error, log_debug, SmartTradingLogger, create_unified_logger
@@ -134,6 +170,12 @@ class JudasSwingSignal:
     symbol: str
     timeframe: str
     
+    # ✅ CHoCH MEMORY INTEGRATION
+    choch_confidence_bonus: float = 0.0
+    similar_choch_count: int = 0
+    historical_success_rate: float = 0.0
+    choch_level_estimate: float = 0.0
+    
     # 🔄 Lifecycle 
     status: JudasSwingStatus = JudasSwingStatus.SETUP_FORMING
     expiry_time: Optional[datetime] = None
@@ -185,7 +227,12 @@ class JudasSwingDetectorEnterprise:
             'fake_breakout_weight': 0.25,
             'reversal_weight': 0.20,
             'volume_spike_threshold': 1.5,
-            'poi_confluence_bonus': 0.15
+            'poi_confluence_bonus': 0.15,
+            
+            # ✅ CONFIGURACIÓN CHOCH MEMORIA
+            'use_choch_memory': True,
+            'choch_confidence_max_bonus': 9.0,
+            'choch_level_lookback': 20
         }
         
         # 💾 MEMORY INTEGRATION ENTERPRISE
@@ -365,9 +412,10 @@ class JudasSwingDetectorEnterprise:
             )
             
             # 7. 🧮 CALCULAR CONFIANZA TOTAL ENTERPRISE
-            total_confidence = self._calculate_judas_confidence_enterprise(
+            total_confidence, choch_bonus = self._calculate_judas_confidence_enterprise(
                 timing_score, swing_score, fake_breakout_score, 
-                reversal_score, volume_spike_detected, poi_confluence_score
+                reversal_score, volume_spike_detected, poi_confluence_score,
+                symbol=symbol, timeframe=timeframe, fake_breakout_price=breakout_price
             )
             
             # 8. ✅ VALIDAR THRESHOLD
@@ -390,6 +438,7 @@ class JudasSwingDetectorEnterprise:
                 reversal_score=reversal_score,
                 volume_spike_detected=volume_spike_detected,
                 poi_confluence=poi_present,
+                choch_bonus=choch_bonus,
                 symbol=symbol,
                 timeframe=timeframe,
                 data=data
@@ -617,7 +666,10 @@ class JudasSwingDetectorEnterprise:
                                              fake_breakout_score: float,
                                              reversal_score: float,
                                              volume_spike: bool,
-                                             poi_confluence_score: float) -> float:
+                                             poi_confluence_score: float,
+                                             symbol: str = "",
+                                             timeframe: str = "",
+                                             fake_breakout_price: float = 0.0) -> Tuple[float, float]:
         """🧮 Cálculo de confianza Judas Swing enterprise ponderado"""
         try:
             total_confidence = (
@@ -636,14 +688,33 @@ class JudasSwingDetectorEnterprise:
             if fake_breakout_score > 0.7 and reversal_score > 0.6:
                 bonus += 8.0  # Perfect Judas setup bonus
             
-            final_confidence = min(total_confidence + bonus, 96.0)  # Max 96%
+            # ✅ BONUS MEMORIA CHOCH
+            choch_bonus = 0.0
+            if (self.config['use_choch_memory'] and symbol and timeframe and fake_breakout_price > 0.0):
+                try:
+                    base_before_choch = total_confidence + bonus
+                    adjusted = choch_adjust_confidence_with_memory(
+                        base_confidence=base_before_choch,
+                        symbol=symbol,
+                        timeframe=timeframe,
+                        break_level=fake_breakout_price,
+                    )
+                    choch_bonus = float(adjusted) - float(base_before_choch)
+                    choch_bonus = max(-self.config['choch_confidence_max_bonus'], min(self.config['choch_confidence_max_bonus'], choch_bonus))
+                    if abs(choch_bonus) > 0:
+                        log_debug(f"🔥 CHoCH Memory Bonus Judas: {choch_bonus:+.1f}% para nivel {fake_breakout_price}", "judas_swing_enterprise")
+                except Exception as e:
+                    log_error(f"Error aplicando CHoCH memory bonus: {e}", "judas_swing_enterprise")
+                    choch_bonus = 0.0
             
-            log_debug(f"🧮 Judas Confidence: {final_confidence:.1f}% (base: {total_confidence:.1f}%, bonus: {bonus:.1f}%)", "judas_swing_enterprise")
-            return final_confidence
+            final_confidence = min(max(0.0, total_confidence + bonus + choch_bonus), 96.0)  # Max 96%
+            
+            log_debug(f"🧮 Judas Confidence: {final_confidence:.1f}% (base: {total_confidence:.1f}%, bonus: {bonus:.1f}%, choch: {choch_bonus:.1f}%)", "judas_swing_enterprise")
+            return final_confidence, choch_bonus
             
         except Exception as e:
             log_error(f"Error calculando Judas confidence: {e}", "judas_swing_enterprise")
-            return 50.0
+            return 50.0, 0.0
 
     def _generate_judas_swing_signal_enterprise(self, **kwargs) -> Optional[JudasSwingSignal]:
         """🎭 Generar señal Judas Swing enterprise completa"""
@@ -658,6 +729,34 @@ class JudasSwingDetectorEnterprise:
             current_price = kwargs.get('current_price', 0.0)
             symbol = kwargs.get('symbol', '')
             timeframe = kwargs.get('timeframe', '')
+            
+            # ✅ RECOPILAR DATOS CHOCH
+            choch_bonus = kwargs.get('choch_bonus', 0.0)
+            similar_count = 0
+            success_rate = 0.0
+            choch_level = 0.0
+            
+            if self.config['use_choch_memory'] and symbol and timeframe and fake_breakout_price > 0.0:
+                try:
+                    # Buscar CHoCH similares 
+                    similar_chochs = find_similar_choch_in_history(symbol=symbol, timeframe=timeframe)
+                    similar_count = len(similar_chochs)
+                    
+                    # Calcular tasa de éxito histórica
+                    if similar_count > 0:
+                        # Usar éxito histórico global para ese símbolo/timeframe
+                        dir_val = direction.value if hasattr(direction, 'value') else str(direction)
+                        # Map a CHoCH direction labels
+                        dir_str = 'BULLISH' if str(dir_val).lower() in ('buy','bullish') else ('BEARISH' if str(dir_val).lower() in ('sell','bearish') else None)
+                        success_rate = calculate_historical_success_rate(symbol=symbol, timeframe=timeframe, direction=dir_str)
+                    
+                    # Obtener CHoCH level estimate
+                    data_for_est = kwargs.get('data')
+                    dir_val = direction.value if hasattr(direction, 'value') else str(direction)
+                    choch_level = choch_estimate_break_level(data_for_est, dir_val, lookback=self.config.get('swing_lookback_periods', 20))
+                    
+                except Exception as e:
+                    log_error(f"Error recopilando datos CHoCH: {e}", "judas_swing_enterprise")
             
             # 📊 CALCULAR NIVELES DE TRADING
             entry_zone, stop_loss, tp1, tp2 = self._calculate_judas_trading_levels_enterprise(
@@ -692,6 +791,10 @@ class JudasSwingDetectorEnterprise:
                 session_context=self._build_judas_session_context(kwargs),
                 symbol=symbol,
                 timeframe=timeframe,
+                choch_confidence_bonus=choch_bonus,
+                similar_choch_count=similar_count,
+                historical_success_rate=success_rate,
+                choch_level_estimate=choch_level,
                 status=JudasSwingStatus.REVERSAL_CONFIRMED,
                 expiry_time=datetime.now() + timedelta(hours=4),
                 analysis_id=f"JUDAS_{symbol}_{int(datetime.now().timestamp())}"

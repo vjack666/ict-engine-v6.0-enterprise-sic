@@ -208,6 +208,59 @@ class CHoCHHistoricalMemory:
         bonus = (success_rate - 50.0) * 0.4  # 0.4 => 50% -> 0; 100% -> +20; 0% -> -20
         return {"historical_bonus": max(-20.0, min(20.0, bonus)), "samples": samples}
 
+    # === Smart retrieval & analysis APIs ===
+    def find_similar_choch_in_history(self, symbol: str, timeframe: str, direction: Optional[str] = None,
+                                      break_level_range: Optional[Tuple[float, float]] = None) -> List[Dict[str, Any]]:
+        results = []
+        for r in self._db.get('records', []):
+            if r.get('symbol') != symbol or r.get('timeframe') != timeframe:
+                continue
+            if direction and r.get('direction') != direction:
+                continue
+            if break_level_range is not None:
+                try:
+                    br = float(r.get('break_level', 0.0))
+                    if not (break_level_range[0] <= br <= break_level_range[1]):
+                        continue
+                except Exception:
+                    continue
+            results.append(r)
+        return results
+
+    def calculate_historical_success_rate(self, symbol: str, timeframe: str, direction: Optional[str] = None) -> float:
+        events = [r for r in self._db.get('records', []) if r.get('symbol') == symbol and r.get('timeframe') == timeframe and (direction is None or r.get('direction') == direction)]
+        stats = self.analyze_success_rate(events)
+        return float(stats.get('success_rate', 0.0))
+
+    def adjust_confidence_with_memory(self, base_confidence: float, symbol: str, timeframe: str, break_level: float) -> float:
+        try:
+            hb = self.compute_historical_bonus(symbol, timeframe, break_level)
+            bonus = hb.get('historical_bonus', 0.0)
+            # base_confidence assumed 0-100; clamp after bonus
+            return max(0.0, min(100.0, float(base_confidence) + float(bonus)))
+        except Exception:
+            return float(base_confidence)
+
+    def predict_target_based_on_history(self, symbol: str, timeframe: str, direction: str, break_level: float,
+                                        default_target: Optional[float] = None) -> Optional[float]:
+        sims = self.retrieve_similar(symbol, timeframe, break_level)
+        sims = [s for s in sims if s.get('direction') == direction]
+        if not sims:
+            return default_target
+        # Average target level of similar events
+        targets: List[float] = []
+        for s in sims:
+            val = s.get('target_level')
+            if val is None:
+                continue
+            try:
+                targets.append(float(val))
+            except Exception:
+                continue
+        if not targets:
+            return default_target
+        return sum(targets) / len(targets)
+
     def update_outcome(self, event_id: str, outcome: str, pips_moved: Optional[float] = None, time_to_target: Optional[str] = None) -> bool:
         recs = self._db.get('records', [])
         for r in recs:
@@ -262,6 +315,22 @@ def retrieve_similar_choch(**kwargs) -> List[Dict[str, Any]]:
 def compute_historical_bonus(**kwargs) -> Dict[str, float]:
     mem = get_choch_historical_memory()
     return mem.compute_historical_bonus(**kwargs)
+
+def find_similar_choch_in_history(symbol: str, timeframe: str, direction: Optional[str] = None, break_level_range: Optional[Tuple[float,float]] = None) -> List[Dict[str, Any]]:
+    mem = get_choch_historical_memory()
+    return mem.find_similar_choch_in_history(symbol, timeframe, direction, break_level_range)
+
+def calculate_historical_success_rate(symbol: str, timeframe: str, direction: Optional[str] = None) -> float:
+    mem = get_choch_historical_memory()
+    return mem.calculate_historical_success_rate(symbol, timeframe, direction)
+
+def adjust_confidence_with_memory(base_confidence: float, symbol: str, timeframe: str, break_level: float) -> float:
+    mem = get_choch_historical_memory()
+    return mem.adjust_confidence_with_memory(base_confidence, symbol, timeframe, break_level)
+
+def predict_target_based_on_history(symbol: str, timeframe: str, direction: str, break_level: float, default_target: Optional[float] = None) -> Optional[float]:
+    mem = get_choch_historical_memory()
+    return mem.predict_target_based_on_history(symbol, timeframe, direction, break_level, default_target)
 
 def update_choch_outcome(event_id: str, outcome: str, pips_moved: Optional[float] = None, time_to_target: Optional[str] = None) -> bool:
     mem = get_choch_historical_memory()

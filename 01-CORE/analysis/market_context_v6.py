@@ -276,6 +276,28 @@ class MarketContextV6:
     def _update_pattern_memory(self, analysis_results: Dict[str, Any]) -> None:
         """Actualiza memoria de patrones ICT detectados."""
         try:
+            def _enrich_context_fields(tf: str, direction: Optional[str], confidence_pct: float) -> Dict[str, Any]:
+                # Session
+                session_val = self.current_session or 'LONDON_KILLZONE'
+                # Volatility mapping from trading_conditions
+                vol_raw = (self.trading_conditions.get('volatility') if isinstance(self.trading_conditions, dict) else None) or 'MEDIUM'
+                vol_map = {'ACTIVE': 'HIGH', 'HIGH': 'HIGH', 'LOW': 'LOW', 'CALM': 'LOW'}
+                volatility_val = vol_map.get(str(vol_raw).upper(), 'MEDIUM')
+                # Trend strength from bias alignment and confidence
+                tf_bias = self.timeframe_bias.get(tf, 'NEUTRAL')
+                aligned = (tf_bias == self.market_bias) and self.market_bias in ('BULLISH','BEARISH')
+                if confidence_pct >= 85 and aligned:
+                    trend_strength_val = 'STRONG'
+                elif confidence_pct >= 75:
+                    trend_strength_val = 'MODERATE'
+                else:
+                    trend_strength_val = 'WEAK'
+                return {
+                    'session': session_val,
+                    'volatility': volatility_val,
+                    'trend_strength': trend_strength_val
+                }
+
             # Helper local para parsear timestamps externos
             def _parse_to_datetime(value):
                 from datetime import datetime, timezone
@@ -325,6 +347,20 @@ class MarketContextV6:
                     or (choch_payload.get('timestamp') if isinstance(choch_payload, dict) else None)
                 )
                 event_ts = _parse_to_datetime(external_ts) or self.last_updated
+                # Enrich context fields if missing
+                if isinstance(choch_payload, dict):
+                    raw_conf = choch_payload.get('confidence', 0.0) or 0.0
+                    try:
+                        conf_pct_val = float(raw_conf)
+                    except Exception:
+                        conf_pct_val = 0.0
+                    if conf_pct_val <= 1.0:
+                        conf_pct_val *= 100.0
+                    tfv = choch_payload.get('timeframe', 'UNKNOWN')
+                    enrich = _enrich_context_fields(tfv, choch_payload.get('direction'), conf_pct_val)
+                    for k, v in enrich.items():
+                        if choch_payload.get(k) in (None, '', 0):
+                            choch_payload[k] = v
                 choch_event = {
                     'timestamp': event_ts,
                     'data': choch_payload,
@@ -397,6 +433,13 @@ class MarketContextV6:
                                 'symbol': symbol_val or sig.get('symbol'),
                                 'metadata': {'source': 'CHOCH_MULTI_TIMEFRAME'}
                             }
+                            # Enrich context
+                            enrich = _enrich_context_fields(str(choch_data['timeframe']), choch_data['direction'], conf_pct)
+                            choch_data.update({
+                                'session': enrich['session'],
+                                'volatility': enrich['volatility'],
+                                'trend_strength': enrich['trend_strength']
+                            })
                             choch_event = {
                                 'timestamp': sig_ts,
                                 'data': choch_data,
@@ -456,6 +499,13 @@ class MarketContextV6:
                         'symbol': analysis_results.get('symbol', None),
                         'metadata': analysis_results.get('metadata', {})
                     }
+                    # Enrich context
+                    enrich = _enrich_context_fields(str(choch_data['timeframe']), choch_data['direction'], confidence_pct)
+                    choch_data.update({
+                        'session': enrich['session'],
+                        'volatility': enrich['volatility'],
+                        'trend_strength': enrich['trend_strength']
+                    })
                     choch_event = {
                         'timestamp': event_ts,
                         'data': choch_data,
