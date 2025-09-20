@@ -1061,9 +1061,12 @@ class PatternDetector:
             if choch_signals:
                 # Prioridad por timeframe: H4 > M15 > M5
                 tf_weights = {'H4': 0.5, 'M15': 0.3, 'M5': 0.2}
-                weighted_conf = sum(tf_weights.get(signal['timeframe'], 0.1) * signal['confidence'] 
-                                  for signal in choch_signals)
-                overall_confidence = min(weighted_conf * 100, 100.0)
+                weighted_conf = sum(
+                    tf_weights.get(signal['timeframe'], 0.1) * float(signal['confidence'])
+                    for signal in choch_signals
+                )
+                # Las señales ya están en porcentaje
+                overall_confidence = max(0.0, min(weighted_conf, 100.0))
             
             # 4. 📈 EVALUAR ALINEACIÓN MULTI-TIMEFRAME CHoCH
             alignment_analysis = self._evaluate_choch_alignment(choch_signals, tf_results)
@@ -1143,104 +1146,131 @@ class PatternDetector:
                 return {"detected": False, "reason": "Insufficient data"}
             
             # 1. 🔍 DETECTAR SWING POINTS PARA CHoCH
-            swing_data = self._detect_swing_points_for_bos(candles, window=6)  # 🚀 OPTIMIZED: Increased from window=5 to window=6 (Phase 1)
+            swing_data = self._detect_swing_points_for_bos(candles, window=6)
             swing_highs = swing_data.get('highs', [])
             swing_lows = swing_data.get('lows', [])
-            
-            if len(swing_highs) < 2 or len(swing_lows) < 2:
+
+            if len(swing_highs) < 3 or len(swing_lows) < 3:
                 return {"detected": False, "reason": "Insufficient swing points"}
-            
-            # 2. 📈 OBTENER SWING POINTS RELEVANTES
-            last_high = swing_highs[-1]
-            prev_high = swing_highs[-2] if len(swing_highs) > 1 else swing_highs[-1]
-            last_low = swing_lows[-1] 
-            prev_low = swing_lows[-2] if len(swing_lows) > 1 else swing_lows[-1]
-            current_price = float(candles.iloc[-1]['close'])
-            
-            # 3. 🎯 DETERMINAR TREND ACTUAL (simulado por ahora)
-            # En implementación real, esto vendría del market structure analyzer
-            recent_highs = [h['price'] for h in swing_highs[-3:]]
-            recent_lows = [l['price'] for l in swing_lows[-3:]]
-            
-            # Trend simple basado en swing points recientes
-            if len(recent_highs) >= 2 and len(recent_lows) >= 2:
-                if recent_highs[-1] > recent_highs[-2] and recent_lows[-1] > recent_lows[-2]:
-                    current_trend = "BULLISH"
-                elif recent_highs[-1] < recent_highs[-2] and recent_lows[-1] < recent_lows[-2]:
-                    current_trend = "BEARISH"
-                else:
-                    current_trend = "NEUTRAL"
-            else:
-                current_trend = "NEUTRAL"
-            
-            # 4. 🔄 APLICAR LÓGICA CHoCH (migrada desde market_structure_analyzer_v6.py)
-            
-            # CHoCH BULLISH: Trend bajista + rompe low anterior + HL pattern
-            if (current_trend == "BEARISH" and
-                current_price > prev_low['price'] and 
-                last_low['price'] > prev_low['price']):
-                
-                confidence = 92.0  # 🚀 OPTIMIZED: Increased CHoCH base confidence from 90.0% to 92.0% (Phase 1)
-                break_level = prev_low['price']
-                target_level = last_high['price']
-                
-                return {
-                    "detected": True,
-                    "direction": "BULLISH",
-                    "structure_type": "CHOCH_BULLISH",
-                    "confidence": confidence,
-                    "break_level": break_level,
-                    "target_level": target_level,
-                    "trend_change": f"{current_trend} -> BULLISH",
-                    "swing_data": {
-                        "last_high": last_high,
-                        "prev_high": prev_high,
-                        "last_low": last_low,
-                        "prev_low": prev_low,
-                        "current_price": current_price
-                    },
-                    "narrative": f"CHoCH Bullish: Trend bajista roto, precio rompe {break_level:.5f}, target {target_level:.5f}"
-                }
-            
-            # CHoCH BEARISH: Trend alcista + rompe high anterior + LH pattern  
-            elif (current_trend == "BULLISH" and
-                  current_price < prev_high['price'] and
-                  last_high['price'] < prev_high['price']):
-                
-                confidence = 92.0  # 🚀 OPTIMIZED: Increased CHoCH base confidence from 90.0% to 92.0% (Phase 1)
-                break_level = prev_high['price']
-                target_level = last_low['price']
-                
-                return {
-                    "detected": True,
-                    "direction": "BEARISH", 
-                    "structure_type": "CHOCH_BEARISH",
-                    "confidence": confidence,
-                    "break_level": break_level,
-                    "target_level": target_level,
-                    "trend_change": f"{current_trend} -> BEARISH",
-                    "swing_data": {
-                        "last_high": last_high,
-                        "prev_high": prev_high, 
-                        "last_low": last_low,
-                        "prev_low": prev_low,
-                        "current_price": current_price
-                    },
-                    "narrative": f"CHoCH Bearish: Trend alcista roto, precio rompe {break_level:.5f}, target {target_level:.5f}"
-                }
-            
-            # 5. ⚪ NO HAY CHoCH
+
+            # 2. 📏 PARÁMETROS DE RUPTURA POR TIMEFRAME
+            def _pip_value(sym: str) -> float:
+                try:
+                    s = (sym or "").upper()
+                    return 0.01 if s.endswith("JPY") else 0.0001
+                except Exception:
+                    return 0.0001
+
+            tf_break_pips = {"M1": 3, "M5": 5, "M15": 8, "M30": 10, "H1": 12, "H4": 20, "D1": 30, "W1": 50}
+            pip = _pip_value(symbol)
+            min_break = tf_break_pips.get(timeframe.upper(), 12) * pip
+
+            # 3. 🧭 FUNCIÓN PARA OBTENER TREND PREVIO CON SWINGS (antes de la ruptura)
+            def prior_trend(highs_before: list, lows_before: list) -> str:
+                if len(highs_before) >= 3 and len(lows_before) >= 3:
+                    h3, h2 = highs_before[-3]['price'], highs_before[-2]['price']
+                    l3, l2 = lows_before[-3]['price'], lows_before[-2]['price']
+                    if h2 < h3 and l2 < l3:
+                        return "BEARISH"
+                    if h2 > h3 and l2 > l3:
+                        return "BULLISH"
+                return "NEUTRAL"
+
+            # 4. 🔎 ESCANEAR HISTÓRICOS (del más reciente hacia atrás) PARA ENCONTRAR EL ÚLTIMO CHoCH VÁLIDO
+            last_index = len(candles) - 1
+            # Comenzar después del primer par de swings razonable
+            min_k = max( max(swing_highs[1]['index'], swing_lows[1]['index']) + 1, 10 )
+
+            for k in range(last_index, min_k - 1, -1):
+                price_k = float(candles.iloc[k]['close'])
+
+                highs_before = [h for h in swing_highs if h['index'] <= k]
+                lows_before = [l for l in swing_lows if l['index'] <= k]
+                if len(highs_before) < 2 or len(lows_before) < 2:
+                    continue
+
+                prev_high, last_high = highs_before[-2], highs_before[-1]
+                prev_low, last_low = lows_before[-2], lows_before[-1]
+
+                trend_before = prior_trend(highs_before, lows_before)
+
+                # CHoCH Bullish: downtrend previo + HL + break prev_high
+                if (
+                    trend_before == "BEARISH"
+                    and last_low['index'] > prev_low['index']
+                    and last_low['price'] > prev_low['price']
+                    and price_k > (prev_high['price'] + min_break)
+                    and k >= prev_high['index']
+                ):
+                    break_level = prev_high['price']
+                    target_level = last_high['price']
+                    break_pips = abs(price_k - break_level) / pip
+                    confidence = 82.0 + min(8.0, break_pips / 2.0)
+                    event_time = candles.index[k]
+                    return {
+                        "detected": True,
+                        "direction": "BULLISH",
+                        "structure_type": "CHOCH_BULLISH",
+                        "confidence": min(95.0, confidence),
+                        "break_level": break_level,
+                        "target_level": target_level,
+                        "trend_change": f"{trend_before} -> BULLISH",
+                        "timeframe": timeframe,
+                        "timestamp": event_time if not hasattr(event_time, 'isoformat') else event_time,
+                        "swing_data": {
+                            "last_high": last_high,
+                            "prev_high": prev_high,
+                            "last_low": last_low,
+                            "prev_low": prev_low,
+                            "current_price": price_k
+                        },
+                        "narrative": (
+                            f"CHoCH Bullish: HL (last_low>{prev_low['price']:.5f}) y ruptura prev_high>"
+                            f"{prev_high['price']:.5f} en {timeframe}"
+                        ),
+                    }
+
+                # CHoCH Bearish: uptrend previo + LH + break prev_low
+                if (
+                    trend_before == "BULLISH"
+                    and last_high['index'] > prev_high['index']
+                    and last_high['price'] < prev_high['price']
+                    and price_k < (prev_low['price'] - min_break)
+                    and k >= prev_low['index']
+                ):
+                    break_level = prev_low['price']
+                    target_level = last_low['price']
+                    break_pips = abs(price_k - break_level) / pip
+                    confidence = 82.0 + min(8.0, break_pips / 2.0)
+                    event_time = candles.index[k]
+                    return {
+                        "detected": True,
+                        "direction": "BEARISH",
+                        "structure_type": "CHOCH_BEARISH",
+                        "confidence": min(95.0, confidence),
+                        "break_level": break_level,
+                        "target_level": target_level,
+                        "trend_change": f"{trend_before} -> BEARISH",
+                        "timeframe": timeframe,
+                        "timestamp": event_time if not hasattr(event_time, 'isoformat') else event_time,
+                        "swing_data": {
+                            "last_high": last_high,
+                            "prev_high": prev_high,
+                            "last_low": last_low,
+                            "prev_low": prev_low,
+                            "current_price": price_k
+                        },
+                        "narrative": (
+                            f"CHoCH Bearish: LH (last_high<{prev_high['price']:.5f}) y ruptura prev_low<"
+                            f"{prev_low['price']:.5f} en {timeframe}"
+                        ),
+                    }
+
+            # 5. ⚪ NO HAY CHoCH EN HISTÓRICO ESCANEADO
             return {
                 "detected": False,
-                "reason": f"No CHoCH pattern (trend: {current_trend}, price: {current_price:.5f})",
-                "swing_data": {
-                    "last_high": last_high,
-                    "prev_high": prev_high,
-                    "last_low": last_low, 
-                    "prev_low": prev_low,
-                    "current_price": current_price,
-                    "current_trend": current_trend
-                }
+                "reason": "No CHoCH pattern found in recent history",
+                "timeframe": timeframe
             }
             
         except Exception as e:

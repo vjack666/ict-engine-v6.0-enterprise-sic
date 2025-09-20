@@ -31,6 +31,12 @@ import numpy as np
 
 # === IMPORTS ENTERPRISE LOGGING ===
 from smart_trading_logger import SmartTradingLogger
+try:
+    # Historical CHoCH memory for persistent trader-like recall
+    from memory.choch_historical_memory import store_choch_event, compute_historical_bonus
+except Exception:
+    store_choch_event = None
+    compute_historical_bonus = None
 
 class MarketContextV6:
     """
@@ -333,6 +339,34 @@ class MarketContextV6:
                 if len(self.choch_events) > self.max_choch_events:
                     self.choch_events = self.choch_events[-self.max_choch_events:]
 
+                # Persist to historical memory (best-effort)
+                if store_choch_event and isinstance(choch_payload, dict):
+                    try:
+                        sym_val = analysis_results.get('symbol') or choch_payload.get('symbol') or 'UNKNOWN'
+                        tf_val = choch_payload.get('timeframe', 'UNKNOWN')
+                        dir_val = choch_payload.get('direction', 'NEUTRAL')
+                        conf_raw = choch_payload.get('confidence', 0.0)
+                        try:
+                            conf_val = float(conf_raw or 0.0)
+                        except Exception:
+                            conf_val = 0.0
+                        store_choch_event(
+                            symbol=sym_val,
+                            timeframe=tf_val,
+                            timestamp=event_ts,
+                            direction=str(dir_val),
+                            break_level=float(choch_payload.get('break_level', self.current_price)),
+                            target_level=float(choch_payload.get('target_level', self.current_price)),
+                            confidence=conf_val,
+                            stop_level=choch_payload.get('stop_level'),
+                            session=choch_payload.get('session'),
+                            volatility=choch_payload.get('volatility'),
+                            trend_strength=choch_payload.get('trend_strength'),
+                            context=(choch_payload.get('metadata') if isinstance(choch_payload.get('metadata'), dict) else {})
+                        )
+                    except Exception:
+                        pass
+
             # NUEVO: Integrar CHoCH desde datos genéricos/multi-timeframe (pattern_type contiene 'CHOCH')
             pattern_type_str = str(analysis_results.get('pattern_type', '')).upper()
             if 'CHOCH' in pattern_type_str:
@@ -375,6 +409,26 @@ class MarketContextV6:
                                 f"conf={choch_data['confidence']:.1f} symbol={choch_data.get('symbol')}",
                                 component="market_memory"
                             )
+
+                            # Persist per-signal to historical memory (best-effort)
+                            if store_choch_event:
+                                try:
+                                    store_choch_event(
+                                        symbol=(symbol_val or sig.get('symbol') or 'UNKNOWN'),
+                                        timeframe=str(sig.get('timeframe', 'UNKNOWN')),
+                                        timestamp=sig_ts,
+                                        direction=str(sig.get('direction', 'NEUTRAL')),
+                                        break_level=float(sig.get('break_level', self.current_price)),
+                                        target_level=float(sig.get('target_level', self.current_price)),
+                                        confidence=float(conf_pct),
+                                        stop_level=sig.get('stop_level'),
+                                        session=sig.get('session'),
+                                        volatility=sig.get('volatility'),
+                                        trend_strength=sig.get('trend_strength'),
+                                        context={'source': 'CHOCH_MULTI_TIMEFRAME'}
+                                    )
+                                except Exception:
+                                    pass
                         if ingested == 0:
                             self.logger.warning("⚠️ Resultado CHOCH_MULTI_TIMEFRAME sin señales para ingestar", component="market_memory")
                         if len(self.choch_events) > self.max_choch_events:
@@ -415,6 +469,26 @@ class MarketContextV6:
                     )
                     if len(self.choch_events) > self.max_choch_events:
                         self.choch_events = self.choch_events[-self.max_choch_events:]
+
+                    # Persist simple CHoCH to historical memory (best-effort)
+                    if store_choch_event:
+                        try:
+                            store_choch_event(
+                                symbol=choch_data.get('symbol') or 'UNKNOWN',
+                                timeframe=str(choch_data.get('timeframe', 'UNKNOWN')),
+                                timestamp=event_ts,
+                                direction=str(choch_data.get('direction', 'NEUTRAL')),
+                                break_level=float(choch_data.get('break_level', self.current_price)),
+                                target_level=float(choch_data.get('target_level', self.current_price)),
+                                confidence=float(confidence_pct),
+                                stop_level=analysis_results.get('stop_level'),
+                                session=analysis_results.get('session'),
+                                volatility=analysis_results.get('volatility'),
+                                trend_strength=analysis_results.get('trend_strength'),
+                                context=(choch_data.get('metadata') if isinstance(choch_data.get('metadata'), dict) else {})
+                            )
+                        except Exception:
+                            pass
             
             # Actualizar swing points - TRADING CRITICAL VALIDATION
             if 'swing_points' in analysis_results:
@@ -661,7 +735,7 @@ class MarketContextV6:
                 'confidence': 0.0
             }
         
-        return {
+        result = {
             'has_valid_choch': True,
             'break_level': last_choch['break_level'],
             'target_level': last_choch['target_level'],
@@ -672,6 +746,18 @@ class MarketContextV6:
             'strength': last_choch['strength'],
             'trading_bias': 'BUY' if last_choch['direction'] == 'BULLISH' else 'SELL' if last_choch['direction'] == 'BEARISH' else 'NEUTRAL'
         }
+
+        # Historical bonus based on similar CHoCH outcomes (best-effort)
+        if compute_historical_bonus and symbol and last_choch.get('break_level'):
+            try:
+                hb = compute_historical_bonus(symbol=symbol,
+                                              timeframe=result.get('timeframe', 'UNKNOWN'),
+                                              break_level=float(result['break_level']))
+                result['historical_bonus'] = hb.get('historical_bonus', 0.0)
+                result['historical_samples'] = hb.get('samples', 0)
+            except Exception:
+                pass
+        return result
     
     def _get_timeframe_correlation(self) -> Dict[str, str]:
         """Obtiene correlación entre timeframes."""
