@@ -125,6 +125,27 @@ class ICTPatternDetector:
         self._candle_downloader = None
         self._pandas_initialized = False
 
+        # CHoCH minimal config (opt-in capable)
+        self.choch_memory = None
+        self.choch_config = self.config.get('choch_config', {
+            'enabled': True,
+            'min_historical_periods': 20,
+            'confidence_boost_factor': 0.15
+        })
+
+        # Placeholder control for tests only (default False for prod)
+        self.allow_fvg_placeholder_for_tests = bool(self.config.get('allow_fvg_placeholder_for_tests', False))
+
+        # Optional: integrate persistent FVG memory
+        self.enable_fvg_memory_persistence = bool(self.config.get('enable_fvg_memory_persistence', False))
+        self._fvg_memory_manager = None
+        if self.enable_fvg_memory_persistence:
+            try:
+                from analysis.fvg_memory_manager import FVGMemoryManager  # type: ignore
+                self._fvg_memory_manager = FVGMemoryManager()
+            except Exception as e:
+                log_trading_decision_smart_v6("FVG_MEMORY_INIT_ERROR", {"error": str(e)})
+
         # 📝 INICIALIZAR LOGGER ICT_SIGNALS para guardar copias de patrones
         self.ict_signals_logger = None
         self.use_signals_logging = False
@@ -399,6 +420,9 @@ class ICTPatternDetector:
             detector = FairValueGapDetector()
             fvgs = detector.detect_fair_value_gaps(df, symbol=symbol, timeframe=timeframe)
 
+            # Dedup helper using fvg_id or price band and timestamp
+            seen_keys = set()
+
             for f in fvgs:
                 try:
                     # Map entry price from FVG gap mid-point or fallback to last close
@@ -412,8 +436,25 @@ class ICTPatternDetector:
                         'direction': getattr(getattr(f, 'direction', None), 'value', None) or getattr(f, 'direction', None),
                         'gap_category': getattr(f, 'metadata', {}).get('gap_category') if hasattr(f, 'metadata') else None,
                         'memory_enhanced': getattr(f, 'metadata', {}).get('memory_enhanced') if hasattr(f, 'metadata') else False,
-                        'fvg_id': getattr(f, 'fvg_id', None)
+                        'fvg_id': getattr(f, 'fvg_id', None),
+                        # Enrichment from SMC FVG object
+                        'status': getattr(getattr(f, 'status', None), 'value', None) or getattr(f, 'status', None),
+                        'fill_percentage': getattr(f, 'fill_percentage', None),
+                        'score': getattr(f, 'score', None),
+                        'confidence_source': 'smc_fvg_detector',
+                        'candle_index': getattr(f, 'candle_index', None)
                     }
+
+                    # Dedup key
+                    key = metadata.get('fvg_id') or (
+                        round(float(getattr(f, 'high_price', entry_price)), 6),
+                        round(float(getattr(f, 'low_price', entry_price)), 6),
+                        str(getattr(f, 'timestamp', '')),
+                        symbol,
+                        timeframe
+                    )
+                    if key in seen_keys:
+                        continue
 
                     pattern = ICTPattern(
                         pattern_type="FVG",
@@ -448,12 +489,26 @@ class ICTPatternDetector:
                         log_trading_decision_smart_v6("FVG_CHOCH_MEMORY_ERROR", {"error": str(e)})
 
                     patterns.append(pattern)
+                    seen_keys.add(key)
                     self._store_pattern_in_memory(pattern)
+
+                    # Persist to FVG memory manager (opt-in, ignore errors)
+                    if self._fvg_memory_manager is not None:
+                        try:
+                            self._fvg_memory_manager.add_fvg(symbol, timeframe, {
+                                'fvg_id': metadata.get('fvg_id'),
+                                'type': 'bullish' if metadata.get('direction') in ("BULLISH", "bullish") else 'bearish',
+                                'high': getattr(f, 'high_price', None) or metadata.get('high_price', entry_price),
+                                'low': getattr(f, 'low_price', None) or metadata.get('low_price', entry_price),
+                                'timestamp': getattr(f, 'timestamp', None) or pattern.timestamp,
+                            })
+                        except Exception as e:
+                            log_trading_decision_smart_v6("FVG_MEMORY_STORE_ERROR", {"error": str(e)})
                 except Exception as inner_e:
                     log_trading_decision_smart_v6("FVG_PATTERN_MAP_ERROR", {"error": str(inner_e)})
 
             # Fallback: if no FVGs were found by detector, keep legacy placeholder to support tests/dev
-            if not patterns:
+            if not patterns and self.allow_fvg_placeholder_for_tests:
                 try:
                     if len(df) > 10 and len(df) % 4 == 2:
                         placeholder_entry = float(df['close'].iloc[-1] if 'close' in df.columns else 0.0)
@@ -534,14 +589,34 @@ class ICTPatternDetector:
                         "timeframe": pattern.timeframe,
                         "confidence": pattern.confidence,
                         "entry_price": pattern.entry_price,
-                        "timestamp": pattern.timestamp.isoformat() if hasattr(pattern.timestamp, 'isoformat') else str(pattern.timestamp),
+                        "timestamp": (pattern.timestamp.isoformat() if hasattr(pattern.timestamp, 'isoformat') else str(pattern.timestamp)),
                         "metadata": pattern.metadata,
                         "detector_version": "ICTPatternDetector_v6.0"
                     }
                     
                     # Registrar datos estructurados para análisis
                     import json
-                    self.ict_signals_logger.debug(f"PATTERN_DATA: {json.dumps(pattern_data_structured)}")
+                    # Safe JSON for numpy/datetime types
+                    from typing import Any
+                    def _json_default(o: object) -> Any:
+                        try:
+                            import numpy as _np  # type: ignore
+                            if isinstance(o, (_np.generic,)):
+                                return o.item()
+                        except Exception:
+                            pass
+                        iso = getattr(o, 'isoformat', None)
+                        if callable(iso):
+                            try:
+                                return iso()
+                            except Exception:
+                                return str(o)
+                        if isinstance(o, (bool, int, float, str)):
+                            return o
+                        return str(o)
+                    self.ict_signals_logger.debug(
+                        f"PATTERN_DATA: {json.dumps(pattern_data_structured, default=_json_default)}"
+                    )
                     
                 except Exception as e:
                     print(f"⚠️ Error guardando patrón en ICT_SIGNALS: {e}")
@@ -555,7 +630,7 @@ class ICTPatternDetector:
                         'timeframe': pattern.timeframe,
                         'symbol': pattern.symbol,
                         'confidence': pattern.confidence,
-                        'timestamp': pattern.timestamp.isoformat() if hasattr(pattern.timestamp, 'isoformat') else str(pattern.timestamp),
+                        'timestamp': (pattern.timestamp.isoformat() if hasattr(pattern.timestamp, 'isoformat') else str(pattern.timestamp)),
                         'entry_price': pattern.entry_price,
                         'metadata': pattern.metadata,
                         'detector': 'ICTPatternDetector'

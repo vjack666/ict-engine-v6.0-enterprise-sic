@@ -1554,6 +1554,17 @@ class ICTEnterpriseManager:
                     str(DASHBOARD_PATH)
                 ])
                 env['ICT_DASHBOARD_MODE'] = 'subprocess'
+                # Señales de contexto enterprise/real para start_dashboard.py
+                env['ICT_REAL_MODE'] = '1'
+                env['ICT_ENTERPRISE_MODE'] = '1'
+                env['ICT_DATA_COLLECTOR'] = 'active' if getattr(self, 'data_collector', None) else 'inactive'
+                try:
+                    mt5_active = bool(getattr(self, 'system_status', None) and getattr(self.system_status, 'mt5_connected', False))
+                except Exception:
+                    mt5_active = False
+                env['ICT_MT5_MANAGER'] = 'active' if mt5_active else 'inactive'
+                # Forzar UTF-8 para consistencia con tareas (-X utf8)
+                env['PYTHONUTF8'] = '1'
                 
                 print("[SUBPROCESS] 🚀 Iniciando dashboard en proceso separado...")
                 

@@ -235,7 +235,12 @@ class MarketStructureData:
 
 @dataclass
 class FairValueGap:
-    """📊 Fair Value Gap detectado"""
+    """📊 Fair Value Gap detectado
+
+    Legacy ICT type. Prefer `smart_money_concepts.fair_value_gaps.FairValueGap`
+    as the canonical model across the system. This remains for backward compatibility
+    in modules that still consume ICT-specific enums and fields.
+    """
     fvg_type: FVGType
     high_price: float
     low_price: float

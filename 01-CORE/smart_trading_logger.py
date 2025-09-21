@@ -453,8 +453,9 @@ class SmartTradingLogger:
         self.logger.info(f"🎯 Componente: {getattr(self, 'component_name', 'UNKNOWN')}")
         self.logger.info(f"{separator}")
         
-        # También imprimir en consola para seguimiento inmediato
-        print(f"📋 [{getattr(self, 'component_name', 'LOG')}] Sesión iniciada - {session_id}")
+        # También imprimir en consola para seguimiento inmediato (opcional)
+        if not self.silent_mode and _get_env_bool('ICT_LOG_SESSION_BANNER', False):
+            print(f"📋 [{getattr(self, 'component_name', 'LOG')}] Sesión iniciada - {session_id}")
     
     def log_session_end(self):
         """⏹️ Marcar fin de sesión en archivo diario"""
@@ -462,7 +463,8 @@ class SmartTradingLogger:
         self.logger.info(f"⏹️ SESIÓN TERMINADA - {end_time}")
         self.logger.info("=" * 40 + "\n")
         
-        print(f"📋 [{getattr(self, 'component_name', 'LOG')}] Sesión terminada - {end_time}")
+        if not self.silent_mode and _get_env_bool('ICT_LOG_SESSION_BANNER', False):
+            print(f"📋 [{getattr(self, 'component_name', 'LOG')}] Sesión terminada - {end_time}")
     
     def set_silent_mode(self, silent: bool = True):
         """🔇 Activar/desactivar modo silencioso dinámicamente"""

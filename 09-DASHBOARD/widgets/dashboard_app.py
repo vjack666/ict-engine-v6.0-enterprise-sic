@@ -119,6 +119,60 @@ class ICTDashboardApp(App):
         self.data_collector = data_collector
         self.last_update = datetime.now()
         self.update_counter = 0
+
+    # -----------------------------
+    # Helpers: FVG normalization
+    # -----------------------------
+    def _normalize_fvg_item(self, item: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize FVG fields to canonical keys: type and direction.
+        - direction: 'bullish' | 'bearish' | 'unknown'
+        - type: 'bullish_fvg' | 'bearish_fvg' | 'fvg'
+        """
+        try:
+            itype = str(item.get('type', '') or '').lower()
+            idir = str(item.get('direction', '') or '').lower()
+
+            # Infer direction
+            direction = 'unknown'
+            if 'bullish' in itype or idir == 'bullish' or idir == 'buy':
+                direction = 'bullish'
+            elif 'bearish' in itype or idir == 'bearish' or idir == 'sell':
+                direction = 'bearish'
+
+            # Canonical type
+            if direction == 'bullish':
+                ctype = 'bullish_fvg'
+            elif direction == 'bearish':
+                ctype = 'bearish_fvg'
+            else:
+                ctype = 'fvg'
+
+            # Return merged copy
+            out = dict(item)
+            out['direction'] = direction
+            out['type'] = ctype
+            return out
+        except Exception:
+            # Best-effort fallback
+            out = dict(item)
+            out.setdefault('direction', 'unknown')
+            out.setdefault('type', 'fvg')
+            return out
+
+    def _extract_fvg_counts(self, fvg_list: Optional[List[Dict[str, Any]]]) -> Dict[str, int]:
+        fvg_count = 0
+        bullish_fvg = 0
+        bearish_fvg = 0
+        if isinstance(fvg_list, list):
+            normalized = [self._normalize_fvg_item(x) for x in fvg_list]
+            fvg_count = len(normalized)
+            bullish_fvg = sum(1 for f in normalized if f.get('direction') == 'bullish')
+            bearish_fvg = sum(1 for f in normalized if f.get('direction') == 'bearish')
+        return {
+            'total': fvg_count,
+            'bullish': bullish_fvg,
+            'bearish': bearish_fvg,
+        }
         
     def compose(self) -> ComposeResult:
         """🎨 Componer la aplicación completa"""
@@ -452,18 +506,17 @@ class ICTDashboardApp(App):
                     
                     if market_data is not None and len(market_data) > 20:
                         try:
-                            # Llamar al método real find_order_blocks del analyzer
-                            ob_result = analyzer.find_order_blocks(market_data)
+                            # Llamar al método real find_order_blocks del analyzer (API: symbol, timeframe)
+                            ob_list = analyzer.find_order_blocks('EURUSD', 'H1')
                             
                             ob_count = 0
                             bullish_ob = 0
                             bearish_ob = 0
                             
-                            if isinstance(ob_result, dict) and 'order_blocks' in ob_result:
-                                order_blocks = ob_result['order_blocks']
-                                ob_count = len(order_blocks)
-                                bullish_ob = len([ob for ob in order_blocks if ob.get('type') == 'bullish'])
-                                bearish_ob = len([ob for ob in order_blocks if ob.get('type') == 'bearish'])
+                            if isinstance(ob_list, list):
+                                ob_count = len(ob_list)
+                                bullish_ob = len([ob for ob in ob_list if (ob.get('type') or ob.get('direction','')).lower() in ['bullish','buy']])
+                                bearish_ob = len([ob for ob in ob_list if (ob.get('type') or ob.get('direction','')).lower() in ['bearish','sell']])
                             
                             # Actualizar visualización
                             try:
@@ -525,22 +578,37 @@ class ICTDashboardApp(App):
                 
                 # Obtener datos reales para análisis
                 if hasattr(self.data_collector, 'get_real_market_data'):
-                    market_data = self.data_collector.get_real_market_data('EURUSD', 'H1', 100)
+                    # Defaults; could be read from dashboard config
+                    symbol = 'EURUSD'
+                    timeframe = 'H1'
+                    try:
+                        cfg = getattr(self.data_collector, 'config', {}) or {}
+                        symbols = (cfg.get('data', {}) or {}).get('symbols') or []
+                        timeframes = (cfg.get('data', {}) or {}).get('timeframes') or []
+                        if isinstance(symbols, list) and symbols:
+                            symbol = symbols[0]
+                        if isinstance(timeframes, list) and timeframes:
+                            timeframe = timeframes[0]
+                    except Exception:
+                        pass
+
+                    market_data = self.data_collector.get_real_market_data(symbol, timeframe, 100)
                     
                     if market_data is not None and len(market_data) > 20:
                         try:
-                            # Llamar al método real detect_fvg del analyzer
-                            fvg_result = analyzer.detect_fvg(market_data)
-                            
-                            fvg_count = 0
-                            bullish_fvg = 0
-                            bearish_fvg = 0
-                            
-                            if isinstance(fvg_result, dict) and 'fvgs' in fvg_result:
-                                fvgs = fvg_result['fvgs']
-                                fvg_count = len(fvgs)
-                                bullish_fvg = len([fvg for fvg in fvgs if fvg.get('direction') == 'bullish'])
-                                bearish_fvg = len([fvg for fvg in fvgs if fvg.get('direction') == 'bearish'])
+                            # Llamar al método real detect_fvg del analyzer (API: symbol, timeframe)
+                            fvg_list = analyzer.detect_fvg(symbol, timeframe)
+
+                            # Si no hay resultados, intentar fallback a memoria canónica
+                            if (not isinstance(fvg_list, list)) or len(fvg_list) == 0:
+                                try:
+                                    fvg_manager = self.data_collector.components.get('fvg_manager')
+                                    if fvg_manager and hasattr(fvg_manager, 'get_active_fvgs'):
+                                        fvg_list = fvg_manager.get_active_fvgs(symbol, timeframe) or []
+                                except Exception:
+                                    pass
+
+                            counts = self._extract_fvg_counts(fvg_list if isinstance(fvg_list, list) else [])
                             
                             # Actualizar visualización
                             try:
@@ -548,9 +616,9 @@ class ICTDashboardApp(App):
                                 patterns_text = (
                                     "💎 FAIR VALUE GAPS DETECTED (REAL DATA):\n\n" +
                                     f"🔍 Last Analysis: {current_time.strftime('%H:%M:%S')}\n" +
-                                    f"💎 [pattern_detected]Total FVGs: {fvg_count}[/pattern_detected]\n" +
-                                    f"📈 [metric_value]Bullish Gaps: {bullish_fvg}[/metric_value]\n" +
-                                    f"📉 [pattern_detected]Bearish Gaps: {bearish_fvg}[/pattern_detected]\n" +
+                                    f"💎 [pattern_detected]Total FVGs: {counts['total']}[/pattern_detected]\n" +
+                                    f"📈 [metric_value]Bullish Gaps: {counts['bullish']}[/metric_value]\n" +
+                                    f"📉 [pattern_detected]Bearish Gaps: {counts['bearish']}[/pattern_detected]\n" +
                                     "⚡ [status_analyzing]Market Imbalances Tracked[/status_analyzing]\n\n" +
                                     "📊 Data Source: [status_connected]MT5 LIVE + Smart Money[/status_connected]\n" +
                                     "🔄 Next update in 5 seconds..."

@@ -78,5 +78,12 @@
         "file": "05-LOGS/application/dashboard.log",
         "max_size": "10MB",
         "backup_count": 5
+    },
+    "data": {
+        "symbols": ["EURUSD", "GBPUSD", "USDJPY"],
+        "timeframes": ["M5", "M15", "H1", "H4"]
+    },
+    "fvg": {
+        "enable_choch_enrichment": true
     }
 }

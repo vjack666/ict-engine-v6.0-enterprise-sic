@@ -16,6 +16,42 @@ from typing import Dict, Any, List, Optional
 import threading
 from dataclasses import dataclass, asdict
 
+# --- JSON serialization helpers ---
+from typing import Any as _Any
+
+def _json_default(o: object) -> _Any:
+    """Safe JSON default for numpy, datetime-like, and other types."""
+    try:
+        import numpy as _np  # type: ignore
+        if isinstance(o, (_np.generic,)):
+            return o.item()
+        if isinstance(o, (_np.ndarray,)):
+            return o.tolist()
+    except Exception:
+        pass
+    iso = getattr(o, 'isoformat', None)
+    if callable(iso):
+        try:
+            return iso()
+        except Exception:
+            return str(o)
+    if isinstance(o, (bool, int, float, str)):
+        return o
+    return str(o)
+
+def _sanitize_jsonable(obj: _Any) -> _Any:
+    """Recursively sanitize nested structures for JSON serialization."""
+    try:
+        if obj is None or isinstance(obj, (bool, int, float, str)):
+            return obj
+        if isinstance(obj, dict):
+            return {str(k): _sanitize_jsonable(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple, set)):
+            return [_sanitize_jsonable(v) for v in obj]
+        return _json_default(obj)
+    except Exception:
+        return str(obj)
+
 @dataclass
 class OrderBlockEvent:
     """Estructura para eventos de Order Blocks"""
@@ -55,9 +91,10 @@ class OrderBlocksBlackBox:
             'performance_metrics': []
         }
         
-        print(f"🔥 [OrderBlocksBlackBox] Sistema de logging inicializado")
-        print(f"   📂 Log Directory: {self.log_directory}")
-        print(f"   🆔 Session ID: {self.session_id}")
+        if os.environ.get('ORDER_BLOCKS_VERBOSE', '0') in ('1', 'true', 'True'):
+            print(f"🔥 [OrderBlocksBlackBox] Sistema de logging inicializado")
+            print(f"   📂 Log Directory: {self.log_directory}")
+            print(f"   🆔 Session ID: {self.session_id}")
     
     def _get_default_log_directory(self) -> str:
         """Obtiene directorio de logs por defecto"""
@@ -72,6 +109,8 @@ class OrderBlocksBlackBox:
         """Configura logger especializado"""
         logger = logging.getLogger(logger_name)
         logger.setLevel(logging.DEBUG)
+        # Asegurar que no propague al root para evitar duplicados en consola
+        logger.propagate = False
         
         # Evitar duplicación de handlers
         if logger.handlers:
@@ -253,11 +292,29 @@ class OrderBlocksBlackBox:
     def _write_event(self, logger: logging.Logger, event: OrderBlockEvent) -> None:
         """Escribe evento al logger en formato JSON"""
         try:
-            event_json = json.dumps(asdict(event), indent=None, ensure_ascii=False)
+            # Fast path
+            event_json = json.dumps(asdict(event), indent=None, ensure_ascii=False, default=_json_default)
             logger.info(event_json)
         except Exception as e:
-            # Fallback si falla serialización JSON
-            logger.error(f"Error serializing event: {e} | Event: {event}")
+            # Fallback: sanitize recursively and retry once
+            try:
+                event_dict = asdict(event)
+                safe_dict = _sanitize_jsonable(event_dict)
+                event_json = json.dumps(safe_dict, indent=None, ensure_ascii=False)
+                logger.info(event_json)
+            except Exception as e2:
+                # Last resort: compact message without payloads
+                minimal = {
+                    'timestamp': getattr(event, 'timestamp', None),
+                    'component': getattr(event, 'component', None),
+                    'action': getattr(event, 'action', None),
+                    'symbol': getattr(event, 'symbol', None),
+                    'timeframe': getattr(event, 'timeframe', None),
+                    'level': getattr(event, 'level', None),
+                    'session_id': getattr(event, 'session_id', None),
+                    'serialization_error': str(e2)
+                }
+                logger.error(json.dumps(minimal, ensure_ascii=False))
     
     def get_session_metrics(self) -> Dict[str, Any]:
         """Obtiene métricas de la sesión actual"""
@@ -290,7 +347,9 @@ class OrderBlocksBlackBox:
             success=True
         )
         
-        print(f"🔥 [OrderBlocksBlackBox] Sesión cerrada: {final_metrics['total_detections']} detecciones, {final_metrics['total_validations']} validaciones")
+        # Mensaje opcional en consola, controlado por variable de entorno
+        if os.environ.get('ORDER_BLOCKS_VERBOSE', '0') in ('1', 'true', 'True'):
+            print(f"🔥 [OrderBlocksBlackBox] Sesión cerrada: {final_metrics['total_detections']} detecciones, {final_metrics['total_validations']} validaciones")
 
 
 # Singleton global para uso en todo el sistema

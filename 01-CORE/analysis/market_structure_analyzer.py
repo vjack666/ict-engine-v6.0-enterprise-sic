@@ -312,7 +312,11 @@ class MarketStructureSignal:
 
 @dataclass
 class FairValueGap:
-    """📊 Fair Value Gap detectado"""
+    """📊 Fair Value Gap detectado
+
+    Legacy analyzer type. Prefer `smart_money_concepts.fair_value_gaps.FairValueGap`
+    as the canonical FVG model for new code paths.
+    """
     fvg_type: FVGType
     high_price: float
     low_price: float

@@ -4322,8 +4322,38 @@ class SmartMoneyAnalyzer:
             # 4. FORMATEAR RESULTADO SEGÚN ESTÁNDAR SMARTMONEY
             formatted_fvgs = []
             for fvg in fvgs_detected:
+                # Normalize type/direction from various possible keys
+                raw_type = (
+                    fvg.get('type')
+                    or fvg.get('tipo')
+                    or fvg.get('fvg_type')
+                    or fvg.get('direction')
+                    or "UNKNOWN_FVG"
+                )
+                raw_type_str = str(raw_type)
+                raw_type_lower = raw_type_str.lower()
+
+                if 'bull' in raw_type_lower:
+                    direction = 'bullish'
+                    norm_type = 'bullish_fvg'
+                elif 'bear' in raw_type_lower:
+                    direction = 'bearish'
+                    norm_type = 'bearish_fvg'
+                else:
+                    # Fallback: infer from ranges if possible
+                    direction = fvg.get('direction', 'unknown').lower()
+                    if direction in ('bull', 'bullish'):
+                        norm_type = 'bullish_fvg'
+                        direction = 'bullish'
+                    elif direction in ('bear', 'bearish'):
+                        norm_type = 'bearish_fvg'
+                        direction = 'bearish'
+                    else:
+                        norm_type = 'unknown_fvg'
+
                 formatted_fvg = {
-                    'type': fvg.get('tipo', 'UNKNOWN_FVG'),
+                    'type': norm_type,
+                    'direction': direction,
                     'price': fvg.get('price', fvg.get('precio', 0.0)),
                     'range_high': fvg.get('range_high', fvg.get('high', 0.0)),
                     'range_low': fvg.get('range_low', fvg.get('low', 0.0)),

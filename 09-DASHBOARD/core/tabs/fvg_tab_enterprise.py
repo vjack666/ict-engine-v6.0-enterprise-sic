@@ -75,6 +75,7 @@ try:
     from smart_money_concepts.smart_money_analyzer import SmartMoneyAnalyzer
     from smart_trading_logger import SmartTradingLogger
     from ict_engine.pattern_detector import ICTPatternDetector
+    from analysis.fvg_memory_manager import FVGMemoryManager
     
     if SmartMoneyAnalyzer is None or SmartTradingLogger is None:
         raise ImportError("Core components son None - sistema requiere componentes reales")
@@ -87,6 +88,7 @@ except ImportError as e:
     raise RuntimeError(f"FVG Tab requiere Core systems reales: {e}")
     SmartTradingLogger = None
     ICTPatternDetector = None
+    FVGMemoryManager = None
 
 
 class FVGAnalytics:
@@ -249,6 +251,16 @@ class FVGTabEnterprise:
             self.pattern_detector = ICTPatternDetector()
         else:
             self.pattern_detector = None
+
+        # FVG persistent memory manager (read-only for dashboard)
+        if CORE_AVAILABLE and 'FVGMemoryManager' in globals() and FVGMemoryManager is not None:
+            try:
+                self.fvg_manager = FVGMemoryManager()
+            except Exception as e:
+                print(f"⚠️ FVGMemoryManager init failed: {e}")
+                self.fvg_manager = None
+        else:
+            self.fvg_manager = None
             
         # Logger
         if CORE_AVAILABLE and SmartTradingLogger:
@@ -271,6 +283,13 @@ class FVGTabEnterprise:
                 'avg_mitigation_prob': 0.0
             }
         }
+
+        # Optional CHoCH enrichment toggle (read from app config if available)
+        try:
+            cfg = getattr(self.app, 'config', {}) if self.app else {}
+            self.enable_choch_enrichment = bool(cfg.get('fvg', {}).get('enable_choch_enrichment', True))
+        except Exception:
+            self.enable_choch_enrichment = True
         
         # Visual configuration
         if dashboard_core:
@@ -386,6 +405,15 @@ class FVGTabEnterprise:
                 "children": ["Symbol: EURUSD", "Timeframe: M15", "Min Quality: 50%"]
             }
         else:
+            # Read symbols/timeframes from app config if available
+            try:
+                cfg = getattr(self.app, 'config', {}) if self.app else {}
+                cfg_symbols = cfg.get('data', {}).get('symbols', []) or ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD"]
+                cfg_timeframes = cfg.get('data', {}).get('timeframes', []) or ["M5", "M15", "M30", "H1", "H4"]
+            except Exception:
+                cfg_symbols = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD"]
+                cfg_timeframes = ["M5", "M15", "M30", "H1", "H4"]
+
             return html.Div([
                 # Symbol & Timeframe
                 html.Div([
@@ -393,13 +421,8 @@ class FVGTabEnterprise:
                         html.Label("Symbol:", className="control-label"),
                         dcc.Dropdown(
                             id="fvg-symbol-selector",
-                            options=[
-                                {"label": "EURUSD", "value": "EURUSD"},
-                                {"label": "GBPUSD", "value": "GBPUSD"},
-                                {"label": "USDJPY", "value": "USDJPY"},
-                                {"label": "AUDUSD", "value": "AUDUSD"}
-                            ],
-                            value="EURUSD",
+                            options=[{"label": s, "value": s} for s in cfg_symbols],
+                            value=(cfg_symbols[0] if cfg_symbols else "EURUSD"),
                             className="control-dropdown"
                         )
                     ], className="control-group"),
@@ -408,14 +431,8 @@ class FVGTabEnterprise:
                         html.Label("Timeframe:", className="control-label"),
                         dcc.Dropdown(
                             id="fvg-timeframe-selector",
-                            options=[
-                                {"label": "M5", "value": "M5"},
-                                {"label": "M15", "value": "M15"},
-                                {"label": "M30", "value": "M30"},
-                                {"label": "H1", "value": "H1"},
-                                {"label": "H4", "value": "H4"}
-                            ],
-                            value="M15",
+                            options=[{"label": tf, "value": tf} for tf in cfg_timeframes],
+                            value=(cfg_timeframes[0] if cfg_timeframes else "M15"),
                             className="control-dropdown"
                         )
                     ], className="control-group")
@@ -447,6 +464,20 @@ class FVGTabEnterprise:
                             ],
                             value="all",
                             className="control-radio",
+                            inline=True
+                        )
+                    ], className="control-group")
+                ], className="controls-row"),
+
+                # CHoCH enrichment toggle
+                html.Div([
+                    html.Div([
+                        html.Label("CHoCH Enrichment:", className="control-label"),
+                        dcc.Checklist(
+                            id="fvg-choch-toggle",
+                            options=[{"label": "Enable", "value": "enabled"}],
+                            value=["enabled"] if bool(self.enable_choch_enrichment) else [],
+                            className="control-checkbox",
                             inline=True
                         )
                     ], className="control-group")
@@ -627,7 +658,7 @@ class FVGTabEnterprise:
                 dcc.Store(id="fvg-alert-store", data={})
             ])
     
-    def fetch_fvg_data(self, symbol: str = "EURUSD", timeframe: str = "M15") -> Dict[str, Any]:
+    def fetch_fvg_data(self, symbol: str = "EURUSD", timeframe: str = "M15", enable_choch: Optional[bool] = None) -> Dict[str, Any]:
         """
         📊 OBTENER DATOS FVG ENTERPRISE
         =============================
@@ -646,7 +677,7 @@ class FVGTabEnterprise:
             start_time = time.time()
             
             # Get FVG data from pattern detector or analyzer
-            fvg_gaps = self._fetch_real_fvg_data(symbol, timeframe)
+            fvg_gaps = self._fetch_real_fvg_data(symbol, timeframe, enable_choch=enable_choch)
             
             # Enhance with analytics
             enhanced_gaps = []
@@ -685,11 +716,135 @@ class FVGTabEnterprise:
                 'error': str(e)
             }
     
-    def _fetch_real_fvg_data(self, symbol: str, timeframe: str) -> List[Dict[str, Any]]:
-        """🔍 Obtener datos FVG reales del sistema"""
-        # This would integrate with the real FVG detection system
-        # For now, return enhanced mock data
-        return self._generate_enhanced_mock_gaps()
+    def _fetch_real_fvg_data(self, symbol: str, timeframe: str, enable_choch: Optional[bool] = None) -> List[Dict[str, Any]]:
+        """🔍 Obtener datos FVG reales del sistema
+        Fuente primaria: FVGMemoryManager (persistencia real del motor)
+        Fallback: datos mock si no disponible.
+        """
+        try:
+            if not self.fvg_manager:
+                return self._generate_enhanced_mock_gaps()
+
+            raw_fvgs = self.fvg_manager.get_active_fvgs(symbol=symbol, timeframe=timeframe)
+            gaps: List[Dict[str, Any]] = []
+
+            now = datetime.now(timezone.utc)
+            market_vol = 0.5
+            try:
+                # Aproximar volatilidad de mercado desde el manager si existe
+                if hasattr(self.fvg_manager, 'market_conditions'):
+                    mc = getattr(self.fvg_manager, 'market_conditions', {})
+                    vol = float(mc.get('current_volatility', 6.0))
+                    # Normalizar a 0-1 aprox (0-12 pips rango típico → /12)
+                    market_vol = max(0.0, min(1.0, vol / 12.0))
+            except Exception:
+                pass
+
+            # Optional CHoCH imports
+            choch_bonus_fn = None
+            choch_sr_fn = None
+            use_choch = self.enable_choch_enrichment if enable_choch is None else bool(enable_choch)
+            if use_choch:
+                try:
+                    from memory.choch_historical_memory import compute_historical_bonus, calculate_historical_success_rate  # type: ignore
+                    choch_bonus_fn = compute_historical_bonus
+                    choch_sr_fn = calculate_historical_success_rate
+                except Exception:
+                    choch_bonus_fn = None
+                    choch_sr_fn = None
+
+            for entry in raw_fvgs or []:
+                try:
+                    fvg_id = entry.get('fvg_id') or entry.get('id') or ''
+                    fvg_type = (entry.get('fvg_type') or entry.get('type') or 'bullish').lower()
+                    high_raw = entry.get('high_price')
+                    if high_raw is None:
+                        high_raw = entry.get('high')
+                    high = float(high_raw or 0.0)
+
+                    low_raw = entry.get('low_price')
+                    if low_raw is None:
+                        low_raw = entry.get('low')
+                    low = float(low_raw or 0.0)
+
+                    size_raw = entry.get('gap_size_pips')
+                    if size_raw is None:
+                        size_raw = entry.get('size_pips')
+                    if size_raw is None:
+                        pip_factor = 100 if 'JPY' in symbol else 10000
+                        size_pips = abs(high - low) * pip_factor
+                    else:
+                        size_pips = float(size_raw or 0.0)
+                    status = str(entry.get('status', 'unfilled')).lower()
+                    ts_raw = entry.get('candle_time') or entry.get('creation_timestamp') or entry.get('timestamp')
+                    # Parse ISO timestamp robustamente
+                    ts_iso = None
+                    age_hours = 0.0
+                    try:
+                        if isinstance(ts_raw, str):
+                            ts_iso = ts_raw
+                            ts = datetime.fromisoformat(ts_raw.replace('Z', '+00:00'))
+                        elif isinstance(ts_raw, datetime):
+                            ts = ts_raw if ts_raw.tzinfo else ts_raw.replace(tzinfo=timezone.utc)
+                            ts_iso = ts.isoformat()
+                        else:
+                            ts = now
+                            ts_iso = ts.isoformat()
+                        age_hours = max(0.0, (now - ts).total_seconds() / 3600.0)
+                    except Exception:
+                        ts_iso = now.isoformat()
+                        age_hours = 0.0
+
+                    mitigation_status = 'pending'
+                    if status == 'partially_filled':
+                        mitigation_status = 'partial'
+                    elif status == 'filled':
+                        mitigation_status = 'filled'
+
+                    enriched = {
+                        'id': fvg_id,
+                        'type': f"{fvg_type}_fvg" if not fvg_type.endswith('_fvg') else fvg_type,
+                        'price_top': max(high, low),
+                        'price_bottom': min(high, low),
+                        'size_pips': size_pips,
+                        'volume': 0,  # sin volumen en memoria, placeholder
+                        'timeframe': timeframe,
+                        'timestamp': ts_iso,
+                        'age_hours': age_hours,
+                        'context_strength': 0.6,  # placeholder razonable
+                        'market_volatility': market_vol,
+                        'mitigation_status': mitigation_status,
+                        # Extra opcional para futuras vistas
+                        'status': status,
+                        'symbol': symbol
+                    }
+
+                    # Optional CHoCH enrichment (non-blocking)
+                    if choch_bonus_fn is not None and use_choch:
+                        try:
+                            level = (high + low) / 2.0
+                            hb = choch_bonus_fn(symbol=symbol, timeframe=timeframe, break_level=level)
+                            enriched['choch_bonus'] = float(hb.get('historical_bonus', 0.0) or 0.0)
+                            enriched['choch_samples'] = int(hb.get('samples', 0) or 0)
+                        except Exception:
+                            pass
+                    if choch_sr_fn is not None and use_choch:
+                        try:
+                            sr = choch_sr_fn(symbol=symbol, timeframe=timeframe)
+                            enriched['choch_success_rate'] = float(sr)
+                        except Exception:
+                            pass
+
+                    gaps.append(enriched)
+                except Exception as map_e:
+                    if self.logger:
+                        self.logger.error(f"Error mapeando FVG para dashboard: {map_e}", "fvg_mapping")
+
+            return gaps
+        except Exception as e:
+            if self.logger:
+                self.logger.error(f"Error obteniendo FVG reales: {e}", "fvg_fetch")
+            return self._generate_enhanced_mock_gaps()
     
     def _generate_mock_fvg_data(self, symbol: str, timeframe: str) -> Dict[str, Any]:
         """🎭 Generar datos FVG mock"""
@@ -776,12 +931,14 @@ class FVGTabEnterprise:
                 [Input("fvg-refresh-interval", "n_intervals"),
                  Input("fvg-manual-scan", "n_clicks"),
                  Input("fvg-symbol-selector", "value"),
-                 Input("fvg-timeframe-selector", "value")],
+                 Input("fvg-timeframe-selector", "value"),
+                 Input("fvg-choch-toggle", "value")],
                 prevent_initial_call=False
             )
-            def update_fvg_data(n_intervals, scan_clicks, symbol, timeframe):
+            def update_fvg_data(n_intervals, scan_clicks, symbol, timeframe, choch_toggle):
                 """Update FVG data"""
-                data = self.fetch_fvg_data(symbol or "EURUSD", timeframe or "M15")
+                enable_choch = bool(choch_toggle) and ("enabled" in (choch_toggle or []))
+                data = self.fetch_fvg_data(symbol or "EURUSD", timeframe or "M15", enable_choch=enable_choch)
                 last_update = datetime.now().strftime("%H:%M:%S")
                 
                 if self.tab_coordinator:
@@ -818,6 +975,80 @@ class FVGTabEnterprise:
                     str(quality_dist.get('low_quality', 0)),
                     f"{stats.get('avg_size', 0):.1f} pips"
                 )
+
+            # Gap table render callback with filtering
+            @self.app.callback(
+                Output("fvg-gaps-table", "children"),
+                [Input("fvg-data-store", "data"),
+                 Input("fvg-type-filter", "value"),
+                 Input("fvg-quality-slider", "value")]
+            )
+            def render_gap_table(data, type_filter, min_quality):
+                gaps = data.get('fvg_gaps', []) or []
+                tfilter = (type_filter or 'all').lower()
+                try:
+                    mq = float(min_quality or 0)
+                except Exception:
+                    mq = 0.0
+
+                # Apply filters
+                def pass_filters(g):
+                    try:
+                        if mq and float(g.get('quality_score', 0.0)) < mq:
+                            return False
+                        if tfilter == 'bullish' and not str(g.get('type','')).startswith('bullish'):
+                            return False
+                        if tfilter == 'bearish' and not str(g.get('type','')).startswith('bearish'):
+                            return False
+                        return True
+                    except Exception:
+                        return False
+
+                fgaps = [g for g in gaps if pass_filters(g)]
+
+                # Build HTML table safely
+                header = html.Tr([
+                    html.Th("Symbol"), html.Th("Timeframe"), html.Th("Type"), html.Th("Status"),
+                    html.Th("Gap (pips)"), html.Th("Price Range"), html.Th("Age (h)"),
+                    html.Th("Quality"), html.Th("Mitigation"), html.Th("CHoCH Bonus"), html.Th("CHoCH SR")
+                ])
+
+                def fmt_num(v, nd=1):
+                    try:
+                        return f"{float(v):.{nd}f}"
+                    except Exception:
+                        return "-"
+
+                rows = []
+                for g in fgaps:
+                    sym = g.get('symbol', '-')
+                    tf = g.get('timeframe', '-')
+                    gtype = g.get('type', '-')
+                    status = g.get('mitigation_status', g.get('status', '-'))
+                    size = fmt_num(g.get('size_pips', 0.0), 1)
+                    pt = g.get('price_top', None)
+                    pb = g.get('price_bottom', None)
+                    prange = f"{fmt_num(pb, 5)} - {fmt_num(pt, 5)}"
+                    age = fmt_num(g.get('age_hours', 0.0), 1)
+                    q = fmt_num(g.get('quality_score', 0.0), 1)
+                    mp = g.get('mitigation_prob', 0.0)
+                    mp_s = f"{float(mp):.0%}" if isinstance(mp, (int, float)) else "-"
+                    cb = g.get('choch_bonus', None)
+                    cb_s = fmt_num(cb, 1) if cb is not None else "-"
+                    sr = g.get('choch_success_rate', None)
+                    sr_s = f"{float(sr):.0%}" if isinstance(sr, (int, float)) else "-"
+                    rows.append(html.Tr([
+                        html.Td(sym), html.Td(tf), html.Td(gtype), html.Td(status),
+                        html.Td(size), html.Td(prange), html.Td(age),
+                        html.Td(q), html.Td(mp_s), html.Td(cb_s), html.Td(sr_s)
+                    ]))
+
+                table = html.Table([
+                    html.Thead(header),
+                    html.Tbody(rows if rows else [html.Tr([html.Td("No gaps found", colSpan=11)])])
+                ], className="fvg-table")
+
+                return table
             
             print("🔄 FVG Tab Enterprise callbacks registered successfully")
             

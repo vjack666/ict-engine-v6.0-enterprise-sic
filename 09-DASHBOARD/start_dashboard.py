@@ -45,29 +45,44 @@ sys.path.extend([
     str(dashboard_dir / "components"),
     str(dashboard_dir / "bridge")
 ])
+# Logging modes utility (loaded after sys.path setup)
+try:
+    from utils.logging_modes import apply_logging_mode, silence_stdout_stderr
+except Exception:
+    def apply_logging_mode(mode: Optional[str] = None) -> str:
+        return (mode or os.environ.get("ICT_LOGGING_MODE", "silent")).strip().lower()
+    from contextlib import contextmanager
+    @contextmanager
+    def silence_stdout_stderr(enabled: bool = True):
+        yield
+
+# Resolve logging mode early and optionally silence stdout/stderr during heavy imports
+_resolved_mode = apply_logging_mode(os.environ.get('ICT_LOGGING_MODE'))
+_silent_mode = (_resolved_mode == 'silent')
 
 # Variables globales para manejo dinámico de clases (sin conflictos de tipo)
 dashboard_imports_ok = False
 
-# Importar sistema de auto-recovery
-try:
-    from core.dashboard_auto_recovery import DashboardAutoRecovery
-    auto_recovery_available = True
-    print("✅ [AUTO-RECOVERY] Sistema de auto-recovery disponible")
-except ImportError as e:
-    DashboardAutoRecovery = None
-    auto_recovery_available = False
-    print(f"⚠️ [WARNING] Auto-recovery no disponible: {e}")
+with silence_stdout_stderr(enabled=_silent_mode):
+    # Importar sistema de auto-recovery
+    try:
+        from core.dashboard_auto_recovery import DashboardAutoRecovery
+        auto_recovery_available = True
+        print("✅ [AUTO-RECOVERY] Sistema de auto-recovery disponible")
+    except ImportError as e:
+        DashboardAutoRecovery = None
+        auto_recovery_available = False
+        print(f"⚠️ [WARNING] Auto-recovery no disponible: {e}")
 
-# Importar sistema de health monitoring
-try:
-    from core.dashboard_health_monitor import DashboardHealthMonitor
-    health_monitoring_available = True
-    print("✅ [HEALTH-MONITOR] Sistema de health monitoring disponible")
-except ImportError as e:
-    DashboardHealthMonitor = None
-    health_monitoring_available = False
-    print(f"⚠️ [WARNING] Health monitoring no disponible: {e}")
+    # Importar sistema de health monitoring
+    try:
+        from core.dashboard_health_monitor import DashboardHealthMonitor
+        health_monitoring_available = True
+        print("✅ [HEALTH-MONITOR] Sistema de health monitoring disponible")
+    except ImportError as e:
+        DashboardHealthMonitor = None
+        health_monitoring_available = False
+        print(f"⚠️ [WARNING] Health monitoring no disponible: {e}")
 
 # Funciones para cargar componentes dinámicamente (sin conflictos de tipo)
 def load_dashboard_components():
@@ -1173,8 +1188,12 @@ def start_dashboard_enterprise(real_data_collector=None, smart_logger=None):
         smart_logger=smart_logger
     )
     
-    # Iniciar dashboard
-    success = dashboard_launcher.start_dashboard()
+    # Apply logging mode and optional silence for clean panel
+    resolved_mode = apply_logging_mode(os.environ.get('ICT_LOGGING_MODE'))
+    silent = (resolved_mode == 'silent')
+    # Iniciar dashboard con modo silencioso si corresponde
+    with silence_stdout_stderr(enabled=silent):
+        success = dashboard_launcher.start_dashboard()
     
     if success:
         print("✅ [DASHBOARD] Dashboard Enterprise finalizado correctamente")

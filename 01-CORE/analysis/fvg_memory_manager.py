@@ -343,20 +343,43 @@ class FVGMemoryManager:
             str: ID único del FVG creado
         """
         try:
-            # Generar ID único
-            fvg_id = f"fvg_{symbol}_{timeframe}_{int(datetime.now().timestamp())}"
-            
+            # Auto-cleanup if needed based on frequency
+            try:
+                last_cleanup_iso = self.fvg_data.get("metadata", {}).get("last_cleanup")
+                last_cleanup_dt = datetime.fromisoformat(last_cleanup_iso.replace('Z', '+00:00')) if last_cleanup_iso else None
+                if last_cleanup_dt is None or (datetime.now(timezone.utc) - last_cleanup_dt) >= timedelta(hours=self.config.get('cleanup_frequency_hours', 24)):
+                    self.cleanup_old_fvgs()
+            except Exception:
+                pass
             # Asegurar que existe la estructura para el símbolo
             if symbol not in self.fvg_data["fvg_database"]:
                 self._initialize_symbol_structure(symbol)
-            
+
+            # Intentar reutilizar fvg_id entrante si existe
+            incoming_fvg_id = fvg_data.get('fvg_id') or None
+
+            # Determinar si ya existe un FVG equivalente (dedup)
+            timeframe_list = self.fvg_data["fvg_database"][symbol].get(timeframe)
+            if isinstance(timeframe_list, list) and timeframe_list:
+                incoming_key = self._compute_dedup_key_for_data(fvg_data, symbol, timeframe)
+                for existing in timeframe_list:
+                    # Coincidencia por fvg_id directo
+                    if incoming_fvg_id and existing.get('fvg_id') == incoming_fvg_id:
+                        return existing.get('fvg_id', '')
+                    # Coincidencia por clave derivada (tipo, precios, tiempo)
+                    if self._compute_dedup_key_for_entry(existing) == incoming_key:
+                        return existing.get('fvg_id', '')
+
+            # Generar ID único
+            fvg_id = incoming_fvg_id or f"fvg_{symbol}_{timeframe}_{int(datetime.now().timestamp())}"
+
             # Crear entrada de FVG enriquecida
             fvg_entry = {
                 "fvg_id": fvg_id,
                 "symbol": symbol,
                 "timeframe": timeframe,
                 "creation_timestamp": datetime.now(timezone.utc).isoformat(),
-                "candle_time": fvg_data.get('timestamp', datetime.now(timezone.utc).isoformat()),
+                "candle_time": self._normalize_time_value(fvg_data.get('timestamp', datetime.now(timezone.utc).isoformat())),
                 "fvg_type": fvg_data.get('type', 'bullish'),
                 "high_price": float(fvg_data.get('high', 0.0)),
                 "low_price": float(fvg_data.get('low', 0.0)),
@@ -405,6 +428,56 @@ class FVGMemoryManager:
         except Exception as e:
             self.logger.error(f"Error añadiendo FVG: {e}", component="fvg_memory")
             return ""
+
+    def _normalize_time_value(self, value: Any) -> str:
+        """Normaliza timestamps a ISO str para claves de deduplicación."""
+        try:
+            if isinstance(value, datetime):
+                # Asegurar timezone-aware en UTC
+                if value.tzinfo is None:
+                    value = value.replace(tzinfo=timezone.utc)
+                return value.isoformat()
+            # Si es pandas Timestamp
+            if hasattr(value, 'isoformat'):
+                return value.isoformat()
+            return str(value)
+        except Exception:
+            return str(value)
+
+    def _pip_decimals_for_symbol(self, symbol: str) -> int:
+        """Obtiene decimales relevantes por símbolo para dedup (pip-aware)."""
+        try:
+            # Simple heuristic: pares con JPY usan 3 decimales, resto 6
+            return 3 if 'JPY' in (symbol or '') else 6
+        except Exception:
+            return 6
+
+    def _round_price(self, price: float, decimals: int = 6) -> float:
+        """Redondeo consistente para claves con decimales especificados."""
+        try:
+            return round(float(price), int(decimals))
+        except Exception:
+            return float(price) if price is not None else 0.0
+
+    def _compute_dedup_key_for_data(self, fvg_data: dict, symbol: str, timeframe: str):
+        """Construye clave de deduplicación desde datos entrantes."""
+        fvg_type = fvg_data.get('type', 'bullish')
+        decimals = self._pip_decimals_for_symbol(symbol)
+        high = self._round_price(fvg_data.get('high', 0.0), decimals)
+        low = self._round_price(fvg_data.get('low', 0.0), decimals)
+        ctime = self._normalize_time_value(fvg_data.get('timestamp', ''))
+        return (symbol, timeframe, fvg_type, high, low, ctime)
+
+    def _compute_dedup_key_for_entry(self, entry: dict):
+        """Construye clave de dedup desde entrada almacenada."""
+        fvg_type = entry.get('fvg_type', 'bullish')
+        symbol = entry.get('symbol', '')
+        timeframe = entry.get('timeframe', '')
+        decimals = self._pip_decimals_for_symbol(symbol)
+        high = self._round_price(entry.get('high_price', 0.0), decimals)
+        low = self._round_price(entry.get('low_price', 0.0), decimals)
+        ctime = entry.get('candle_time', '')
+        return (symbol, timeframe, fvg_type, high, low, ctime)
     
     def update_fvg_status(self, fvg_id: str, new_status: str, fill_percentage: float = 0.0) -> bool:
         """
@@ -459,10 +532,13 @@ class FVGMemoryManager:
                 for tf, fvgs in timeframes.items():
                     if timeframe and tf != timeframe:
                         continue
-                    
-                    for fvg in fvgs:
-                        if fvg["status"] in ["unfilled", "partially_filled"]:
-                            active_fvgs.append(fvg)
+                    if isinstance(fvgs, list):
+                        for fvg in fvgs:
+                            try:
+                                if fvg.get("status") in ["unfilled", "partially_filled"]:
+                                    active_fvgs.append(fvg)
+                            except Exception:
+                                continue
             
             return active_fvgs
             
