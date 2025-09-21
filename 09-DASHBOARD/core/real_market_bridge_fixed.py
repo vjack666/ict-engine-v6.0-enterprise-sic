@@ -60,6 +60,61 @@ class RealMarketBridge:
         
         # Verificar e inicializar datos históricos si es necesario
         self._ensure_historical_data_exists()
+
+    def connect_real_components(self, components: Optional[Dict[str, Any]] = None) -> bool:
+        """Conectar componentes reales requeridos por el dashboard/collector.
+
+        Acepta opcionalmente un diccionario de componentes ya instanciados
+        y completa los faltantes mediante inicialización lazy. Retorna True
+        si al menos un componente clave queda conectado o disponible.
+        """
+        try:
+            if components:
+                self.mt5_manager = components.get('mt5_manager', self.mt5_manager)
+                self.unified_memory = components.get('unified_memory', self.unified_memory)
+
+            # MT5 manager
+            mt5_ok = False
+            if self.mt5_manager is None:
+                try:
+                    self.initialize_mt5_manager()
+                except Exception:
+                    pass
+
+            if self.mt5_manager is not None:
+                try:
+                    if hasattr(self.mt5_manager, 'connect'):
+                        mt5_ok = bool(self.mt5_manager.connect())
+                    else:
+                        import importlib
+                        mt5_module = importlib.import_module('MetaTrader5')
+                        mt5_ok = bool(getattr(mt5_module, 'initialize', lambda: False)())
+                except Exception:
+                    mt5_ok = False
+
+            # Unified memory
+            memory_ok = False
+            if self.unified_memory is None:
+                try:
+                    self.initialize_unified_memory()
+                except Exception:
+                    pass
+            memory_ok = self.unified_memory is not None
+
+            self.is_connected = bool(mt5_ok or memory_ok)
+            self.last_update = datetime.now().isoformat()
+
+            if self.is_connected:
+                print("✅ RealMarketBridge: componentes reales conectados")
+            else:
+                print("⚠️ RealMarketBridge: no se pudieron conectar componentes reales (fallback)")
+
+            return self.is_connected
+
+        except Exception as e:
+            print(f"⚠️ Error en connect_real_components: {e}")
+            self.is_connected = False
+            return False
     
     def _ensure_historical_data_exists(self):
         """🚀 Verificar y crear datos históricos si es primera ejecución"""

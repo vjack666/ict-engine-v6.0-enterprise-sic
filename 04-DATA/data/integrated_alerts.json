@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-09-21T10:53:36.048519",
+  "timestamp": "2025-09-21T10:56:46.634509",
   "active_alerts": [
     {
       "id": "system_f17573a0",
@@ -1820,20 +1820,100 @@
       "resolved_at": null,
       "resolution_message": null,
       "auto_resolved": false
-    }
-  ],
-  "recent_history": [
+    },
     {
-      "id": "system_758f53bc",
-      "timestamp": "2025-09-21T10:53:15.111689",
+      "id": "system_d57caa65",
+      "timestamp": "2025-09-21T10:56:10.479699",
+      "level": "warning",
+      "source": "system_monitor",
+      "category": "system_resources",
+      "title": "System Alert: Memory",
+      "message": "Uso de memoria elevado: 81.3%",
+      "component": "Memory",
+      "metadata": {},
+      "tags": [
+        "system_monitor",
+        "memory"
+      ],
+      "acknowledged": false,
+      "resolved": false,
+      "escalated": false,
+      "channels": [],
+      "notified_at": null,
+      "correlation_id": null,
+      "parent_alert_id": null,
+      "related_alerts": [],
+      "resolved_at": null,
+      "resolution_message": null,
+      "auto_resolved": false
+    },
+    {
+      "id": "system_07705bf5",
+      "timestamp": "2025-09-21T10:56:19.540028",
       "level": "warning",
       "source": "system_monitor",
       "category": "system_resources",
       "title": "System Alert: StaleMarketData",
-      "message": "Datos de mercado desactualizados: 143897.1s",
+      "message": "Datos de mercado desactualizados: 144081.5s",
       "component": "StaleMarketData",
       "metadata": {
-        "last_tick_age_ms": 143897111.67645454
+        "last_tick_age_ms": 144081540.0145054
+      },
+      "tags": [
+        "system_monitor",
+        "stalemarketdata"
+      ],
+      "acknowledged": false,
+      "resolved": false,
+      "escalated": false,
+      "channels": [],
+      "notified_at": null,
+      "correlation_id": null,
+      "parent_alert_id": null,
+      "related_alerts": [],
+      "resolved_at": null,
+      "resolution_message": null,
+      "auto_resolved": false
+    }
+  ],
+  "recent_history": [
+    {
+      "id": "system_d57caa65",
+      "timestamp": "2025-09-21T10:56:10.479699",
+      "level": "warning",
+      "source": "system_monitor",
+      "category": "system_resources",
+      "title": "System Alert: Memory",
+      "message": "Uso de memoria elevado: 81.3%",
+      "component": "Memory",
+      "metadata": {},
+      "tags": [
+        "system_monitor",
+        "memory"
+      ],
+      "acknowledged": false,
+      "resolved": false,
+      "escalated": false,
+      "channels": [],
+      "notified_at": null,
+      "correlation_id": null,
+      "parent_alert_id": null,
+      "related_alerts": [],
+      "resolved_at": null,
+      "resolution_message": null,
+      "auto_resolved": false
+    },
+    {
+      "id": "system_07705bf5",
+      "timestamp": "2025-09-21T10:56:19.540028",
+      "level": "warning",
+      "source": "system_monitor",
+      "category": "system_resources",
+      "title": "System Alert: StaleMarketData",
+      "message": "Datos de mercado desactualizados: 144081.5s",
+      "component": "StaleMarketData",
+      "metadata": {
+        "last_tick_age_ms": 144081540.0145054
       },
       "tags": [
         "system_monitor",
