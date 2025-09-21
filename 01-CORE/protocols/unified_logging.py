@@ -147,6 +147,11 @@ class StandardLoggerAdapter:
                     handler.setFormatter(formatter)
                     logger.addHandler(handler)
                     logger.setLevel(logging.INFO)
+            # Avoid duplicate emission via root handlers
+            try:
+                logger.propagate = False
+            except Exception:
+                pass
         self.logger = logger
         # de-dup state
         self._last_sig: Optional[tuple[str, str, str]] = None

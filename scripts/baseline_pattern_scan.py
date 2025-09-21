@@ -19,7 +19,7 @@ python -X utf8 .\\scripts\\baseline_pattern_scan.py -s AUDUSD -t M5 -n 600 -o .\
 from __future__ import annotations
 import argparse
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 import sys
@@ -82,7 +82,7 @@ def run_baseline(symbol: str, timeframe: str, num_candles: int, out_dir: Path) -
             'symbol': symbol,
             'timeframe': timeframe,
             'num_candles': int(num_candles),
-            'generated_at': datetime.utcnow().isoformat() + 'Z',
+            'generated_at': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
         },
         'detectors': {},
     }
@@ -144,7 +144,7 @@ def run_baseline(symbol: str, timeframe: str, num_candles: int, out_dir: Path) -
 
     # Save report
     out_dir.mkdir(parents=True, exist_ok=True)
-    filename = f"baseline_{symbol}_{timeframe}_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}.json"
+    filename = f"baseline_{symbol}_{timeframe}_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.json"
     out_path = out_dir / filename
     with out_path.open('w', encoding='utf-8') as f:
         json.dump(results, f, indent=2)

@@ -191,6 +191,8 @@ class AlertIntegrationSystem:
         self.alert_handlers: Dict[AlertCategory, List[Callable[[IntegratedAlert], None]]] = {}
         self.escalation_handlers: List[Callable[[IntegratedAlert], None]] = []
         self.resolution_handlers: List[Callable[[IntegratedAlert], None]] = []
+        # Throttling for escalation log messages
+        self._last_escalation_log: Dict[str, datetime] = {}
         
         # Alert routing rules
         self.routing_rules: List[Dict[str, Any]] = []
@@ -753,7 +755,13 @@ class AlertIntegrationSystem:
             
             self._route_alert(escalation_alert)
             
-            logger.warning(f"Alert escalated: {alert.title}", "ESCALATION")
+            key = alert.id or alert.title
+            now_ts = datetime.now()
+            cooldown = timedelta(seconds=self.config.get('escalation_log_cooldown_seconds', 10))
+            last_ts = self._last_escalation_log.get(key)
+            if (not last_ts) or ((now_ts - last_ts) > cooldown):
+                logger.warning(f"Alert escalated: {alert.title}", "ESCALATION")
+                self._last_escalation_log[key] = now_ts
             
         except Exception as e:
             logger.error(f"Error escalating alert: {e}", "ESCALATION")
@@ -913,8 +921,15 @@ class AlertIntegrationSystem:
                 alert.metadata['acknowledged_at'] = datetime.now().isoformat()
                 
                 logger.info(f"Alert acknowledged: {alert.title} by {user}", "ACK")
-                return True
-        
+            
+                # Throttle duplicate escalation logs for the same alert
+                key = alert.id or alert.title
+                now_ts = datetime.now()
+                cooldown = timedelta(seconds=self.config.get('escalation_log_cooldown_seconds', 10))
+                last_ts = self._last_escalation_log.get(key)
+                if not last_ts or (now_ts - last_ts) > cooldown:
+                    logger.warning(f"Alert escalated: {alert.title}", "ESCALATION")
+                    self._last_escalation_log[key] = now_ts
         return False
     
     def resolve_alert(self, alert_id: str, resolution_message: str = "", user: str = "system") -> bool:

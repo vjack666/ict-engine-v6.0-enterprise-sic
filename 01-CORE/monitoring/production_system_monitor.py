@@ -142,12 +142,9 @@ class ProductionSystemMonitor:
         # Callbacks de alerta
         self.alert_callbacks: List[Callable[[Alert], None]] = []
 
-                # Persistence and monitoring
-        self.config = config or {}
+        # Optional containers (do not override existing config/state)
         self.components: Dict[str, Any] = {}
         self.metrics: Dict[str, float] = {}
-        self.alerts: List[Alert] = []
-        self.alert_callbacks: List[Callable[[Alert], None]] = []
 
         # Alert integration
         try:
@@ -189,6 +186,8 @@ class ProductionSystemMonitor:
                 'disk_critical': 95.0,
                 'response_time_warning': 1000.0,  # ms
                 'response_time_critical': 5000.0,  # ms
+                # Umbral específico para staleness de market data (ms)
+                'stale_market_data_ms': 30000,
             },
             'persist_metrics': True,
             'max_alerts': 100,  # Reducido de 150 tras análisis de memoria
@@ -196,7 +195,9 @@ class ProductionSystemMonitor:
             'aggressive_cleanup_threshold': 80.0,  # Reducido de 85% para cleanup más temprano
             'cleanup_history_ratio': 0.05,  # Más agresivo: mantener solo 5% vs 10%
             'alert_throttle_seconds': 25,  # Reducido para mejor responsividad
-            'memory_cleanup_interval': 180  # 3 minutos vs 5 minutos (más frecuente)
+            'memory_cleanup_interval': 180,  # 3 minutos vs 5 minutos (más frecuente)
+            # Evitar alertas de StaleMarketData cuando MT5 está desconectado (modo simulación/dev)
+            'stale_alert_if_disconnected': False
         }
     
     def start_monitoring(self):
@@ -595,10 +596,8 @@ class ProductionSystemMonitor:
             for _ in range(5):  # 5 vs 3 passes for more thorough cleanup
                 collected += gc.collect()
             
-            # Additional aggressive cleanup específico post-performance analysis
-            import sys
-            sys.modules.clear  # Clear module cache if safe
-            
+            # Avoid clearing sys.modules: unsafe and can break imports
+
             if LOGGING_AVAILABLE and logger:
                 logger.info(
                     f"Performance-optimized cleanup: metrics={len(self.metrics_history)}/{target_metrics_size}, "
@@ -750,14 +749,24 @@ class ProductionSystemMonitor:
                 {"broker_ping_ms": metrics.broker_ping_ms}
             )
         
-        # Stale market data
-        if metrics.last_tick_age_ms > 30000:  # 30 seconds
+        # Stale market data (configurable y condicionado a conexión MT5)
+        thresholds = self.config.get('thresholds', {})
+        stale_threshold_ms = thresholds.get('stale_market_data_ms', 30000)
+        if metrics.mt5_connected and metrics.last_tick_age_ms > stale_threshold_ms:
             self._create_alert(
                 AlertLevel.WARNING,
                 "StaleMarketData",
                 f"Datos de mercado desactualizados: {metrics.last_tick_age_ms/1000:.1f}s",
                 {"last_tick_age_ms": metrics.last_tick_age_ms}
             )
+        elif (not metrics.mt5_connected) and self.config.get('stale_alert_if_disconnected', False):
+            if metrics.last_tick_age_ms > stale_threshold_ms:
+                self._create_alert(
+                    AlertLevel.WARNING,
+                    "StaleMarketData",
+                    f"Datos de mercado desactualizados (sin conexión MT5): {metrics.last_tick_age_ms/1000:.1f}s",
+                    {"last_tick_age_ms": metrics.last_tick_age_ms, "mt5_connected": False}
+                )
         
         # Low margin level
         if metrics.margin_level > 0 and metrics.margin_level < 150:

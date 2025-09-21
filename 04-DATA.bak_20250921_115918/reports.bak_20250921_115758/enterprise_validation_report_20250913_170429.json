@@ -1,0 +1,99 @@
+{
+  "report_metadata": {
+    "report_id": "ENTERPRISE_DASHBOARD_EURUSD_M15_20250913_170429",
+    "symbol": "EURUSD",
+    "timeframe": "M15",
+    "generated_timestamp": "2025-09-13T17:04:29.182178",
+    "report_type": "enterprise_validation_comparison",
+    "version": "6.0-enterprise"
+  },
+  "live_results": {
+    "order_blocks": {
+      "signals": 18,
+      "accuracy": 1.0,
+      "timestamp": "2025-09-13T17:04:28.420668"
+    },
+    "fvg": {
+      "signals": 0,
+      "accuracy": 1.0,
+      "timestamp": "2025-09-13T17:04:29.177084"
+    },
+    "summary": {
+      "total_signals": 18,
+      "average_accuracy": 100.0,
+      "validation_timestamp": "2025-09-13T17:04:29.177120",
+      "validators_count": 1
+    }
+  },
+  "historical_baseline": {
+    "data": {
+      "order_blocks": {
+        "signals": 28,
+        "accuracy": 0.834,
+        "confidence": 0.892,
+        "period_analyzed": "30_days",
+        "sample_size": 847
+      },
+      "fvg": {
+        "signals": 21,
+        "accuracy": 0.791,
+        "confidence": 0.867,
+        "period_analyzed": "30_days",
+        "sample_size": 623
+      }
+    },
+    "summary": {
+      "total_signals": 49,
+      "average_accuracy": 81.2,
+      "analysis_period": "30_days",
+      "baseline_generated": "2025-09-13T17:04:29.177134",
+      "data_quality": "enterprise_validated"
+    }
+  },
+  "comparison_analysis": {
+    "signal_comparison": {
+      "order_blocks": {
+        "live_signals": 18,
+        "historical_signals": 28,
+        "variance_percent": -35.71
+      },
+      "fvg": {
+        "live_signals": 0,
+        "historical_signals": 21,
+        "variance_percent": -100.0
+      }
+    },
+    "accuracy_comparison": {
+      "order_blocks": {
+        "live_accuracy": 1.0,
+        "historical_accuracy": 83.4,
+        "variance_percent": 16.6
+      },
+      "fvg": {
+        "live_accuracy": 1.0,
+        "historical_accuracy": 79.1,
+        "variance_percent": 20.9
+      }
+    },
+    "divergence_analysis": {
+      "overall_signal_variance": -63.27,
+      "overall_accuracy_variance": 23.15,
+      "divergence_score": 86.4,
+      "consistency_rating": "POOR"
+    },
+    "summary": {
+      "live_signals": 18,
+      "historical_signals": 49,
+      "variance": "-63.3%",
+      "consistency": "POOR",
+      "divergence_score": 86.4,
+      "accuracy_performance": "better",
+      "comparison_timestamp": "2025-09-13T17:04:29.178045"
+    }
+  },
+  "recommendations": [
+    "🚨 High divergence detected - immediate investigation required",
+    "📈 Live performance exceeding historical benchmarks"
+  ],
+  "dashboard_status": "completed"
+}

@@ -24,7 +24,7 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict
 from typing import Dict, Any, List, Tuple, Optional, Callable
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import os
 
@@ -189,7 +189,7 @@ class RiskTracker:
         }
 
         snapshot = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "checklist": [asdict(c) for c in checklist],
             "summary": summary,
         }

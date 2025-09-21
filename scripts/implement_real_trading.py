@@ -19,7 +19,7 @@ import os
 import json
 import logging
 import importlib.util
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add project root to path
@@ -27,20 +27,34 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "01-CORE"))
 
 def setup_logging():
-    """Setup logging para implementación"""
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler('real_trading_implementation.log'),
-            logging.StreamHandler()
-        ]
-    )
-    return logging.getLogger('RealTradingImplementation')
+    """Configure unified logging respecting silent mode"""
+    try:
+        from protocols.unified_logging import load_unified_logging_config, get_unified_logger
+        # Ensure config is loaded and mode respected (default silent)
+        load_unified_logging_config()
+        return get_unified_logger('RealTradingImplementation')
+    except Exception:
+        # Minimal fallback: file-only logging to avoid console noise
+        logger = logging.getLogger('RealTradingImplementation')
+        if not logger.handlers:
+            try:
+                fh = logging.FileHandler('real_trading_implementation.log', encoding='utf-8')
+                fmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+                fh.setFormatter(fmt)
+                logger.addHandler(fh)
+                logger.propagate = False
+                logger.setLevel(logging.INFO)
+            except Exception:
+                pass
+        return logger
 
 def validate_system_requirements():
     """Valida pre-requisitos sistema"""
-    logger = logging.getLogger('RealTradingImplementation')
+    try:
+        from protocols.unified_logging import get_unified_logger
+        logger = get_unified_logger('RealTradingImplementation')
+    except Exception:
+        logger = logging.getLogger('RealTradingImplementation')
     logger.info("🔍 Validating system requirements...")
     
     checks = {
@@ -106,7 +120,11 @@ def validate_system_requirements():
 
 def create_real_trading_structure():
     """Crea estructura directorios real trading"""
-    logger = logging.getLogger('RealTradingImplementation')
+    try:
+        from protocols.unified_logging import get_unified_logger
+        logger = get_unified_logger('RealTradingImplementation')
+    except Exception:
+        logger = logging.getLogger('RealTradingImplementation')
     logger.info("🏗️ Creating real trading directory structure...")
     
     base_path = project_root / "01-CORE" / "real_trading"
@@ -128,7 +146,11 @@ def create_real_trading_structure():
 
 def implement_phase_1_risk_management():
     """FASE 1: Implementa Risk Management Automático"""
-    logger = logging.getLogger('RealTradingImplementation')
+    try:
+        from protocols.unified_logging import get_unified_logger
+        logger = get_unified_logger('RealTradingImplementation')
+    except Exception:
+        logger = logging.getLogger('RealTradingImplementation')
     logger.info("🛡️ PHASE 1: Implementing Risk Management (4 hours)")
     
     # Los archivos ya fueron creados arriba
@@ -208,7 +230,11 @@ def implement_phase_1_risk_management():
 
 def implement_phase_2_validation_execution():
     """FASE 2: Implementa Signal Validation + Execution"""
-    logger = logging.getLogger('RealTradingImplementation')
+    try:
+        from protocols.unified_logging import get_unified_logger
+        logger = get_unified_logger('RealTradingImplementation')
+    except Exception:
+        logger = logging.getLogger('RealTradingImplementation')
     logger.info("🎯 PHASE 2: Implementing Signal Validation + Execution (4 hours)")
     
     # Create signal validator
@@ -362,7 +388,7 @@ class ExecutionEngine:
                 order_ticket=order_ticket,
                 position_size=position_size,
                 execution_price=execution_price,
-                execution_time=datetime.now()
+                execution_time=datetime.now(timezone.utc)
             )
             
         except Exception as e:
@@ -383,7 +409,11 @@ class ExecutionEngine:
 
 def implement_phase_3_monitoring():
     """FASE 3: Implementa Monitoring Dashboard"""
-    logger = logging.getLogger('RealTradingImplementation')
+    try:
+        from protocols.unified_logging import get_unified_logger
+        logger = get_unified_logger('RealTradingImplementation')
+    except Exception:
+        logger = logging.getLogger('RealTradingImplementation')
     logger.info("📊 PHASE 3: Implementing Monitoring Dashboard (2-4 hours)")
     
     # Dashboard ya fue creado arriba, validar existencia
@@ -462,7 +492,7 @@ import sys
 import time
 import logging
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 
 # Add paths
@@ -486,7 +516,12 @@ class RealTradingSystem:
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize complete real trading system"""
         self.config = config or self._load_default_config()
-        self.logger = logging.getLogger("RealTradingSystem")
+        try:
+            from protocols.unified_logging import load_unified_logging_config, get_unified_logger
+            load_unified_logging_config()
+            self.logger = get_unified_logger("RealTradingSystem")
+        except Exception:
+            self.logger = logging.getLogger("RealTradingSystem")
         
         # Initialize components
         self._initialize_components()
@@ -564,7 +599,7 @@ class RealTradingSystem:
         
         # Mark as running
         self.is_running = True
-        self.start_time = datetime.now()
+    self.start_time = datetime.now(timezone.utc)
         
         self.logger.info("✅ REAL TRADING SYSTEM ACTIVE")
         self.logger.info("💰 Ready for live account trading")
@@ -635,7 +670,8 @@ class RealTradingSystem:
     
     def get_system_status(self) -> Dict[str, Any]:
         """Get current system status"""
-        uptime = (datetime.now() - self.start_time).total_seconds() if self.start_time else 0
+    now_utc = datetime.now(timezone.utc)
+    uptime = (now_utc - self.start_time).total_seconds() if self.start_time else 0
         
         status = {
             'is_running': self.is_running,
@@ -658,21 +694,18 @@ class RealTradingSystem:
 
 def main():
     """Main entry point"""
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
-    
-    print("🏦 ICT Engine v6.0 Enterprise - Real Trading System")
-    print("=" * 60)
-    
+    try:
+        from protocols.unified_logging import load_unified_logging_config
+        load_unified_logging_config()
+    except Exception:
+        pass
+
     # Create and start system
     system = RealTradingSystem()
-    
+
     try:
         system.start_real_trading()
     except KeyboardInterrupt:
-        print("\\n🛑 Shutdown requested")
         system.stop_real_trading()
 
 if __name__ == "__main__":
@@ -692,13 +725,17 @@ if __name__ == "__main__":
 
 def create_implementation_summary():
     """Crea resumen implementación"""
-    logger = logging.getLogger('RealTradingImplementation')
+    try:
+        from protocols.unified_logging import get_unified_logger
+        logger = get_unified_logger('RealTradingImplementation')
+    except Exception:
+        logger = logging.getLogger('RealTradingImplementation')
     
     summary = f"""
 # 🏆 REAL TRADING IMPLEMENTATION COMPLETED
 ## ICT Engine v6.0 Enterprise - Account Real Ready
 
-**📅 Implementation Date:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  
+**📅 Implementation Date:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}  
 **⚡ Total Implementation Time:** ~8-12 hours (Option B - Dirigida)  
 **🎯 Status:** READY FOR LIVE TRADING
 
@@ -866,13 +903,7 @@ python 09-DASHBOARD/real_trading/launch_dashboard.py
 
 def main():
     """Main implementation function"""
-    print("🏦 ICT Engine v6.0 Enterprise - Real Trading Implementation")
-    print("=" * 70)
-    print("🎯 Option B: Implementación Dirigida (8-12 horas)")
-    print("🚀 Ready for FTMO/Prop Firm live trading")
-    print()
-    
-    # Setup logging
+    # Setup unified logging (silent by default)
     logger = setup_logging()
     logger.info("🚀 Starting Real Trading Implementation...")
     
@@ -921,20 +952,7 @@ def main():
         logger.info(f"📋 Summary available at: {summary_path}")
         logger.info("🚀 System ready for live account trading")
         
-        print()
-        print("🏆 REAL TRADING IMPLEMENTATION COMPLETED!")
-        print("=" * 50)
-        print("✅ All components implemented and tested")
-        print("🛡️ Risk management and emergency protection active")
-        print("📊 Monitoring dashboard available")
-        print("🚀 Ready to start live trading!")
-        print()
-        print("📋 Next steps:")
-        print("1. Review configuration in real_trading_config.json")
-        print("2. Connect and validate MT5 FTMO account")
-        print("3. Run: python real_trading_system.py")
-        print("4. Launch dashboard: python 09-DASHBOARD/real_trading/launch_dashboard.py")
-        print()
+    # In silent mode, avoid console prints
         
         return True
         

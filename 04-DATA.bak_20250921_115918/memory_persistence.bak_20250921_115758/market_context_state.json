@@ -1,0 +1,209 @@
+{
+  "metadata": {
+    "last_updated": "2025-09-21T16:53:12.704580+00:00",
+    "version": "v6.1.0-enterprise",
+    "state_type": "market_context",
+    "system_state": "LEARNING",
+    "total_events_analyzed": 9
+  },
+  "timestamp": "2025-09-21T16:53:12.683735+00:00",
+  "market_context": {
+    "market_bias": "NEUTRAL",
+    "confidence_level": 0.0,
+    "analysis_quality": "MEDIUM",
+    "market_phase": "RANGING",
+    "timeframe_bias": {
+      "W1": "NEUTRAL",
+      "D1": "NEUTRAL",
+      "H4": "NEUTRAL",
+      "H1": "NEUTRAL",
+      "M15": "NEUTRAL",
+      "M5": "NEUTRAL",
+      "M1": "NEUTRAL"
+    }
+  },
+  "pattern_memory": {
+    "previous_pois": [],
+    "bos_events": [],
+    "choch_events": [
+      {
+        "timestamp": "2025-09-21 16:53:04.784717+00:00",
+        "data": {
+          "direction": "BEARISH",
+          "confidence": 90.0,
+          "timeframe": "H4",
+          "break_level": 1.1631,
+          "target_level": 1.16219,
+          "symbol": "EURUSD",
+          "metadata": {
+            "source": "CHOCH_MULTI_TIMEFRAME"
+          },
+          "session": "LONDON_KILLZONE",
+          "volatility": "HIGH",
+          "trend_strength": "MODERATE"
+        },
+        "price": 0.0
+      },
+      {
+        "timestamp": "2025-09-21 16:53:04.784717+00:00",
+        "data": {
+          "direction": "BEARISH",
+          "confidence": 86.19999999999976,
+          "timeframe": "M15",
+          "break_level": 1.18519,
+          "target_level": 1.18512,
+          "symbol": "EURUSD",
+          "metadata": {
+            "source": "CHOCH_MULTI_TIMEFRAME"
+          },
+          "session": "LONDON_KILLZONE",
+          "volatility": "HIGH",
+          "trend_strength": "MODERATE"
+        },
+        "price": 0.0
+      },
+      {
+        "timestamp": "2025-09-21 16:53:04.784717+00:00",
+        "data": {
+          "direction": "BEARISH",
+          "confidence": 85.30000000000052,
+          "timeframe": "M5",
+          "break_level": 1.17822,
+          "target_level": 1.17754,
+          "symbol": "EURUSD",
+          "metadata": {
+            "source": "CHOCH_MULTI_TIMEFRAME"
+          },
+          "session": "LONDON_KILLZONE",
+          "volatility": "HIGH",
+          "trend_strength": "MODERATE"
+        },
+        "price": 0.0
+      },
+      {
+        "timestamp": "2025-09-21 16:53:08.739739+00:00",
+        "data": {
+          "direction": "BULLISH",
+          "confidence": 90.0,
+          "timeframe": "H4",
+          "break_level": 1.35827,
+          "target_level": 1.36717,
+          "symbol": "GBPUSD",
+          "metadata": {
+            "source": "CHOCH_MULTI_TIMEFRAME"
+          },
+          "session": "LONDON_KILLZONE",
+          "volatility": "HIGH",
+          "trend_strength": "MODERATE"
+        },
+        "price": 0.0
+      },
+      {
+        "timestamp": "2025-09-21 16:53:08.739739+00:00",
+        "data": {
+          "direction": "BEARISH",
+          "confidence": 89.1500000000002,
+          "timeframe": "M15",
+          "break_level": 1.35681,
+          "target_level": 1.35629,
+          "symbol": "GBPUSD",
+          "metadata": {
+            "source": "CHOCH_MULTI_TIMEFRAME"
+          },
+          "session": "LONDON_KILLZONE",
+          "volatility": "HIGH",
+          "trend_strength": "MODERATE"
+        },
+        "price": 0.0
+      },
+      {
+        "timestamp": "2025-09-21 16:53:08.739739+00:00",
+        "data": {
+          "direction": "BEARISH",
+          "confidence": 84.95000000000046,
+          "timeframe": "M5",
+          "break_level": 1.35507,
+          "target_level": 1.35509,
+          "symbol": "GBPUSD",
+          "metadata": {
+            "source": "CHOCH_MULTI_TIMEFRAME"
+          },
+          "session": "LONDON_KILLZONE",
+          "volatility": "HIGH",
+          "trend_strength": "MODERATE"
+        },
+        "price": 0.0
+      },
+      {
+        "timestamp": "2025-09-21 16:53:12.683735+00:00",
+        "data": {
+          "direction": "BEARISH",
+          "confidence": 90.0,
+          "timeframe": "H4",
+          "break_level": 147.784,
+          "target_level": 146.815,
+          "symbol": "USDJPY",
+          "metadata": {
+            "source": "CHOCH_MULTI_TIMEFRAME"
+          },
+          "session": "LONDON_KILLZONE",
+          "volatility": "HIGH",
+          "trend_strength": "MODERATE"
+        },
+        "price": 0.0
+      },
+      {
+        "timestamp": "2025-09-21 16:53:12.683735+00:00",
+        "data": {
+          "direction": "BULLISH",
+          "confidence": 88.29999999999882,
+          "timeframe": "M15",
+          "break_level": 148.032,
+          "target_level": 148.283,
+          "symbol": "USDJPY",
+          "metadata": {
+            "source": "CHOCH_MULTI_TIMEFRAME"
+          },
+          "session": "LONDON_KILLZONE",
+          "volatility": "HIGH",
+          "trend_strength": "MODERATE"
+        },
+        "price": 0.0
+      },
+      {
+        "timestamp": "2025-09-21 16:53:12.683735+00:00",
+        "data": {
+          "direction": "BEARISH",
+          "confidence": 90.0,
+          "timeframe": "M5",
+          "break_level": 148.013,
+          "target_level": 147.79,
+          "symbol": "USDJPY",
+          "metadata": {
+            "source": "CHOCH_MULTI_TIMEFRAME"
+          },
+          "session": "LONDON_KILLZONE",
+          "volatility": "HIGH",
+          "trend_strength": "MODERATE"
+        },
+        "price": 0.0
+      }
+    ],
+    "order_blocks": [],
+    "fvg_events": [],
+    "displacement_events": []
+  },
+  "smart_money_context": {
+    "institutional_bias": "NEUTRAL",
+    "liquidity_pools": [],
+    "market_maker_activity": {},
+    "killzone_efficiency": {},
+    "institutional_flow": "NEUTRAL"
+  },
+  "swing_points": {
+    "highs": [],
+    "lows": [],
+    "last_high": 0.0,
+    "last_low": 0.0
+  }
+}

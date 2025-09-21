@@ -1,0 +1,38 @@
+{
+  "timestamp": "20250912_103650",
+  "symbol": "EURUSD",
+  "timeframe": "1H",
+  "current_price": 1.10602,
+  "total_blocks": 2,
+  "demand_zones": 2,
+  "supply_zones": 0,
+  "avg_confidence": 72.3242424242388,
+  "blocks": [
+    {
+      "type": "demand_zone",
+      "price": 1.10425,
+      "confidence": 63.13333333333814,
+      "distance_pips": 17.700000000000493,
+      "candle_index": 92,
+      "volume_confirmation": false,
+      "timestamp": "2025-09-12T10:36:50.513510",
+      "entry_price": 1.1044475,
+      "stop_loss": 1.104171,
+      "take_profit": 1.1050005,
+      "risk_reward": 2.0
+    },
+    {
+      "type": "demand_zone",
+      "price": 1.10402,
+      "confidence": 81.51515151513945,
+      "distance_pips": 20.000000000000018,
+      "candle_index": 85,
+      "volume_confirmation": true,
+      "timestamp": "2025-09-12T10:36:50.511331",
+      "entry_price": 1.1041925,
+      "stop_loss": 1.103951,
+      "take_profit": 1.1046755,
+      "risk_reward": 2.0
+    }
+  ]
+}

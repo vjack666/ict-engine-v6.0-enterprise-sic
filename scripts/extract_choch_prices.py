@@ -1,5 +1,5 @@
 import os, sys, json
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Ensure 01-CORE is on path
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -21,7 +21,7 @@ timeframes = ['H4', 'M15', 'M5']
 pdtr = PatternDetector()
 
 out: Dict[str, Any] = {
-    'generated_at': datetime.utcnow().isoformat() + 'Z',
+    'generated_at': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
     'timeframes': timeframes,
     'results': {}
 }

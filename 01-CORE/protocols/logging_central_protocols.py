@@ -140,6 +140,11 @@ class LoggingProtocols:
             formatter = logging.Formatter(config.format_string, config.date_format)
             handler.setFormatter(formatter)
             logger.addHandler(handler)
+        # Prevent propagation to root to avoid duplicates
+        try:
+            logger.propagate = False
+        except Exception:
+            pass
         
         return FallbackLogger(logger)
     

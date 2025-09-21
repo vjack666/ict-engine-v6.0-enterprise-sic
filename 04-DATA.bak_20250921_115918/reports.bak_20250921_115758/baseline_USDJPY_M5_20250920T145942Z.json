@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "symbol": "USDJPY",
+    "timeframe": "M5",
+    "num_candles": 600,
+    "generated_at": "2025-09-20T14:59:42.869042Z"
+  },
+  "detectors": {
+    "silver_bullet": {
+      "count": 1,
+      "avg_confidence": 76.1,
+      "max_confidence": 76.1
+    },
+    "judas_swing": {
+      "count": 0,
+      "avg_confidence": 0.0,
+      "max_confidence": 0.0
+    },
+    "liquidity_grab": {
+      "count": 1,
+      "avg_confidence": 84.64,
+      "max_confidence": 84.64
+    },
+    "order_block_mitigation": {
+      "count": 2,
+      "avg_confidence": 85.31,
+      "max_confidence": 91.86
+    }
+  }
+}

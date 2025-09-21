@@ -1,5 +1,5 @@
 import os, sys, json
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Ensure 01-CORE is on path
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -18,7 +18,7 @@ pairs = [
 timeframes = ['W1', 'D1', 'H4', 'H1', 'M15', 'M5']
 
 summary = {
-    'generated_at': datetime.utcnow().isoformat() + 'Z',
+    'generated_at': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
     'pairs': {},
 }
 

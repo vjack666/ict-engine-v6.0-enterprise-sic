@@ -329,6 +329,11 @@ class SmartTradingLogger:
             self.logger.addHandler(file_handler)
             if jsonl_handler is not None:
                 self.logger.addHandler(jsonl_handler)
+        # Evitar duplicación por propagación al root
+        try:
+            self.logger.propagate = False
+        except Exception:
+            pass
     
     def _setup_daily_file_handlers(self, formatter, max_bytes: int, backup_count: int):
         """📅 Configurar archivo diario con rotación por tamaño"""

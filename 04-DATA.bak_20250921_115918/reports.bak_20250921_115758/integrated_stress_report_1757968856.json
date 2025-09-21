@@ -1,0 +1,108 @@
+{
+    "timestamp": 1757968856.727497,
+    "git_revision": "927a7e3",
+    "thresholds": {
+        "startup_time_max_s": 30.0,
+        "config_loading_max_s": 5.0,
+        "logging_min_logs_per_s": 500,
+        "memory_peak_max_mb": 512.0,
+        "avg_cpu_max_percent": 25.0,
+        "memory_leak_max_mb": 100.0,
+        "concurrent_ops_min_total": 1000,
+        "concurrent_error_rate_max": 0.02,
+        "persistence_write_ms_max": 100,
+        "persistence_read_ms_max": 50
+    },
+    "total_duration_seconds": 53.78358793258667,
+    "total_tests": 6,
+    "passed_tests": 6,
+    "failed_tests": 0,
+    "success_rate_percent": 100.0,
+    "overall_success": true,
+    "results": [
+        {
+            "test_name": "main_system_startup",
+            "success": true,
+            "metrics": {
+                "startup_time_seconds": 1.1783638000488281,
+                "config_loading_time_seconds": 0.0,
+                "poi_system_initialized": true,
+                "logger_initialized": true,
+                "config_entries": 3,
+                "success": true
+            }
+        },
+        {
+            "test_name": "logging_performance",
+            "success": true,
+            "metrics": {
+                "total_logs": 28614,
+                "errors": 0,
+                "duration_seconds": 15.000996112823486,
+                "logs_per_second": 1907.47332942374,
+                "error_rate_percent": 0.0,
+                "success": true
+            }
+        },
+        {
+            "test_name": "dashboard_components",
+            "success": true,
+            "metrics": {
+                "components": {
+                    "main_dashboard_app_class": true,
+                    "ict_dashboard_class": true,
+                    "web_dashboard_class": true
+                },
+                "import_errors": [],
+                "tabs_manager": {
+                    "tabs_manager_loaded": true,
+                    "tabs_count": 0,
+                    "initialization_time_seconds": 0.0002696514129638672,
+                    "tabs_list": []
+                },
+                "success": true
+            }
+        },
+        {
+            "test_name": "data_persistence",
+            "success": true,
+            "metrics": {
+                "json_write": true,
+                "json_read": true,
+                "data_integrity": true,
+                "write_time_ms": 0.6331999902613461,
+                "read_time_ms": 15.130300002056174
+            }
+        },
+        {
+            "test_name": "memory_usage_under_load",
+            "success": true,
+            "metrics": {
+                "initial_memory_mb": 153.375,
+                "final_memory_mb": 152.83984375,
+                "avg_memory_mb": 153.16591796875,
+                "max_memory_mb": 153.49609375,
+                "memory_increase_mb": -0.53515625,
+                "avg_cpu_percent": 3.9266666666666667,
+                "max_cpu_percent": 6.2,
+                "samples_count": 40,
+                "success": true
+            }
+        },
+        {
+            "test_name": "concurrent_operations",
+            "success": true,
+            "metrics": {
+                "total_operations": 18153,
+                "operations_per_second": 1208.170091062453,
+                "file_operations": 1126,
+                "calculations": 5168,
+                "data_processing": 11859,
+                "errors": 0,
+                "error_rate_percent": 0.0,
+                "duration_seconds": 15.02520227432251,
+                "success": true
+            }
+        }
+    ]
+}

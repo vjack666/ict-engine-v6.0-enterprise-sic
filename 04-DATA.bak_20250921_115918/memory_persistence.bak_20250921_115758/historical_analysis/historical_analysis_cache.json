@@ -1,0 +1,188 @@
+{
+  "metadata": {
+    "last_updated": "2025-09-21T16:53:12.705392+00:00",
+    "version": "v6.1.0-enterprise",
+    "cache_type": "historical_analysis",
+    "system_state": "EXPERIENCED",
+    "total_patterns_analyzed": 49
+  },
+  "export_timestamp": "2025-09-21T16:53:12.705397+00:00",
+  "cache_data": {},
+  "timeframe_analyzers": {
+    "W1": {
+      "performance_cache": {},
+      "last_analysis": null,
+      "pattern_success_rates": {
+        "BOS": 0.7,
+        "CHOCH": 0.75,
+        "ORDER_BLOCK": 0.65,
+        "FAIR_VALUE_GAP": 0.72,
+        "LIQUIDITY_POOL": 0.68,
+        "POI": 0.6,
+        "DISPLACEMENT": 0.8
+      },
+      "adaptive_weights": {
+        "BOS": 1.0,
+        "CHOCH": 1.1,
+        "ORDER_BLOCK": 1.0,
+        "FAIR_VALUE_GAP": 1.1,
+        "LIQUIDITY_POOL": 1.2,
+        "POI": 0.9,
+        "DISPLACEMENT": 1.3
+      }
+    },
+    "D1": {
+      "performance_cache": {},
+      "last_analysis": null,
+      "pattern_success_rates": {
+        "BOS": 0.7,
+        "CHOCH": 0.75,
+        "ORDER_BLOCK": 0.65,
+        "FAIR_VALUE_GAP": 0.72,
+        "LIQUIDITY_POOL": 0.68,
+        "POI": 0.6,
+        "DISPLACEMENT": 0.8
+      },
+      "adaptive_weights": {
+        "BOS": 1.0,
+        "CHOCH": 1.1,
+        "ORDER_BLOCK": 1.0,
+        "FAIR_VALUE_GAP": 1.1,
+        "LIQUIDITY_POOL": 1.2,
+        "POI": 0.9,
+        "DISPLACEMENT": 1.3
+      }
+    },
+    "H4": {
+      "performance_cache": {},
+      "last_analysis": null,
+      "pattern_success_rates": {
+        "BOS": 0.7,
+        "CHOCH": 0.75,
+        "ORDER_BLOCK": 0.65,
+        "FAIR_VALUE_GAP": 0.72,
+        "LIQUIDITY_POOL": 0.68,
+        "POI": 0.6,
+        "DISPLACEMENT": 0.8
+      },
+      "adaptive_weights": {
+        "BOS": 1.0,
+        "CHOCH": 1.1,
+        "ORDER_BLOCK": 1.0,
+        "FAIR_VALUE_GAP": 1.1,
+        "LIQUIDITY_POOL": 1.2,
+        "POI": 0.9,
+        "DISPLACEMENT": 1.3
+      }
+    },
+    "H1": {
+      "performance_cache": {},
+      "last_analysis": null,
+      "pattern_success_rates": {
+        "BOS": 0.7,
+        "CHOCH": 0.75,
+        "ORDER_BLOCK": 0.65,
+        "FAIR_VALUE_GAP": 0.72,
+        "LIQUIDITY_POOL": 0.68,
+        "POI": 0.6,
+        "DISPLACEMENT": 0.8
+      },
+      "adaptive_weights": {
+        "BOS": 1.0,
+        "CHOCH": 1.1,
+        "ORDER_BLOCK": 1.0,
+        "FAIR_VALUE_GAP": 1.1,
+        "LIQUIDITY_POOL": 1.2,
+        "POI": 0.9,
+        "DISPLACEMENT": 1.3
+      }
+    },
+    "M15": {
+      "performance_cache": {},
+      "last_analysis": null,
+      "pattern_success_rates": {
+        "BOS": 0.7,
+        "CHOCH": 0.75,
+        "ORDER_BLOCK": 0.65,
+        "FAIR_VALUE_GAP": 0.72,
+        "LIQUIDITY_POOL": 0.68,
+        "POI": 0.6,
+        "DISPLACEMENT": 0.8
+      },
+      "adaptive_weights": {
+        "BOS": 1.0,
+        "CHOCH": 1.1,
+        "ORDER_BLOCK": 1.0,
+        "FAIR_VALUE_GAP": 1.1,
+        "LIQUIDITY_POOL": 1.2,
+        "POI": 0.9,
+        "DISPLACEMENT": 1.3
+      }
+    },
+    "M5": {
+      "performance_cache": {},
+      "last_analysis": null,
+      "pattern_success_rates": {
+        "BOS": 0.7,
+        "CHOCH": 0.75,
+        "ORDER_BLOCK": 0.65,
+        "FAIR_VALUE_GAP": 0.72,
+        "LIQUIDITY_POOL": 0.68,
+        "POI": 0.6,
+        "DISPLACEMENT": 0.8
+      },
+      "adaptive_weights": {
+        "BOS": 1.0,
+        "CHOCH": 1.1,
+        "ORDER_BLOCK": 1.0,
+        "FAIR_VALUE_GAP": 1.1,
+        "LIQUIDITY_POOL": 1.2,
+        "POI": 0.9,
+        "DISPLACEMENT": 1.3
+      }
+    },
+    "M1": {
+      "performance_cache": {},
+      "last_analysis": null,
+      "pattern_success_rates": {
+        "BOS": 0.7,
+        "CHOCH": 0.75,
+        "ORDER_BLOCK": 0.65,
+        "FAIR_VALUE_GAP": 0.72,
+        "LIQUIDITY_POOL": 0.68,
+        "POI": 0.6,
+        "DISPLACEMENT": 0.8
+      },
+      "adaptive_weights": {
+        "BOS": 1.0,
+        "CHOCH": 1.1,
+        "ORDER_BLOCK": 1.0,
+        "FAIR_VALUE_GAP": 1.1,
+        "LIQUIDITY_POOL": 1.2,
+        "POI": 0.9,
+        "DISPLACEMENT": 1.3
+      }
+    }
+  },
+  "smart_money_history": {
+    "killzone_performance": {},
+    "institutional_patterns": {},
+    "liquidity_efficiency": {},
+    "session_success_rates": {}
+  },
+  "config": {
+    "min_samples": 5,
+    "success_threshold": 0.7,
+    "time_decay_factor": 0.1,
+    "max_lookback_days": 30,
+    "weight_multipliers": {
+      "BOS": 1.0,
+      "CHOCH": 1.1,
+      "ORDER_BLOCK": 1.0,
+      "FAIR_VALUE_GAP": 1.1,
+      "LIQUIDITY_POOL": 1.2,
+      "POI": 0.9,
+      "DISPLACEMENT": 1.3
+    }
+  }
+}
