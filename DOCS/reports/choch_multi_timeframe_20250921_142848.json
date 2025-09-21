@@ -1,0 +1,119 @@
+{
+  "analysis_time": "2025-09-21T14:28:44.655348",
+  "symbols_analyzed": [
+    "EURUSD"
+  ],
+  "individual_analysis": {
+    "EURUSD": {
+      "symbol": "EURUSD",
+      "analysis_time": "2025-09-21T14:28:48.102758",
+      "detection_method": "REAL_DETECTOR",
+      "timeframes_analysis": {
+        "H4": {
+          "timeframe": "H4",
+          "choch_detected": true,
+          "direction": "BEARISH",
+          "confidence": 90.0,
+          "structure_type": "CHOCH_BEARISH",
+          "break_level": 1.1631,
+          "target_level": 1.16219,
+          "trend_change": "BULLISH -> BEARISH",
+          "swing_data": {
+            "last_high": {
+              "index": 2859,
+              "price": 1.16928,
+              "timestamp": "2025-08-19T12:00:00"
+            },
+            "prev_high": {
+              "index": 2835,
+              "price": 1.17302,
+              "timestamp": "2025-08-13T12:00:00"
+            },
+            "last_low": {
+              "index": 2863,
+              "price": 1.16219,
+              "timestamp": "2025-08-20T04:00:00"
+            },
+            "prev_low": {
+              "index": 2842,
+              "price": 1.1631,
+              "timestamp": "2025-08-14T16:00:00"
+            },
+            "current_price": 1.16059
+          },
+          "analysis_status": "REAL_DATA"
+        },
+        "M15": {
+          "timeframe": "M15",
+          "choch_detected": true,
+          "direction": "BEARISH",
+          "confidence": 86.19999999999976,
+          "structure_type": "CHOCH_BEARISH",
+          "break_level": 1.18519,
+          "target_level": 1.18512,
+          "trend_change": "BULLISH -> BEARISH",
+          "swing_data": {
+            "last_high": {
+              "index": 4745,
+              "price": 1.18596,
+              "timestamp": "2025-09-17T08:15:00"
+            },
+            "prev_high": {
+              "index": 4697,
+              "price": 1.18785,
+              "timestamp": "2025-09-16T20:15:00"
+            },
+            "last_low": {
+              "index": 4734,
+              "price": 1.18512,
+              "timestamp": "2025-09-17T05:30:00"
+            },
+            "prev_low": {
+              "index": 4712,
+              "price": 1.18519,
+              "timestamp": "2025-09-17T00:00:00"
+            },
+            "current_price": 1.18435
+          },
+          "analysis_status": "REAL_DATA"
+        }
+      },
+      "multi_tf_summary": {
+        "overall_detected": true,
+        "primary_direction": "BEARISH",
+        "overall_confidence": 70.85999999999993,
+        "timeframes_with_choch": 2,
+        "alignment_analysis": {
+          "alignment": "PERFECT_ALIGNMENT",
+          "score": 1.0,
+          "trend_change_confirmed": true,
+          "confluences": [
+            "CHoCH detectado en 2 timeframes",
+            "Direcciones: BEARISH, BEARISH"
+          ],
+          "direction_consensus": "BEARISH",
+          "timeframe_count": 2,
+          "total_timeframes": 2
+        },
+        "trend_change_confirmed": true
+      },
+      "market_structure": {
+        "dominant_trend": "BEARISH",
+        "structure_strength": "STRONG",
+        "key_levels": {
+          "resistance": 1.18512,
+          "support": 1.1631,
+          "pivot": 1.17411
+        },
+        "trading_bias": "WEAK_SELL"
+      }
+    }
+  },
+  "market_overview": {
+    "total_symbols": 1,
+    "symbols_with_choch": 1,
+    "dominant_market_direction": "BEARISH",
+    "market_strength": "VERY_STRONG",
+    "trading_opportunities": []
+  }
+}

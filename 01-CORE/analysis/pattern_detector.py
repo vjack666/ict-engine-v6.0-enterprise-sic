@@ -13,6 +13,7 @@ Versión: v6.1.0-enterprise
 """
 
 import sys
+import os
 from pathlib import Path
 
 # Agregar paths del proyecto para las importaciones
@@ -344,6 +345,14 @@ class PatternDetector:
         if config:
             self.config.update(config)
         
+        # 🧠 LOW-MEM MODE: Detect environment signal and config
+        self.low_mem_mode = bool(config and config.get('low_mem', False)) or bool(os.environ.get('ICT_LOW_MEM'))
+        if self.low_mem_mode:
+            print("[INFO] 🧠 PatternDetector: Low-memory mode enabled")
+            # Adjust config for memory optimization
+            self.config['max_patterns_per_analysis'] = min(self.config.get('max_patterns_per_analysis', 5), 3)
+            self.config['cache_size_limit'] = min(self.config.get('cache_size_limit', 100), 20)
+        
         # Estado del detector
         self.is_initialized = False
         self.last_analysis_time = None
@@ -356,18 +365,20 @@ class PatternDetector:
             'last_update': datetime.now()
         }
         
-        # Componentes
+        # Componentes (some disabled in low-mem mode)
         self._downloader = None
         self._smart_money_analyzer = None
         self._multi_tf_analyzer = None  # 🚀 NUEVO: Multi-Timeframe Analyzer
         self._data_manager = None       # 🎯 NUEVO: ICT Data Manager
         self._initialize_components()
         
-        # Cache para optimización
+        # Cache para optimización (reduced in low-mem mode)
+        cache_limit = 20 if self.low_mem_mode else 100
         self._pattern_cache = {}
         self._cache_ttl = timedelta(minutes=5)
         
-        print(f"[INFO] Pattern Detector v6.0 Enterprise inicializado")
+        mem_suffix = " (LOW-MEM)" if self.low_mem_mode else ""
+        print(f"[INFO] Pattern Detector v6.0 Enterprise inicializado{mem_suffix}")
         print(f"[INFO] Multi-Timeframe capability: {'ENABLED' if self._multi_tf_analyzer else 'DISABLED'}")
         print(f"[INFO] Data Manager: {'ENABLED' if self._data_manager else 'DISABLED'}")
         print(f"[INFO] Configuración: {len(self.config)} parámetros cargados")
@@ -688,10 +699,30 @@ class PatternDetector:
                     "status": "NO_DATA"
                 }
             
+            # 🧠 LOW-MEM OPTIMIZATION: Limit data window for BOS analysis
+            if self.low_mem_mode and len(candles) > 500:
+                candles = candles.tail(500)  # Keep only recent 500 candles
+                print(f"[INFO] 🧠 BOS Low-mem: Limited to {len(candles)} recent candles")
+            
+            # 🧠 LOW-MEM OPTIMIZATION: Convert to float32 to save memory
+            if self.low_mem_mode and hasattr(candles, 'select_dtypes'):
+                try:
+                    numeric_cols = candles.select_dtypes(include=['float64']).columns
+                    if len(numeric_cols) > 0:
+                        candles = candles.copy()
+                        candles[numeric_cols] = candles[numeric_cols].astype('float32')
+                except Exception:
+                    pass  # Continue with original data if conversion fails
+            
             # 1. 🎯 DETECTAR SWING POINTS (usando lógica migrada)
             swing_points = self._detect_swing_points_for_bos(candles)
             swing_highs = swing_points.get('highs', [])
             swing_lows = swing_points.get('lows', [])
+            
+            # 🧠 LOW-MEM OPTIMIZATION: Limit swing points analysis
+            if self.low_mem_mode:
+                swing_highs = swing_highs[-20:] if len(swing_highs) > 20 else swing_highs
+                swing_lows = swing_lows[-20:] if len(swing_lows) > 20 else swing_lows
             
             if len(swing_highs) < 2 or len(swing_lows) < 2:
                 return {

@@ -79,8 +79,8 @@ Este documento detalla el plan de integración del sistema de memoria CHoCH (Cha
   ```
 
 #### 1.3 Lógica de Integración
-- [ ] **Reemplazar lógica placeholder en _detect_fvg_patterns()**
-- [ ] **Implementar detección real de FVG**
+- [x] **Reemplazar lógica placeholder en _detect_fvg_patterns()**
+- [x] **Implementar detección real de FVG**
 - [x] **Integrar consulta CHoCH histórica**
 - [x] **Aplicar boost de confianza basado en CHoCH**
 - [x] **Añadir logging específico para FVG-CHoCH**
@@ -158,7 +158,31 @@ Este documento detalla el plan de integración del sistema de memoria CHoCH (Cha
 - [ ] **Confirmar métricas de performance**
 - [x] **Validar logs de sistema**
 
-> Próximo paso: Implementar detección real de FVG en `ICTPatternDetector` reutilizando `FairValueGapDetector` para reemplazar el placeholder y mantener el boost CHoCH.
+#### 4.4 **🚀 MODO BAJO CONSUMO DE MEMORIA** *(IMPLEMENTADO)*
+- [x] **Añadir flag `--low-mem` a analizadores multi-timeframe**
+  - **CHoCH Multi Analyzer**: Reduce TF por defecto (`['H4','M15']`) y símbolos (`['EURUSD']`)
+  - **Baseline Pattern Scan**: Optimiza DataFrame (columnas mínimas, `float32`, ventana `tail`)
+  - **Señal Global**: Publica `ICT_LOW_MEM=1` para módulos downstream
+  - **Propagación**: Pasa `{'low_mem': True}` a `PatternDetector` si soportado
+- [x] **Extender low-mem a detectores principales**:
+  - **FairValueGapDetector**: Optimización DataFrame (`tail(1000)`, `float32`, memoria reducida)
+  - **PatternDetector BOS**: Límite velas (`tail(500)`), swing points reducidos, cache menor
+  - **CHoCH Historical Memory**: Retención reducida (30 días vs 180), max records (200 vs 1000)
+- [x] **Tareas VS Code creadas**:
+  - "Run CHoCH Multi Analyzer (LOW-MEM)"
+  - "Run Baseline Pattern Scan (LOW-MEM)"
+- [x] **Comandos PowerShell listos**:
+  ```powershell
+  # CHoCH Multi-Timeframe (modo bajo memoria)
+  python -X utf8 .\scripts\choch_multi_timeframe_analyzer.py --low-mem -s EURUSD
+  
+  # Baseline Pattern Scan (modo bajo memoria)
+  python -X utf8 .\scripts\baseline_pattern_scan.py -s AUDUSD -t M5 -n 600 --low-mem -o .\04-DATA\reports
+  ```
+- [x] **Beneficios**: Permite análisis de gran escala con RAM limitada, especialmente útil para análisis histórico masivo de CHoCH
+- [x] **Extensibilidad**: Detectores FVG, BOS y módulos ML adhieren automáticamente a `ICT_LOW_MEM=1`
+
+> **⚠️ CRÍTICO**: El modo `--low-mem` es ahora **COMPLETO** para todo el pipeline ML/FVG/BOS. Permite análisis CHoCH masivo sin limitaciones de memoria, optimizando automáticamente detectores, memoria histórica y procesamiento de datos.
 
 ## 🧪 Criterios de Validación
 
@@ -187,7 +211,8 @@ Este documento detalla el plan de integración del sistema de memoria CHoCH (Cha
 | **Fase 2 - BOS** | 2-3 horas | Configuración, integración, testing |
 | **Fase 3 - MSS** | 3-4 horas | Análisis arquitectura, mejora detección, integración |
 | **Fase 4 - Docs** | 2-3 horas | Documentación, optimización, testing integral |
-| **Total** | **9-13 horas** | **Integración completa FVG/BOS/MSS + CHoCH** |
+| **Fase 5 - Low-Mem** | ✅ **COMPLETADO** | Modo bajo memoria para análisis masivo |
+| **Total** | **9-13 horas** | **Integración completa FVG/BOS/MSS + CHoCH + Optimizaciones** |
 
 ## 🔍 Riesgos y Mitigaciones
 
@@ -200,6 +225,7 @@ Este documento detalla el plan de integración del sistema de memoria CHoCH (Cha
 1. **MSS**: Mejorar gradualmente, empezar con integración básica
 2. **Performance**: Implementar cache y optimizar consultas
 3. **Compatibilidad**: Usar adapters y wrappers cuando sea necesario
+4. **🚀 Memoria RAM**: **SOLUCIONADO** - Modo `--low-mem` implementado para análisis masivo sin restricciones de memoria
 
 ## 🚀 Entregables Finales
 
@@ -208,6 +234,24 @@ Este documento detalla el plan de integración del sistema de memoria CHoCH (Cha
 3. **Tests de Validación**: Suite de tests para cada integración
 4. **Métricas de Performance**: Benchmarks antes/después
 5. **Guía de Configuración**: Parámetros CHoCH optimizados por patrón
+6. **🎯 Modo Low-Memory**: Sistema completo para análisis masivo con RAM limitada
+
+### 🔧 Herramientas de Línea de Comandos
+```powershell
+# Análisis CHoCH completo (modo estándar)
+python -X utf8 .\scripts\choch_multi_timeframe_analyzer.py
+
+# Análisis CHoCH bajo memoria (símbolo específico)
+python -X utf8 .\scripts\choch_multi_timeframe_analyzer.py --low-mem -s EURUSD
+
+# Baseline patterns con optimización de memoria
+python -X utf8 .\scripts\baseline_pattern_scan.py -s AUDUSD -t M5 -n 600 --low-mem
+```
+
+### 🎯 **Tareas VS Code Disponibles**
+- **"Run CHoCH Multi Analyzer (LOW-MEM)"**: Análisis multi-timeframe optimizado
+- **"Run Baseline Pattern Scan (LOW-MEM)"**: Scan de patrones con memoria limitada
+- Accesibles desde **Terminal > Run Task** o **Ctrl+Shift+P > Tasks: Run Task**
 
 ---
 

@@ -20,6 +20,7 @@ Dependencies:
 from protocols.unified_logging import get_unified_logger
 import time
 import sys
+import os
 import threading
 import importlib.util
 from datetime import datetime, timedelta
@@ -175,10 +176,15 @@ class FairValueGapDetector:
     Complete migration from legacy poi_detector with enterprise enhancements
     """
     
-    def __init__(self):
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize Enhanced FVG Detector for Multi-Symbol Support"""
         # Smart logging integration - use centralized logger
         self.logger = get_analysis_logger("FVGDetector")
+        
+        # 🚀 LOW-MEM MODE: Detect environment signal
+        self.low_mem_mode = bool(config and config.get('low_mem', False)) or bool(os.environ.get('ICT_LOW_MEM'))
+        if self.low_mem_mode:
+            self.logger.info("🧠 FVG Detector: Low-memory mode enabled")
         
         # Black box logging
         self.black_box = get_black_box_logger() if BLACK_BOX_AVAILABLE else None
@@ -186,19 +192,24 @@ class FairValueGapDetector:
         # Health monitor integration
         self.health_monitor = get_health_monitor() if HEALTH_MONITOR_AVAILABLE else None
         
-        # Memory system integration
-        self.memory_system = get_unified_memory_system() if MEMORY_SYSTEM_AVAILABLE else None
+        # Memory system integration (disable in low-mem mode)
+        if not self.low_mem_mode:
+            self.memory_system = get_unified_memory_system() if MEMORY_SYSTEM_AVAILABLE else None
+        else:
+            self.memory_system = None
+            self.logger.info("🧠 FVG: Memory system disabled for low-mem mode")
         
         # Performance tracking
         self.lock = threading.Lock()
         self.detection_count = 0
         self.total_processing_time = 0.0
         
-        # Multi-symbol tracking
+        # Multi-symbol tracking (reduced in low-mem mode)
+        max_symbols = 5 if self.low_mem_mode else 20
         self.symbol_sessions = {}  # Track per-symbol detection sessions
         self.symbol_stats = {}     # Per-symbol statistics
         
-        # Legacy configuration migrated
+        # Legacy configuration migrated (optimized for low-mem)
         self.config = {
             'min_gap_size_pips': 3.0,  # Minimum 3 pips gap
             'base_score': 55,          # Legacy base score
@@ -208,9 +219,14 @@ class FairValueGapDetector:
             'max_confidence': 0.9,     # Legacy max confidence
             'fvg_lifetime_hours': 24,  # FVG validity period
             'enterprise_latency_target': 50.0,  # <50ms target
-            'max_symbols_concurrent': 20,      # Multi-symbol limit
-            'symbol_memory_cleanup_hours': 48  # Clean old symbol data
+            'max_symbols_concurrent': max_symbols,
+            'symbol_memory_cleanup_hours': 24 if self.low_mem_mode else 48,  # Faster cleanup
+            'max_historical_fvgs': 50 if self.low_mem_mode else 200  # Limit history
         }
+        
+        # Update config with user overrides
+        if config:
+            self.config.update(config)
         
         # Enterprise tracking (global and per-symbol)
         self.detected_fvgs: Dict[str, List[FairValueGap]] = {}  # Per symbol
@@ -224,7 +240,8 @@ class FairValueGapDetector:
             'active_symbols': 0
         }
         
-        self.logger.info("🎯 Fair Value Gap Enterprise v6.1 initialized with Multi-Symbol support")
+        mem_suffix = " (LOW-MEM)" if self.low_mem_mode else ""
+        self.logger.info(f"🎯 Fair Value Gap Enterprise v6.1 initialized with Multi-Symbol support{mem_suffix}")
         self.logger.info(f"📊 Configuration: Max {self.config['max_symbols_concurrent']} concurrent symbols")
     
     def detect_fair_value_gaps(self, candles, symbol: str, timeframe: str) -> List[FairValueGap]:
@@ -248,6 +265,21 @@ class FairValueGapDetector:
             if len(candles) < 3:
                 self.logger.warning(f"⚠️ Insufficient data for FVG detection: {len(candles)} candles")
                 return detected_fvgs
+            
+            # 🧠 LOW-MEM OPTIMIZATION: Limit data window for analysis
+            if self.low_mem_mode and len(candles) > 1000:
+                candles = candles.tail(1000)  # Keep only recent 1000 candles
+                self.logger.info(f"🧠 FVG Low-mem: Limited to {len(candles)} recent candles")
+            
+            # 🧠 LOW-MEM OPTIMIZATION: Convert to float32 to save memory
+            if self.low_mem_mode and hasattr(candles, 'select_dtypes'):
+                try:
+                    numeric_cols = candles.select_dtypes(include=['float64']).columns
+                    if len(numeric_cols) > 0:
+                        candles = candles.copy()
+                        candles[numeric_cols] = candles[numeric_cols].astype('float32')
+                except Exception:
+                    pass  # Continue with original data if conversion fails
             
             self.logger.info(f"🎯 Starting FVG detection: {symbol} {timeframe} | {len(candles)} candles")
             

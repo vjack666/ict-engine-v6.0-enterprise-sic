@@ -62,7 +62,31 @@ def _safe_len(x: Any) -> int:
         return 0
 
 
-def run_baseline(symbol: str, timeframe: str, num_candles: int, out_dir: Path) -> Dict[str, Any]:
+def _optimize_dataframe(df, low_mem: bool):
+    try:
+        if not low_mem or df is None:
+            return df
+        use_cols = [c for c in ['open','high','low','close'] if c in getattr(df, 'columns', [])]
+        if use_cols:
+            df = df[use_cols]
+        # downcast numeric to float32
+        try:
+            df = df.astype('float32')
+        except Exception:
+            pass
+        # keep only a reasonable analysis window
+        tail_n = 2000
+        try:
+            if len(df) > tail_n:
+                df = df.tail(tail_n)
+        except Exception:
+            pass
+        return df
+    except Exception:
+        return df
+
+
+def run_baseline(symbol: str, timeframe: str, num_candles: int, out_dir: Path, low_mem: bool = False) -> Dict[str, Any]:
     if AdvancedCandleDownloader is None:
         raise RuntimeError(f"Failed to import AdvancedCandleDownloader: {_import_error}")
 
@@ -70,6 +94,7 @@ def run_baseline(symbol: str, timeframe: str, num_candles: int, out_dir: Path) -
     data = downloader.download_ohlc_data(symbol=symbol, timeframe=timeframe, num_candles=num_candles)
     if data is None or getattr(data, 'empty', True):
         raise RuntimeError(f"No data downloaded for {symbol} {timeframe}")
+    data = _optimize_dataframe(data, low_mem)
 
     # Initialize detectors
     sb = SilverBulletDetectorEnterprise() if SilverBulletDetectorEnterprise else None
@@ -159,11 +184,12 @@ def main() -> None:
     parser.add_argument('-t', '--timeframe', default='M5', help='Timeframe, e.g., M5, M15')
     parser.add_argument('-n', '--num-candles', default=600, type=int, help='Number of candles to download')
     parser.add_argument('-o', '--out-dir', default='04-DATA/reports', help='Output folder for the JSON report')
+    parser.add_argument('--low-mem', action='store_true', help='Reduce RAM usage (smaller window, float32, minimal columns).')
     args = parser.parse_args()
 
     out_dir = Path(args.out_dir)
     try:
-        results = run_baseline(args.symbol, args.timeframe, int(args.num_candles), out_dir)
+        results = run_baseline(args.symbol, args.timeframe, int(args.num_candles), out_dir, low_mem=bool(args.low_mem))
         print(json.dumps(results, indent=2))
     except Exception as e:
         print(json.dumps({'error': str(e)}, indent=2))

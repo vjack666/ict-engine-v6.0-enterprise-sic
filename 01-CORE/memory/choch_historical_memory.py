@@ -44,13 +44,24 @@ class CHoCHHistoricalMemory:
         self.storage_path = Path(storage_path)
         self.backup_path = Path(backup_path)
         self.retention_days = retention_days
-        self.max_records = max_records
+        
+        # 🧠 LOW-MEM MODE: Reduce memory footprint when ICT_LOW_MEM is set
+        self.low_mem_mode = bool(os.environ.get('ICT_LOW_MEM'))
+        if self.low_mem_mode:
+            # Reduce max records and retention for memory optimization
+            self.max_records = min(max_records, 200)
+            self.retention_days = min(retention_days, 30)
+            print(f"[INFO] 🧠 CHoCH Memory: Low-mem mode - {self.max_records} max records, {self.retention_days} day retention")
+        else:
+            self.max_records = max_records
+            
         self._db: Dict[str, Any] = {
             'metadata': {
                 'version': 'v1',
                 'last_updated': datetime.now(timezone.utc).isoformat(),
-                'retention_days': retention_days,
-                'max_records': max_records,
+                'retention_days': self.retention_days,
+                'max_records': self.max_records,
+                'low_mem_mode': self.low_mem_mode,
             },
             'records': []  # List[CHoCHEvent dicts]
         }

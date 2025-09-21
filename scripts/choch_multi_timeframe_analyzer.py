@@ -26,6 +26,8 @@ Fecha: 19 Septiembre 2025 - FASE NUEVA
 import sys
 import json
 import time
+import os
+import argparse
 from datetime import datetime, timedelta, date
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
@@ -106,10 +108,15 @@ def to_json_safe(obj: Any) -> Any:
 class ChochMultiTimeframeAnalyzer:
     """Analizador de CHoCH en múltiples temporalidades"""
     
-    def __init__(self):
+    def __init__(self, low_mem: bool = False, symbols: Optional[List[str]] = None, timeframes: Optional[List[str]] = None):
         self.repo_root = Path(__file__).resolve().parents[1]
-        self.timeframes = ['H4', 'M15', 'M5']
-        self.symbols = ['EURUSD', 'GBPUSD', 'USDJPY']
+        self.low_mem = bool(low_mem)
+        # Señal global para otros módulos (opt-in)
+        if self.low_mem:
+            os.environ['ICT_LOW_MEM'] = '1'
+        # Configuración de carga
+        self.timeframes = timeframes or (['H4', 'M15'] if self.low_mem else ['H4', 'M15', 'M5'])
+        self.symbols = symbols or (['EURUSD'] if self.low_mem else ['EURUSD', 'GBPUSD', 'USDJPY'])
         
         # Importar detector si está disponible
         self.pattern_detector = None
@@ -119,7 +126,11 @@ class ChochMultiTimeframeAnalyzer:
         """Cargar el detector de patrones"""
         try:
             from analysis.pattern_detector import PatternDetector
-            self.pattern_detector = PatternDetector()
+            # Intentar pasar configuración de bajo consumo si el detector lo soporta
+            try:
+                self.pattern_detector = PatternDetector({'low_mem': self.low_mem})
+            except Exception:
+                self.pattern_detector = PatternDetector()
             print("✅ Pattern Detector cargado correctamente")
         except Exception as e:
             print(f"⚠️ Pattern Detector no disponible: {e}")
@@ -573,15 +584,24 @@ def main():
     """Función principal"""
     start_time = datetime.now()
     
+    parser = argparse.ArgumentParser(description='CHoCH Multi-Timeframe Analyzer')
+    parser.add_argument('--low-mem', action='store_true', help='Modo bajo consumo de RAM')
+    parser.add_argument('-s', '--symbol', default=None, help='Analizar solo un símbolo (opcional)')
+    args, _ = parser.parse_known_args()
+    
     print("🔄 ICT Engine v6.0 - CHoCH Multi-Timeframe Analyzer")
     print("=" * 65)
     print("FASE NUEVA: Visualización CHoCH en Múltiples Temporalidades")
     print("=" * 65)
     print(f"🕐 Iniciando análisis: {start_time.strftime('%H:%M:%S')}")
     
-    analyzer = ChochMultiTimeframeAnalyzer()
+    analyzer = ChochMultiTimeframeAnalyzer(low_mem=bool(args.low_mem))
     
     try:
+        # Permitir override de símbolo único
+        if args.symbol:
+            analyzer.symbols = [args.symbol]
+        
         print(f"\n🎯 SÍMBOLOS A ANALIZAR: {analyzer.symbols}")
         print(f"⏱️ TIMEFRAMES: {analyzer.timeframes}")
         

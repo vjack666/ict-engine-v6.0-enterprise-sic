@@ -12,7 +12,7 @@ except Exception:
     _bb = None
 from typing import Dict, Any, Optional, List, TYPE_CHECKING
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 
 # TYPE_CHECKING imports para Pylance
 if TYPE_CHECKING:
@@ -50,6 +50,7 @@ try:
     from memory.choch_historical_memory import (
         compute_historical_bonus,
         calculate_historical_success_rate,
+        get_choch_historical_memory,
     )  # type: ignore
     _choch_memory_available = True
 except ImportError:
@@ -94,6 +95,10 @@ class ICTPattern:
     confidence: float
     timestamp: datetime
     metadata: Dict[str, Any]
+    # CHoCH enrichment (opcionales)
+    choch_context: Optional[Dict[str, Any]] = None
+    choch_confidence_boost: float = 0.0
+    historical_success_rate: float = 0.0
 
 class ICTPatternDetector:
     """
@@ -141,6 +146,17 @@ class ICTPatternDetector:
             'min_historical_periods': 20,
             'confidence_boost_factor': 0.15
         })
+        # Inicializar CHoCH Memory si está habilitado
+        if self.choch_config.get('enabled', True) and _choch_memory_available:
+            try:
+                # singleton seguro
+                self.choch_memory = get_choch_historical_memory()
+                logger = get_unified_logger("PatternDetector")
+                logger.info("CHoCH Historical Memory inicializado", "CHOCH")
+            except Exception as e:
+                logger = get_unified_logger("PatternDetector")
+                logger.warning(f"No se pudo inicializar CHoCH Memory: {e}", "CHOCH")
+                self.choch_memory = None
 
         # Placeholder control for tests only (default False for prod)
         self.allow_fvg_placeholder_for_tests = bool(self.config.get('allow_fvg_placeholder_for_tests', False))
@@ -500,7 +516,7 @@ class ICTPatternDetector:
                         symbol=symbol,
                         entry_price=entry_price,
                         confidence=confidence,
-                        timestamp=getattr(f, 'timestamp', datetime.now()),
+                        timestamp=getattr(f, 'timestamp', datetime.now(timezone.utc)),
                         metadata=metadata
                     )
 
@@ -515,7 +531,15 @@ class ICTPatternDetector:
                             pattern.metadata['choch_historical_bonus'] = hist_bonus
                             pattern.metadata['choch_samples'] = bonus_info.get('samples', 0)
                             pattern.metadata['confidence_original_pre_choch'] = original
-                            pattern.metadata['choch_success_rate'] = calculate_historical_success_rate(symbol=symbol, timeframe=timeframe)
+                            success_rate = calculate_historical_success_rate(symbol=symbol, timeframe=timeframe)
+                            pattern.metadata['choch_success_rate'] = success_rate
+                            # Exportar también a campos dedicados del dataclass
+                            pattern.choch_confidence_boost = hist_bonus
+                            pattern.historical_success_rate = success_rate
+                            pattern.choch_context = {
+                                'samples': pattern.metadata['choch_samples'],
+                                'break_level': break_level
+                            }
                             log_trading_decision_smart_v6("FVG_CHOCH_MEMORY_APPLIED", {
                                 "symbol": symbol,
                                 "timeframe": timeframe,
@@ -556,7 +580,7 @@ class ICTPatternDetector:
                             symbol=symbol,
                             entry_price=placeholder_entry,
                             confidence=0.72,
-                            timestamp=datetime.now(),
+                            timestamp=datetime.now(timezone.utc),
                             metadata={'basic_detection': True, 'gap_type': 'fair_value', 'placeholder': True}
                         )
                         # Apply CHoCH memory on placeholder as well
@@ -569,7 +593,14 @@ class ICTPatternDetector:
                                 ph.metadata['choch_historical_bonus'] = hist_bonus
                                 ph.metadata['choch_samples'] = bonus_info.get('samples', 0)
                                 ph.metadata['confidence_original_pre_choch'] = original
-                                ph.metadata['choch_success_rate'] = calculate_historical_success_rate(symbol=symbol, timeframe=timeframe)
+                                success_rate = calculate_historical_success_rate(symbol=symbol, timeframe=timeframe)
+                                ph.metadata['choch_success_rate'] = success_rate
+                                ph.choch_confidence_boost = hist_bonus
+                                ph.historical_success_rate = success_rate
+                                ph.choch_context = {
+                                    'samples': ph.metadata['choch_samples'],
+                                    'break_level': placeholder_entry
+                                }
                         except Exception as e:
                             log_trading_decision_smart_v6("FVG_CHOCH_MEMORY_ERROR", {"error": str(e)})
                         patterns.append(ph)
