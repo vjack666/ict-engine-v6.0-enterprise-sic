@@ -281,8 +281,7 @@ python -X utf8 .\scripts\baseline_pattern_scan.py -s AUDUSD -t M5 -n 600 --low-m
 
 ---
 
-**Estado del Documento**: ✅ **COMPLETADO - MOVIDO A DOCS/completed/** - Listo para implementación
+**Estado del Documento**: ✅ Completo - Listo para implementación
 **Fecha de Creación**: 2024
-**Fecha de Completación**: 2025-09-21
 **Responsable**: GitHub Copilot
-**Versión**: 1.1 - Final
+**Versión**: 1.0

@@ -228,63 +228,6 @@ class StartDashboard:
         if health_monitoring_available:
             self._setup_health_monitoring_system()
     
-    def _setup_ultra_fast_shutdown(self):
-        """⚡ Configurar sistema de cierre ultra-rápido"""
-        def ultra_fast_shutdown(signum, frame):
-            print(f"\n⚡ [ULTRA-FAST] Señal {signum} - SHUTDOWN INMEDIATO")
-            start_time = time.time()
-            
-            try:
-                # === SHUTDOWN PARALELO ULTRA-RÁPIDO ===
-                shutdown_tasks = []
-                
-                # 1. Cerrar dashboard en thread separado con timeout mínimo
-                if self.dashboard_instance:
-                    dashboard_thread = threading.Thread(target=self._emergency_dashboard_close, daemon=True)
-                    dashboard_thread.start()
-                    shutdown_tasks.append(dashboard_thread)
-                
-                # 2. Cerrar loggers en paralelo
-                logger_thread = threading.Thread(target=self._emergency_close_loggers, daemon=True)
-                logger_thread.start()
-                shutdown_tasks.append(logger_thread)
-                
-                # 3. Limpiar file handles
-                files_thread = threading.Thread(target=self._emergency_flush_streams, daemon=True)
-                files_thread.start()
-                shutdown_tasks.append(files_thread)
-                
-                # === ESPERAR MÁXIMO 2 SEGUNDOS TOTAL ===
-                for thread in shutdown_tasks:
-                    thread.join(timeout=0.7)  # 0.7 segundos máximo por task
-                
-                # === CLEANUP FINAL RÁPIDO ===
-                try:
-                    # Limpiar componentes enterprise
-                    cleanup_func = self.components.get('cleanup_enterprise_components')
-                    if cleanup_func:
-                        cleanup_func()
-                    import gc
-                    gc.collect()
-                except:
-                    pass
-                
-                shutdown_time = time.time() - start_time
-                print(f"⚡ [ULTRA-FAST] Shutdown completado en {shutdown_time:.2f}s")
-                
-            except:
-                print("⚡ [ULTRA-FAST] Error - FORCING IMMEDIATE EXIT")
-            
-            # === SALIDA CONTROLADA (No abrupта) ===
-            try:
-                # Intentar salida limpia primero
-                sys.exit(0)
-            except:
-                # Solo si falla, usar exit directo
-                import os
-                os._exit(0)
-        
-        print("⚡ [DASHBOARD] Sistema de cierre ultra-rápido activado")
     
     def _emergency_dashboard_close(self):
         """🛑 Cierre de emergencia del dashboard"""
@@ -507,61 +450,6 @@ class StartDashboard:
                 config['professional_trading_mode'] = True
         
         return config
-    
-    def _setup_signal_handlers(self):
-        """Configurar signal handlers para cierre limpio y rápido"""
-        def signal_handler(signum, frame):
-            print(f"\n⚡ [DASHBOARD] Señal {signum} recibida - Iniciando cierre rápido...")
-            
-            # FORZAR CIERRE INMEDIATO SIN TIMEOUTS LARGOS
-            import threading
-            import time
-            
-            start_shutdown = time.time()
-            
-            try:
-                # 1. Detener dashboard inmediatamente sin esperar
-                if self.dashboard_instance:
-                    print("⚡ [FAST] Cerrando dashboard...")
-                    
-                    # Usar shutdown si existe, pero con timeout mínimo
-                    if hasattr(self.dashboard_instance, 'shutdown'):
-                        shutdown_thread = threading.Thread(target=self._emergency_dashboard_shutdown, daemon=True)
-                        shutdown_thread.start()
-                        shutdown_thread.join(timeout=2.0)  # Máximo 2 segundos
-                    
-                    print("⚡ [FAST] Dashboard cerrado")
-                
-                # 2. Cerrar loggers de background rápidamente
-                self._emergency_logger_cleanup()
-                
-                # 3. Forzar garbage collection
-                try:
-                    import gc
-                    gc.collect()
-                except:
-                    pass
-                
-                shutdown_time = time.time() - start_shutdown
-                print(f"⚡ [FAST] Cierre completado en {shutdown_time:.2f}s")
-                
-            except Exception as e:
-                print(f"⚡ [FAST] Error en cierre rápido: {e}")
-            
-            # Salir de manera controlada
-            try:
-                sys.exit(0)
-            except:
-                import os
-                os._exit(0)
-    
-    def _emergency_dashboard_shutdown(self):
-        """Cierre de emergencia del dashboard"""
-        try:
-            if self.dashboard_instance and hasattr(self.dashboard_instance, 'shutdown'):
-                self.dashboard_instance.shutdown()
-        except:
-            pass  # Ignorar errores en cierre de emergencia
     
     def _emergency_logger_cleanup(self):
         """Limpieza de emergencia de loggers"""
