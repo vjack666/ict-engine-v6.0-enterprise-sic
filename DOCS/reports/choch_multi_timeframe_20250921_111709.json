@@ -1,0 +1,27 @@
+{
+  "analysis_time": "2025-09-21T11:16:57.530530",
+  "symbols_analyzed": [
+    "EURUSD",
+    "GBPUSD",
+    "USDJPY"
+  ],
+  "individual_analysis": {
+    "EURUSD": {
+      "symbol": "EURUSD",
+      "analysis_time": "2025-09-21T11:17:01.911765",
+      "detection_method": "REAL_DETECTOR",
+      "timeframes_analysis": {
+        "H4": {
+          "timeframe": "H4",
+          "choch_detected": true,
+          "direction": "BEARISH",
+          "confidence": 90.0,
+          "structure_type": "CHOCH_BEARISH",
+          "break_level": 1.1631,
+          "target_level": 1.16219,
+          "trend_change": "BULLISH -> BEARISH",
+          "swing_data": {
+            "last_high": {
+              "index": 2859,
+              "price": 1.16928,
+              "timestamp": 

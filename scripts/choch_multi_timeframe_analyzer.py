@@ -26,7 +26,7 @@ Fecha: 19 Septiembre 2025 - FASE NUEVA
 import sys
 import json
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 
@@ -34,6 +34,74 @@ from typing import Dict, List, Any, Optional, Tuple
 repo_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(repo_root / "01-CORE"))
 from analysis.unified_market_memory import update_market_memory  # Ingest results into memory
+
+# --- Utilities: JSON-safe conversion to avoid pandas/numpy serialization errors ---
+def to_json_safe(obj: Any) -> Any:
+    """Recursively convert objects to JSON-serializable types.
+    - datetime/date -> ISO string
+    - pandas.Timestamp -> ISO string
+    - numpy scalar -> Python scalar
+    - Path -> str
+    - set/tuple -> list
+    - dict/list recurse
+    Fallback to str() for unknown objects.
+    """
+    try:
+        # Primitives
+        if obj is None or isinstance(obj, (bool, int, float, str)):
+            return obj
+
+        # Date/time
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+
+        # pandas.Timestamp (avoid importing pandas hard dependency)
+        # Detect by attribute presence to keep it lightweight
+        if hasattr(obj, 'to_pydatetime') and hasattr(obj, 'tz_localize'):
+            try:
+                return obj.to_pydatetime().isoformat()  # type: ignore[attr-defined]
+            except Exception:
+                try:
+                    iso = getattr(obj, 'isoformat', None)
+                    return iso() if callable(iso) else str(obj)
+                except Exception:
+                    return str(obj)
+
+        # numpy scalars
+        try:
+            import numpy as np  # type: ignore
+            if isinstance(obj, np.generic):  # type: ignore[attr-defined]
+                return obj.item()
+        except Exception:
+            pass
+
+        # Path
+        if isinstance(obj, Path):
+            return str(obj)
+
+        # Collections
+        if isinstance(obj, dict):
+            return {k: to_json_safe(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple, set)):
+            return [to_json_safe(v) for v in obj]
+
+        # Enum-like
+        if hasattr(obj, 'name') and hasattr(obj, 'value'):
+            try:
+                return getattr(obj, 'name')
+            except Exception:
+                return str(obj)
+
+        # Fallback
+        iso = getattr(obj, 'isoformat', None)
+        if callable(iso):
+            try:
+                return iso()
+            except Exception:
+                return str(obj)
+        return str(obj)
+    except Exception:
+        return str(obj)
 
 class ChochMultiTimeframeAnalyzer:
     """Analizador de CHoCH en múltiples temporalidades"""
@@ -543,8 +611,10 @@ def main():
         filename = f"choch_multi_timeframe_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         filepath = results_dir / filename
         
+        # Serialize safely to avoid pandas.Timestamp / numpy types errors
+        safe_payload = to_json_safe(multi_analysis)
         with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(multi_analysis, f, indent=2, ensure_ascii=False)
+            json.dump(safe_payload, f, indent=2, ensure_ascii=False)
         
         # Finalización
         end_time = datetime.now()
@@ -580,6 +650,21 @@ def main():
         return 1
     
     finally:
+        # Ensure background services are stopped to avoid post-exit logs
+        try:
+            from data_management.ict_data_manager_singleton import ICTDataManagerSingleton  # type: ignore
+            if ICTDataManagerSingleton.is_initialized():  # type: ignore[attr-defined]
+                try:
+                    ICTDataManagerSingleton.get_instance().shutdown()  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+                try:
+                    ICTDataManagerSingleton.reset_instance()  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         print(f"\n🔚 FINALIZANDO EJECUCIÓN...")
 
 if __name__ == "__main__":
