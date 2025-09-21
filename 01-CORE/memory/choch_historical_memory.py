@@ -9,6 +9,13 @@ from typing import Any, Dict, List, Optional, Tuple
 # Lightweight, dependency-free persistent store for CHoCH historical events.
 # JSON schema adheres to user's spec with extras for analytics bookkeeping.
 
+# 🚀 Import cache system for performance optimization
+try:
+    from memory.choch_cache import get_choch_cache
+    _cache_available = True
+except ImportError:
+    _cache_available = False
+
 DEFAULT_STORAGE = Path(__file__).resolve().parent / 'choch_historical.json'
 DEFAULT_BACKUP = Path(__file__).resolve().parents[2] / '04-DATA' / 'cache' / 'choch_backup.json'
 
@@ -209,15 +216,30 @@ class CHoCHHistoricalMemory:
 
     def compute_historical_bonus(self, symbol: str, timeframe: str, break_level: float,
                                  session: Optional[str] = None, volatility_band: Optional[Tuple[float,float]] = None) -> Dict[str, float]:
+        # 🚀 Try cache first for performance optimization
+        if _cache_available:
+            cache = get_choch_cache()
+            cached_result = cache.get_historical_bonus(symbol, timeframe, break_level)
+            if cached_result is not None:
+                return cached_result
+        
+        # Compute bonus if not cached
         sims = self.retrieve_similar(symbol, timeframe, break_level, session=session, volatility_band=volatility_band)
         stats = self.analyze_success_rate(sims)
         samples = int(stats.get('count', 0) or 0)
         if samples < 3:
-            return {"historical_bonus": 0.0, "samples": samples}
-        success_rate = stats.get('success_rate', 0.0)
-        # Map success rate [0,100] to bonus [-20,+20]
-        bonus = (success_rate - 50.0) * 0.4  # 0.4 => 50% -> 0; 100% -> +20; 0% -> -20
-        return {"historical_bonus": max(-20.0, min(20.0, bonus)), "samples": samples}
+            result = {"historical_bonus": 0.0, "samples": samples}
+        else:
+            success_rate = stats.get('success_rate', 0.0)
+            # Map success rate [0,100] to bonus [-20,+20]
+            bonus = (success_rate - 50.0) * 0.4  # 0.4 => 50% -> 0; 100% -> +20; 0% -> -20
+            result = {"historical_bonus": max(-20.0, min(20.0, bonus)), "samples": samples}
+        
+        # Store in cache for future queries
+        if _cache_available:
+            cache.set_historical_bonus(symbol, timeframe, break_level, result)
+        
+        return result
 
     # === Smart retrieval & analysis APIs ===
     def find_similar_choch_in_history(self, symbol: str, timeframe: str, direction: Optional[str] = None,
@@ -239,9 +261,23 @@ class CHoCHHistoricalMemory:
         return results
 
     def calculate_historical_success_rate(self, symbol: str, timeframe: str, direction: Optional[str] = None) -> float:
+        # 🚀 Try cache first
+        if _cache_available and direction is None:  # Only cache general success rates
+            cache = get_choch_cache()
+            cached_rate = cache.get_success_rate(symbol, timeframe)
+            if cached_rate is not None:
+                return cached_rate
+        
+        # Compute if not cached
         events = [r for r in self._db.get('records', []) if r.get('symbol') == symbol and r.get('timeframe') == timeframe and (direction is None or r.get('direction') == direction)]
         stats = self.analyze_success_rate(events)
-        return float(stats.get('success_rate', 0.0))
+        success_rate = float(stats.get('success_rate', 0.0))
+        
+        # Store in cache (only for general rates)
+        if _cache_available and direction is None:
+            cache.set_success_rate(symbol, timeframe, success_rate)
+        
+        return success_rate
 
     def adjust_confidence_with_memory(self, base_confidence: float, symbol: str, timeframe: str, break_level: float) -> float:
         try:

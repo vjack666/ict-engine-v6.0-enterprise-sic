@@ -4,6 +4,7 @@ Sistema de detección de patrones ICT con thread-safe pandas
 """
 
 from __future__ import annotations
+import os
 from protocols.unified_logging import get_unified_logger
 try:
     from utils.black_box_logs import get_black_box_logger
@@ -52,6 +53,8 @@ try:
         calculate_historical_success_rate,
         get_choch_historical_memory,
     )  # type: ignore
+    # 🚀 Import centralized CHoCH configuration
+    from config.choch_config import get_choch_config
     _choch_memory_available = True
 except ImportError:
     # Fallbacks seguros si no está disponible
@@ -59,6 +62,8 @@ except ImportError:
         return {"historical_bonus": 0.0, "samples": 0}
     def calculate_historical_success_rate(*args, **kwargs):  # type: ignore
         return 0.0
+    def get_choch_config(*args, **kwargs):  # type: ignore
+        return {'enabled': False}
 
 # Sistema logging eliminado - funcionalidad implementada directamente
 # Sistema centralizado activo - sistema funcional completamente sin dependencias externas
@@ -139,13 +144,17 @@ class ICTPatternDetector:
         self._candle_downloader = None
         self._pandas_initialized = False
 
-        # CHoCH minimal config (opt-in capable)
+        # CHoCH configuration using centralized config
         self.choch_memory = None
-        self.choch_config = self.config.get('choch_config', {
-            'enabled': True,
+        # 🚀 Use centralized CHoCH configuration
+        detector_type = 'DEFAULT'  # Can be overridden by subclasses
+        low_memory_mode = bool(os.environ.get('ICT_LOW_MEM', '0') == '1')
+        self.choch_config = get_choch_config(detector_type, low_memory_mode) if _choch_memory_available else {
+            'enabled': False,
             'min_historical_periods': 20,
             'confidence_boost_factor': 0.15
-        })
+        }
+        
         # Inicializar CHoCH Memory si está habilitado
         if self.choch_config.get('enabled', True) and _choch_memory_available:
             try:
