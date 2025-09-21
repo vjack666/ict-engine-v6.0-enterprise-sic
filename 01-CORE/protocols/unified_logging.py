@@ -133,11 +133,20 @@ class StandardLoggerAdapter:
         if logger is None:
             logger = logging.getLogger(component_name)
             if not logger.handlers:
-                handler = logging.StreamHandler(sys.stdout)
-                formatter = logging.Formatter('[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s')
-                handler.setFormatter(formatter)
-                logger.addHandler(handler)
-                logger.setLevel(logging.INFO)
+                mode = os.environ.get('ICT_LOGGING_MODE', 'silent').strip().lower()
+                if mode == 'silent':
+                    # In silent mode, avoid console handlers entirely
+                    try:
+                        logger.addHandler(logging.NullHandler())
+                    except Exception:
+                        pass
+                    logger.setLevel(logging.WARNING)
+                else:
+                    handler = logging.StreamHandler(sys.stdout)
+                    formatter = logging.Formatter('[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s')
+                    handler.setFormatter(formatter)
+                    logger.addHandler(handler)
+                    logger.setLevel(logging.INFO)
         self.logger = logger
         # de-dup state
         self._last_sig: Optional[tuple[str, str, str]] = None
@@ -410,6 +419,13 @@ class UnifiedLoggingFactory:
         
         # Override config per component if needed
         config = {**self._logging_config, **kwargs}
+        # Honor global silent mode: avoid SmartTradingLogger which may emit to console
+        try:
+            mode = os.environ.get('ICT_LOGGING_MODE', 'silent').strip().lower()
+            if mode == 'silent':
+                config['prefer_smart_logger'] = False
+        except Exception:
+            pass
         
         # Determine strategy
         if config.get('minimal_mode', False):
@@ -484,6 +500,91 @@ def configure_unified_logging(**config: Any) -> None:
 def clear_logging_cache() -> None:
     """🧹 Limpiar cache de loggers (útil para tests o reconfiguración)"""
     _factory._clear_cache()
+
+# =============================================================================
+# 5.1. CARGA DE CONFIGURACIÓN CENTRAL (JSON)
+# =============================================================================
+
+_CONFIG_LOADED = False
+
+def _apply_root_and_module_levels(config: Dict[str, Any]) -> None:
+    try:
+        import logging as _logging
+        modes = config.get('modes', {})
+        mode = os.environ.get('ICT_LOGGING_MODE', 'silent').strip().lower()
+        mode_cfg: Dict[str, Any] = modes.get(mode, {})
+        root_level = getattr(_logging, str(mode_cfg.get('root_level', 'WARNING')).upper(), _logging.WARNING)
+        _logging.getLogger().setLevel(root_level)
+        module_levels: Dict[str, str] = mode_cfg.get('module_levels', {})
+        for name, level_str in module_levels.items():
+            try:
+                lvl = getattr(_logging, str(level_str).upper(), _logging.WARNING)
+                lg = _logging.getLogger(name)
+                lg.setLevel(lvl)
+                # avoid console propagation in silent mode
+                if mode == 'silent':
+                    lg.propagate = False
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+def load_unified_logging_config() -> None:
+    """Cargar configuración central de logging desde 01-CORE/config/logging.config.json.
+
+    Aplica niveles root y por módulo, y ajusta la factory para el modo activo.
+    Respeta overrides por ENV.
+    """
+    global _CONFIG_LOADED
+    if _CONFIG_LOADED:
+        return
+    try:
+        # Resolver ruta del repo: este archivo está en 01-CORE/protocols
+        repo_root = Path(__file__).resolve().parent.parent.parent
+        cfg_path = repo_root / '01-CORE' / 'config' / 'logging.config.json'
+        if not cfg_path.exists():
+            _CONFIG_LOADED = True
+            return
+        import json as _json
+        with open(cfg_path, 'r', encoding='utf-8') as f:
+            cfg = _json.load(f)
+        # Determinar modo
+        mode = os.environ.get('ICT_LOGGING_MODE', 'silent').strip().lower()
+        mode_cfg: Dict[str, Any] = (cfg.get('modes') or {}).get(mode, {})
+        # Overrides por ENV simples
+        # ICT_LOGGING_ROOT_LEVEL=INFO
+        env_root = os.environ.get('ICT_LOGGING_ROOT_LEVEL')
+        if env_root:
+            cfg.setdefault('modes', {})
+            mode_cfg = cfg['modes'].setdefault(mode, {})
+            mode_cfg['root_level'] = env_root
+        # ICT_LOGGING_MODULE_LEVELS='loggerA=ERROR,loggerB=INFO'
+        env_mods = os.environ.get('ICT_LOGGING_MODULE_LEVELS')
+        if env_mods:
+            mode_cfg = cfg['modes'].setdefault(mode, {})
+            mods = mode_cfg.setdefault('module_levels', {})
+            for pair in env_mods.split(','):
+                if '=' in pair:
+                    name, lvl = pair.split('=', 1)
+                    mods[name.strip()] = lvl.strip()
+        # Aplicar niveles root/módulo
+        _apply_root_and_module_levels(cfg)
+        # Configurar factory defaults
+        defaults = {
+            'prefer_smart_logger': bool(mode_cfg.get('prefer_smart_logger', True)),
+            'fallback_to_standard': bool(mode_cfg.get('fallback_to_standard', True)),
+            'enable_debug': bool(mode_cfg.get('enable_debug', False)),
+            'minimal_mode': bool(mode_cfg.get('minimal_mode', False)),
+        }
+        # En modo silent, forzar a no preferir smart logger
+        if mode == 'silent':
+            defaults['prefer_smart_logger'] = False
+        UnifiedLoggingFactory.configure(**defaults)
+    except Exception:
+        # no bloquear start-up
+        pass
+    finally:
+        _CONFIG_LOADED = True
 
 # =============================================================================
 # 5. UTILIDADES DE CONVENIENCIA

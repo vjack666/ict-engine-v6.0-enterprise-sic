@@ -19,6 +19,14 @@ Fecha: 12 de Septiembre 2025
 """
 
 from textual.app import App, ComposeResult
+try:
+    from protocols.unified_logging import get_unified_logger
+    from utils.black_box_logs import get_black_box_logger
+    _dash_logger = get_unified_logger("DashboardApp")
+    _dash_bb = get_black_box_logger("DashboardApp", "dashboard")
+except Exception:
+    _dash_logger = None
+    _dash_bb = None
 from textual.containers import Horizontal, Vertical, Container
 from textual.widgets import (
     Header, Footer, Static, TabbedContent, TabPane, 
@@ -320,7 +328,8 @@ class ICTDashboardApp(App):
         # Configurar timer para actualizaciones automáticas cada 0.5 segundos
         self.set_interval(0.5, self.update_dashboard_data)
         
-        print("✅ [DASHBOARD] ICT Dashboard Enterprise montado - Datos reales activos")
+    if _dash_logger: _dash_logger.info("ICT Dashboard Enterprise montado - Datos reales activos", "MOUNT")
+    if _dash_bb: _dash_bb.info("ICT Dashboard Enterprise montado - Datos reales activos")
     
     async def update_dashboard_data(self):
         """🔄 Actualizar datos del dashboard automáticamente"""
@@ -352,7 +361,8 @@ class ICTDashboardApp(App):
             system_status.update(status_text)
             
         except Exception as e:
-            print(f"❌ [DASHBOARD] Error actualizando datos: {e}")
+            if _dash_logger: _dash_logger.error(f"Error actualizando datos: {e}", "UPDATE")
+            if _dash_bb: _dash_bb.error("Error actualizando datos", {"error": str(e)})
     
     async def update_smart_money_data(self):
         """💰 Actualizar datos de Smart Money con información real"""
@@ -402,7 +412,8 @@ class ICTDashboardApp(App):
             patterns_widget.update(patterns_text)
             
         except Exception as e:
-            print(f"❌ [DASHBOARD] Error actualizando Smart Money: {e}")
+            if _dash_logger: _dash_logger.error(f"Error actualizando Smart Money: {e}", "UPDATE_SM")
+            if _dash_bb: _dash_bb.error("Error actualizando Smart Money", {"error": str(e)})
     
     async def get_real_smart_money_analysis(self):
         """🔍 Obtener análisis real del Smart Money Analyzer"""
@@ -472,7 +483,8 @@ class ICTDashboardApp(App):
                 }
                 
         except Exception as e:
-            print(f"❌ [DASHBOARD] Error obteniendo análisis real: {e}")
+            if _dash_logger: _dash_logger.error(f"Error obteniendo análisis real: {e}", "ANALYSIS")
+            if _dash_bb: _dash_bb.error("Error obteniendo análisis real", {"error": str(e)})
             raise e
     
     async def update_order_blocks_data(self):
@@ -549,7 +561,8 @@ class ICTDashboardApp(App):
                                 pass
                                 
         except Exception as e:
-            print(f"❌ [DASHBOARD] Error actualizando Order Blocks: {e}")
+            if _dash_logger: _dash_logger.error(f"Error actualizando Order Blocks: {e}", "UPDATE_OB")
+            if _dash_bb: _dash_bb.error("Error actualizando Order Blocks", {"error": str(e)})
     
     async def update_fvg_data(self):
         """💎 Actualizar datos de FVG con información real"""
@@ -641,16 +654,23 @@ class ICTDashboardApp(App):
                                 pass
                                 
         except Exception as e:
-            print(f"❌ [DASHBOARD] Error actualizando FVG: {e}")
+            if _dash_logger: _dash_logger.error(f"Error actualizando FVG: {e}", "UPDATE_FVG")
+            if _dash_bb: _dash_bb.error("Error actualizando FVG", {"error": str(e)})
     
     async def action_refresh(self):
         """🔄 Acción de refresh manual"""
         await self.update_dashboard_data()
-        print("🔄 [DASHBOARD] Datos actualizados manualmente")
+        if _dash_logger:
+            _dash_logger.info("Datos actualizados manualmente", "MANUAL_UPDATE")
+        if _dash_bb:
+            _dash_bb.info("Datos actualizados manualmente")
     
     async def action_quit(self):
         """🛑 Acción de salir"""
-        print("🛑 [DASHBOARD] Cerrando aplicación...")
+        if _dash_logger:
+            _dash_logger.info("Cerrando aplicación...", "SHUTDOWN")
+        if _dash_bb:
+            _dash_bb.info("Cerrando aplicación...")
         self.exit()
 
 # Clase de compatibilidad para el main interface existente
@@ -663,7 +683,10 @@ class TextualDashboardApp:
     
     def run(self, engine=None, data_collector=None):
         """🚀 Ejecutar la aplicación del dashboard"""
-        print("🚀 [DASHBOARD] Iniciando aplicación Textual Enterprise...")
+        if _dash_logger:
+            _dash_logger.info("Iniciando aplicación Textual Enterprise...", "START")
+        if _dash_bb:
+            _dash_bb.info("Iniciando aplicación Textual Enterprise...")
         
         # Crear instancia de la aplicación real
         self.app_instance = ICTDashboardApp(engine, data_collector)

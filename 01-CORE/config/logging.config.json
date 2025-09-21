@@ -1,0 +1,54 @@
+{
+  "modes": {
+    "silent": {
+      "prefer_smart_logger": false,
+      "fallback_to_standard": true,
+      "enable_debug": false,
+      "minimal_mode": false,
+      "root_level": "WARNING",
+      "module_levels": {
+        "matplotlib": "ERROR",
+        "urllib3": "ERROR",
+        "asyncio": "ERROR",
+        "numexpr": "ERROR",
+        "PIL": "ERROR",
+        "DashboardIntegrator": "ERROR",
+        "PatternDetector": "INFO",
+        "MT5Health": "WARNING",
+        "OrderBlocksBlackBox": "INFO",
+        "order_blocks_detection": "WARNING",
+        "order_blocks_validation": "WARNING",
+        "order_blocks_dashboard": "WARNING"
+      }
+    },
+    "debug": {
+      "prefer_smart_logger": true,
+      "fallback_to_standard": true,
+      "enable_debug": true,
+      "minimal_mode": false,
+      "root_level": "INFO",
+      "module_levels": {}
+    },
+    "verbose": {
+      "prefer_smart_logger": true,
+      "fallback_to_standard": true,
+      "enable_debug": true,
+      "minimal_mode": false,
+      "root_level": "DEBUG",
+      "module_levels": {}
+    },
+    "dev": {
+      "prefer_smart_logger": true,
+      "fallback_to_standard": true,
+      "enable_debug": true,
+      "minimal_mode": false,
+      "root_level": "DEBUG",
+      "module_levels": {}
+    }
+  },
+  "overrides": {
+    "PatternDetector": {
+      "level": "INFO"
+    }
+  }
+}

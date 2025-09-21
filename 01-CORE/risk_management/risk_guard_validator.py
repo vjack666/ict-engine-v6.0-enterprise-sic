@@ -23,8 +23,30 @@ except Exception:
     def create_safe_logger(component_name: str, **_):  # type: ignore
         class _L:
             def info(self, m, c=""): pass
-            def warning(self, m, c=""): print(f"[WARN][{component_name}] {m}")
-            def error(self, m, c=""): print(f"[ERR][{component_name}] {m}")
+            def warning(self, m, c=""):
+                try:
+                    from protocols.unified_logging import get_unified_logger
+                    logger = get_unified_logger(component_name)
+                    logger.warning(str(m), c or "VALIDATOR")
+                    try:
+                        from utils.black_box_logs import get_black_box_logger
+                        get_black_box_logger(component_name, "risk").warning(str(m), {"component": c})
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
+            def error(self, m, c=""):
+                try:
+                    from protocols.unified_logging import get_unified_logger
+                    logger = get_unified_logger(component_name)
+                    logger.error(str(m), c or "VALIDATOR")
+                    try:
+                        from utils.black_box_logs import get_black_box_logger
+                        get_black_box_logger(component_name, "risk").error(str(m), {"component": c})
+                    except Exception:
+                        pass
+                except Exception:
+                    pass
         return _L()
 
 SEVERE_VIOLATIONS = {"DAILY_LOSS_LIMIT", "DRAWDOWN_LIMIT"}

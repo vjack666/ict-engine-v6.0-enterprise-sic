@@ -476,7 +476,16 @@ def initialize_enterprise_logging_system(production_mode: bool = True) -> None:
         for logger_name in ['urllib3', 'requests', 'matplotlib', 'pandas']:
             logging.getLogger(logger_name).setLevel(logging.WARNING)
     
-    print("🛡️ ICT Engine v6.0 Enterprise Logging System initialized")
+    try:
+        mode = os.environ.get('ICT_LOGGING_MODE', 'silent').strip().lower()
+    except Exception:
+        mode = 'silent'
+    msg = "🛡️ ICT Engine v6.0 Enterprise Logging System initialized"
+    if mode == 'silent':
+        # avoid console noise in silent mode
+        logging.getLogger('ICT.LoggingSystem').addHandler(logging.NullHandler())
+        logging.getLogger('ICT.LoggingSystem').setLevel(logging.INFO)
+    logging.getLogger('ICT.LoggingSystem').info(msg)
 
 # ============================================================================
 # CENTRAL LOGGER FACTORY FUNCTIONS

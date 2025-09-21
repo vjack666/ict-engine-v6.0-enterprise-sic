@@ -45,10 +45,31 @@ SCRIPTS_PATH = SYSTEM_ROOT / "scripts"
 sys.path.insert(0, str(CORE_PATH))
 sys.path.insert(0, str(SCRIPTS_PATH))
 
+# Cargar configuración central de logging (root y módulos)
+try:
+    from protocols.unified_logging import load_unified_logging_config as _load_logging_cfg
+    _load_logging_cfg()
+except Exception:
+    pass
+
+# Aplicar modo de logging temprano y, si es silent, silenciar prints de arranque
+try:
+    from utils.logging_modes import apply_logging_mode as _apply_logging_mode_core, silence_stdout_stderr as _silence_core
+except Exception:
+    def _apply_logging_mode_core(mode: Optional[str] = None) -> str:
+        return (mode or os.environ.get("ICT_LOGGING_MODE", "silent")).strip().lower()
+    from contextlib import contextmanager
+    @contextmanager
+    def _silence_core(enabled: bool = True):
+        yield
+_resolved_mode_core = _apply_logging_mode_core(os.environ.get('ICT_LOGGING_MODE'))
+_silent_core = (_resolved_mode_core == 'silent')
+
 # ============================================================================
 # SISTEMA DE MEMORIA OPTIMIZADO
 # ============================================================================
-print("🧠 Inicializando sistema de memoria optimizado...")
+with _silence_core(enabled=_silent_core):
+    print("🧠 Inicializando sistema de memoria optimizado...")
 
 # Inicializar gestión de memoria automática
 try:
@@ -61,7 +82,8 @@ try:
     print(f"📊 Memoria inicial: {initial_status['system_memory']['rss_mb']:.1f}MB ({initial_status['system_memory']['percent']:.1f}%)")
     
 except ImportError as e:
-    print(f"⚠️ Memory Manager no disponible: {e}")
+    with _silence_core(enabled=_silent_core):
+        print(f"⚠️ Memory Manager no disponible: {e}")
     MEMORY_MANAGER = None
 
 # ============================================================================
@@ -102,10 +124,12 @@ try:
     from monitoring.health_monitor import get_health_monitor, MonitoringLevel, create_database_health_check
     from config.production_config import get_production_config, TradingProfile, BrokerType, get_config_manager
     PRODUCTION_MODULES_AVAILABLE = True
-    print("✅ Production optimization modules loaded successfully")
-    print("✅ Production configuration system loaded")
+    with _silence_core(enabled=_silent_core):
+        print("✅ Production optimization modules loaded successfully")
+        print("✅ Production configuration system loaded")
 except ImportError as e:
-    print(f"⚠️  Production modules not available: {e}")
+    with _silence_core(enabled=_silent_core):
+        print(f"⚠️  Production modules not available: {e}")
     PRODUCTION_MODULES_AVAILABLE = False
 
 # Imports de los nuevos módulos de producción integrada
@@ -114,9 +138,11 @@ try:
     from production.realtime_data_processor import RealTimeDataProcessor
     from production.production_system_integrator import ProductionSystemIntegrator
     PRODUCTION_INTEGRATION_MODULES_AVAILABLE = True
-    print("✅ Production integration modules loaded successfully")
+    with _silence_core(enabled=_silent_core):
+        print("✅ Production integration modules loaded successfully")
 except ImportError as e:
-    print(f"⚠️  Production integration modules not available: {e}")
+    with _silence_core(enabled=_silent_core):
+        print(f"⚠️  Production integration modules not available: {e}")
     PRODUCTION_INTEGRATION_MODULES_AVAILABLE = False
 
 # Clase fallback para SmartTradingLogger
@@ -124,10 +150,15 @@ class BasicLogger:
     """Logger básico como fallback"""
     def __init__(self, name):
         self.name = name
-    def info(self, msg): print(f"[{self.name}] {msg}")
-    def warning(self, msg): print(f"[{self.name}] WARNING: {msg}")
-    def error(self, msg): print(f"[{self.name}] ERROR: {msg}")
-    def debug(self, msg): print(f"[{self.name}] DEBUG: {msg}")
+        self._silent = (os.environ.get('ICT_LOGGING_MODE', 'silent').strip().lower() == 'silent')
+    def _emit(self, level: str, msg: str) -> None:
+        if self._silent:
+            return
+        print(f"[{self.name}] {level}: {msg}" if level != '' else f"[{self.name}] {msg}")
+    def info(self, msg): self._emit('', msg)
+    def warning(self, msg): self._emit('WARNING', msg)
+    def error(self, msg): self._emit('ERROR', msg)
+    def debug(self, msg): self._emit('DEBUG', msg)
 
 # Imports críticos con fallbacks
 try:
@@ -135,7 +166,8 @@ try:
     SMART_LOGGER_AVAILABLE = True
     LoggerClass = SmartTradingLogger
 except ImportError as e:
-    print(f"Warning: Could not import SmartTradingLogger: {e}")
+    with _silence_core(enabled=_silent_core):
+        print(f"Warning: Could not import SmartTradingLogger: {e}")
     SMART_LOGGER_AVAILABLE = False
     LoggerClass = BasicLogger
 

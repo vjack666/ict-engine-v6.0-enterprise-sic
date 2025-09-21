@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-09-21T09:16:01.958397",
+  "timestamp": "2025-09-21T10:53:36.048519",
   "active_alerts": [
     {
       "id": "system_f17573a0",
@@ -1617,7 +1617,7 @@
       ],
       "acknowledged": false,
       "resolved": false,
-      "escalated": false,
+      "escalated": true,
       "channels": [],
       "notified_at": null,
       "correlation_id": null,
@@ -1645,7 +1645,7 @@
       ],
       "acknowledged": false,
       "resolved": false,
-      "escalated": false,
+      "escalated": true,
       "channels": [],
       "notified_at": null,
       "correlation_id": null,
@@ -1654,22 +1654,132 @@
       "resolved_at": null,
       "resolution_message": null,
       "auto_resolved": false
-    }
-  ],
-  "recent_history": [
+    },
     {
-      "id": "system_8d8471d7",
-      "timestamp": "2025-09-21T09:15:13.096904",
+      "id": "system_6b0c354b",
+      "timestamp": "2025-09-21T09:27:28.213454",
+      "level": "warning",
+      "source": "system_monitor",
+      "category": "system_resources",
+      "title": "System Alert: StaleMarketData",
+      "message": "Datos de mercado desactualizados: 138750.2s",
+      "component": "StaleMarketData",
+      "metadata": {
+        "last_tick_age_ms": 138750213.43564987
+      },
+      "tags": [
+        "system_monitor",
+        "stalemarketdata"
+      ],
+      "acknowledged": false,
+      "resolved": false,
+      "escalated": true,
+      "channels": [],
+      "notified_at": null,
+      "correlation_id": null,
+      "parent_alert_id": null,
+      "related_alerts": [],
+      "resolved_at": null,
+      "resolution_message": null,
+      "auto_resolved": false
+    },
+    {
+      "id": "system_15ed7fe7",
+      "timestamp": "2025-09-21T10:21:25.667538",
+      "level": "warning",
+      "source": "system_monitor",
+      "category": "system_resources",
+      "title": "System Alert: StaleMarketData",
+      "message": "Datos de mercado desactualizados: 141987.7s",
+      "component": "StaleMarketData",
+      "metadata": {
+        "last_tick_age_ms": 141987667.52386093
+      },
+      "tags": [
+        "system_monitor",
+        "stalemarketdata"
+      ],
+      "acknowledged": false,
+      "resolved": false,
+      "escalated": true,
+      "channels": [],
+      "notified_at": null,
+      "correlation_id": null,
+      "parent_alert_id": null,
+      "related_alerts": [],
+      "resolved_at": null,
+      "resolution_message": null,
+      "auto_resolved": false
+    },
+    {
+      "id": "system_877cb928",
+      "timestamp": "2025-09-21T10:28:15.365124",
       "level": "warning",
       "source": "system_monitor",
       "category": "system_resources",
       "title": "System Alert: Memory",
-      "message": "Uso de memoria elevado: 81.8%",
+      "message": "Uso de memoria elevado: 80.5%",
       "component": "Memory",
       "metadata": {},
       "tags": [
         "system_monitor",
         "memory"
+      ],
+      "acknowledged": false,
+      "resolved": false,
+      "escalated": true,
+      "channels": [],
+      "notified_at": null,
+      "correlation_id": null,
+      "parent_alert_id": null,
+      "related_alerts": [],
+      "resolved_at": null,
+      "resolution_message": null,
+      "auto_resolved": false
+    },
+    {
+      "id": "system_6fe6a2af",
+      "timestamp": "2025-09-21T10:28:18.398855",
+      "level": "warning",
+      "source": "system_monitor",
+      "category": "system_resources",
+      "title": "System Alert: StaleMarketData",
+      "message": "Datos de mercado desactualizados: 142400.4s",
+      "component": "StaleMarketData",
+      "metadata": {
+        "last_tick_age_ms": 142400398.8418579
+      },
+      "tags": [
+        "system_monitor",
+        "stalemarketdata"
+      ],
+      "acknowledged": false,
+      "resolved": false,
+      "escalated": true,
+      "channels": [],
+      "notified_at": null,
+      "correlation_id": null,
+      "parent_alert_id": null,
+      "related_alerts": [],
+      "resolved_at": null,
+      "resolution_message": null,
+      "auto_resolved": false
+    },
+    {
+      "id": "system_bd8da4f6",
+      "timestamp": "2025-09-21T10:43:02.723928",
+      "level": "warning",
+      "source": "system_monitor",
+      "category": "system_resources",
+      "title": "System Alert: StaleMarketData",
+      "message": "Datos de mercado desactualizados: 143284.7s",
+      "component": "StaleMarketData",
+      "metadata": {
+        "last_tick_age_ms": 143284723.80161285
+      },
+      "tags": [
+        "system_monitor",
+        "stalemarketdata"
       ],
       "acknowledged": false,
       "resolved": false,
@@ -1684,16 +1794,46 @@
       "auto_resolved": false
     },
     {
-      "id": "system_6e62a575",
-      "timestamp": "2025-09-21T09:15:16.235951",
+      "id": "system_758f53bc",
+      "timestamp": "2025-09-21T10:53:15.111689",
       "level": "warning",
       "source": "system_monitor",
       "category": "system_resources",
       "title": "System Alert: StaleMarketData",
-      "message": "Datos de mercado desactualizados: 138018.2s",
+      "message": "Datos de mercado desactualizados: 143897.1s",
       "component": "StaleMarketData",
       "metadata": {
-        "last_tick_age_ms": 138018235.93735695
+        "last_tick_age_ms": 143897111.67645454
+      },
+      "tags": [
+        "system_monitor",
+        "stalemarketdata"
+      ],
+      "acknowledged": false,
+      "resolved": false,
+      "escalated": false,
+      "channels": [],
+      "notified_at": null,
+      "correlation_id": null,
+      "parent_alert_id": null,
+      "related_alerts": [],
+      "resolved_at": null,
+      "resolution_message": null,
+      "auto_resolved": false
+    }
+  ],
+  "recent_history": [
+    {
+      "id": "system_758f53bc",
+      "timestamp": "2025-09-21T10:53:15.111689",
+      "level": "warning",
+      "source": "system_monitor",
+      "category": "system_resources",
+      "title": "System Alert: StaleMarketData",
+      "message": "Datos de mercado desactualizados: 143897.1s",
+      "component": "StaleMarketData",
+      "metadata": {
+        "last_tick_age_ms": 143897111.67645454
       },
       "tags": [
         "system_monitor",

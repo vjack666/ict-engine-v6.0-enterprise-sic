@@ -5,6 +5,11 @@ Sistema de detección de patrones ICT con thread-safe pandas
 
 from __future__ import annotations
 from protocols.unified_logging import get_unified_logger
+try:
+    from utils.black_box_logs import get_black_box_logger
+    _bb = get_black_box_logger("PatternDetector", "patterns")
+except Exception:
+    _bb = None
 from typing import Dict, Any, Optional, List, TYPE_CHECKING
 from dataclasses import dataclass
 from datetime import datetime
@@ -17,7 +22,9 @@ if TYPE_CHECKING:
 try:
     from data_management.advanced_candle_downloader import _pandas_manager
 except ImportError:
-    print("⚠️ Thread-safe pandas manager no disponible - usando fallback")
+    logger = get_unified_logger("PatternDetector")
+    logger.warning("Thread-safe pandas manager no disponible - usando fallback", "INIT")
+    if _bb: _bb.warning("Thread-safe pandas manager no disponible - usando fallback")
     _pandas_manager = None
 
 # Imports requeridos - Memoria Unificada FASE 2
@@ -29,7 +36,9 @@ try:
     )  # type: ignore
     unified_memory_system_available = True
 except ImportError:
-    print("⚠️ UnifiedMemorySystem FASE 2 no disponible")
+    logger = get_unified_logger("PatternDetector")
+    logger.warning("UnifiedMemorySystem FASE 2 no disponible", "INIT")
+    if _bb: _bb.warning("UnifiedMemorySystem FASE 2 no disponible")
 
     # Fallback para get_unified_memory_system
     def get_unified_memory_system() -> Optional['UnifiedMemorySystem']:
@@ -161,10 +170,14 @@ class ICTPatternDetector:
                     "status": "ready"
                 })
             except Exception as e:
-                print(f"⚠️ Error inicializando ICT_SIGNALS logger: {e}")
+                logger = get_unified_logger("PatternDetector")
+                logger.error(f"Error inicializando ICT_SIGNALS logger: {e}", "INIT")
+                if _bb: _bb.error("Error inicializando ICT_SIGNALS logger", {"error": str(e)})
                 self.use_signals_logging = False
         else:
-            print("📋 ICT_SIGNALS ejecutándose sin sistema central de logs")
+            logger = get_unified_logger("PatternDetector")
+            logger.info("ICT_SIGNALS ejecutándose sin sistema central de logs", "INIT")
+            if _bb: _bb.info("ICT_SIGNALS ejecutándose sin sistema central de logs")
 
         # Inicializar componentes
         self._initialize_components()
@@ -173,13 +186,20 @@ class ICTPatternDetector:
         """Inicializar componentes del detector"""
         try:
             # Enterprise logging - direct implementation
-            print("[INFO] PatternDetector v6.0 Enterprise inicializado")
-            print("[INFO] Multi-Timeframe capability: ENABLED")
-            print("[INFO] Data Manager: ENABLED") 
-            print("[INFO] Configuración: 26 parámetros cargados")
+            logger = get_unified_logger("PatternDetector")
+            logger.info("PatternDetector v6.0 Enterprise inicializado", "INIT")
+            if _bb: _bb.info("PatternDetector v6.0 Enterprise inicializado")
+            logger.info("Multi-Timeframe capability: ENABLED", "INIT")
+            if _bb: _bb.info("Multi-Timeframe capability: ENABLED")
+            logger.info("Data Manager: ENABLED", "INIT")
+            if _bb: _bb.info("Data Manager: ENABLED")
+            logger.info("Configuración: 26 parámetros cargados", "INIT")
+            if _bb: _bb.info("Configuración: 26 parámetros cargados")
             
         except Exception as e:
-            print(f"⚠️ Error inicializando componentes: {e}")
+            logger = get_unified_logger("PatternDetector")
+            logger.error(f"Error inicializando componentes: {e}", "INIT")
+            if _bb: _bb.error("Error inicializando componentes", {"error": str(e)})
 
     def _get_pandas_manager(self):
         """🐼 Obtener instancia thread-safe de pandas"""
@@ -193,13 +213,17 @@ class ICTPatternDetector:
                 import pandas as pd
                 return pd
         except Exception as e:
-            print(f"Error obteniendo pandas manager: {e}")
+            logger = get_unified_logger("PatternDetector")
+            logger.error(f"Error obteniendo pandas manager: {e}", "PANDAS")
+            if _bb: _bb.error("Error obteniendo pandas manager", {"error": str(e)})
             # Último fallback
             try:
                 import pandas as pd
                 return pd
             except ImportError:
-                print("ERROR: No se puede cargar pandas")
+                logger = get_unified_logger("PatternDetector")
+                logger.error("No se puede cargar pandas", "PANDAS")
+                if _bb: _bb.error("No se puede cargar pandas")
                 return None
 
     def _ensure_pandas_loaded(self):
@@ -209,13 +233,19 @@ class ICTPatternDetector:
                 pd = self._get_pandas_manager()
                 if pd is not None:
                     self._pandas_initialized = True
-                    print("[INFO] 🐼 Pandas thread-safe cargado")
+                    logger = get_unified_logger("PatternDetector")
+                    logger.info("🐼 Pandas thread-safe cargado", "PANDAS")
+                    if _bb: _bb.info("Pandas thread-safe cargado")
                     return True
                 else:
-                    print("⚠️ Pandas no disponible")
+                    logger = get_unified_logger("PatternDetector")
+                    logger.warning("Pandas no disponible", "PANDAS")
+                    if _bb: _bb.warning("Pandas no disponible")
                     return False
             except Exception as e:
-                print(f"⚠️ Error cargando pandas: {e}")
+                logger = get_unified_logger("PatternDetector")
+                logger.error(f"Error cargando pandas: {e}", "PANDAS")
+                if _bb: _bb.error("Error cargando pandas", {"error": str(e)})
                 return False
         return True
 
@@ -240,7 +270,9 @@ class ICTPatternDetector:
                 pd = self._get_pandas_manager()
                 
                 if pd is None:
-                    print("⚠️ Pandas no disponible - análisis limitado")
+                    logger = get_unified_logger("PatternDetector")
+                    logger.warning("Pandas no disponible - análisis limitado", "ANALYSIS")
+                    if _bb: _bb.warning("Pandas no disponible - análisis limitado")
                     return patterns
                 
                 # Convertir datos a DataFrame si es necesario
@@ -248,7 +280,9 @@ class ICTPatternDetector:
                     if hasattr(data, '__iter__'):
                         df = pd.DataFrame(data)
                     else:
-                        print("⚠️ Datos no válidos para análisis")
+                        logger = get_unified_logger("PatternDetector")
+                        logger.warning("Datos no válidos para análisis", "ANALYSIS")
+                        if _bb: _bb.warning("Datos no válidos para análisis")
                         return patterns
                 else:
                     df = data
@@ -259,10 +293,14 @@ class ICTPatternDetector:
                 patterns.extend(self._detect_fvg_patterns(df, timeframe))
                 
             else:
-                print("⚠️ Pandas no disponible - análisis limitado")
+                logger = get_unified_logger("PatternDetector")
+                logger.warning("Pandas no disponible - análisis limitado", "ANALYSIS")
+                if _bb: _bb.warning("Pandas no disponible - análisis limitado")
             
         except Exception as e:
-            print(f"❌ Error detectando patrones: {e}")
+            logger = get_unified_logger("PatternDetector")
+            logger.error(f"Error detectando patrones: {e}", "ANALYSIS")
+            if _bb: _bb.error("Error detectando patrones", {"error": str(e)})
         
         return patterns
 
@@ -619,7 +657,9 @@ class ICTPatternDetector:
                     )
                     
                 except Exception as e:
-                    print(f"⚠️ Error guardando patrón en ICT_SIGNALS: {e}")
+                    logger = get_unified_logger("PatternDetector")
+                    logger.error(f"Error guardando patrón en ICT_SIGNALS: {e}", "SIGNALS")
+                    if _bb: _bb.error("Error guardando patrón en ICT_SIGNALS", {"error": str(e)})
             
             # 🧠 ALMACENAR EN UNIFIED MEMORY SYSTEM (funcionalidad original)
             if self._unified_memory_system:
@@ -677,7 +717,9 @@ class ICTPatternDetector:
             pd = self._get_pandas_manager()
             
             if pd is None:
-                print("⚠️ Pandas no disponible para análisis de Order Blocks")
+                logger = get_unified_logger("PatternDetector")
+                logger.warning("Pandas no disponible para análisis de Order Blocks", "ORDERBLOCKS")
+                if _bb: _bb.warning("Pandas no disponible para análisis de Order Blocks")
                 return order_blocks
             
             # Convertir a DataFrame si es necesario
@@ -685,7 +727,9 @@ class ICTPatternDetector:
                 if isinstance(data, dict) and 'close' in data:
                     df = pd.DataFrame(data)
                 else:
-                    print("⚠️ Datos no válidos para Order Blocks")
+                    logger = get_unified_logger("PatternDetector")
+                    logger.warning("Datos no válidos para Order Blocks", "ORDERBLOCKS")
+                    if _bb: _bb.warning("Datos no válidos para Order Blocks")
                     return order_blocks
             else:
                 df = data

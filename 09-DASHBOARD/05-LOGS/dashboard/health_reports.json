@@ -680,5 +680,285 @@
     "recommendations": [
       "\u26a0\ufe0f UIComponents: No active UI components detected"
     ]
+  },
+  {
+    "overall_status": "warning",
+    "components": [
+      {
+        "component_name": "UIComponents",
+        "status": "warning",
+        "last_check": "2025-09-21T09:28:03.112562",
+        "response_time_ms": 0.36072731018066406,
+        "memory_usage_mb": 169.8984375,
+        "cpu_usage_percent": 0.0,
+        "error_count": 0,
+        "warning_count": 0,
+        "uptime_seconds": 0.000824,
+        "custom_metrics": {
+          "dashboard_instance_available": true,
+          "ui_components_count": 0,
+          "active_tabs": 0,
+          "widget_count": 0,
+          "layout_status": "unknown",
+          "rendering_issues": 0
+        },
+        "details": "No active UI components detected"
+      }
+    ],
+    "system_metrics": {
+      "memory": {
+        "total_mb": 16014.0703125,
+        "used_mb": 12029.06640625,
+        "available_mb": 3985.00390625,
+        "percent_used": 75.1
+      },
+      "cpu": {
+        "percent_used": 7.0,
+        "count": 20
+      },
+      "disk": {
+        "total_gb": 953.0283164978027,
+        "used_gb": 373.55158615112305,
+        "free_gb": 579.4767303466797,
+        "percent_used": 39.19627357179206
+      },
+      "network": {
+        "bytes_sent": 6657922886,
+        "bytes_received": 8644047989,
+        "packets_sent": 8308171,
+        "packets_received": 13036545
+      },
+      "processes": 326,
+      "boot_time": "2025-09-14T08:16:42.123089"
+    },
+    "check_timestamp": "2025-09-21T09:28:04.131438",
+    "check_duration_ms": 1019.4618701934814,
+    "recommendations": [
+      "\u26a0\ufe0f UIComponents: No active UI components detected"
+    ]
+  },
+  {
+    "overall_status": "warning",
+    "components": [
+      {
+        "component_name": "UIComponents",
+        "status": "warning",
+        "last_check": "2025-09-21T10:21:49.883549",
+        "response_time_ms": 0.6213188171386719,
+        "memory_usage_mb": 172.30078125,
+        "cpu_usage_percent": 0.0,
+        "error_count": 0,
+        "warning_count": 0,
+        "uptime_seconds": 0.001298,
+        "custom_metrics": {
+          "dashboard_instance_available": true,
+          "ui_components_count": 0,
+          "active_tabs": 0,
+          "widget_count": 0,
+          "layout_status": "unknown",
+          "rendering_issues": 0
+        },
+        "details": "No active UI components detected"
+      }
+    ],
+    "system_metrics": {
+      "memory": {
+        "total_mb": 16014.0703125,
+        "used_mb": 12589.6875,
+        "available_mb": 3424.3828125,
+        "percent_used": 78.6
+      },
+      "cpu": {
+        "percent_used": 3.2,
+        "count": 20
+      },
+      "disk": {
+        "total_gb": 953.0283164978027,
+        "used_gb": 373.5269889831543,
+        "free_gb": 579.5013275146484,
+        "percent_used": 39.193692623509314
+      },
+      "network": {
+        "bytes_sent": 6802641213,
+        "bytes_received": 8728810728,
+        "packets_sent": 8434462,
+        "packets_received": 13186485
+      },
+      "processes": 336,
+      "boot_time": "2025-09-14T08:16:41.906610"
+    },
+    "check_timestamp": "2025-09-21T10:21:50.907143",
+    "check_duration_ms": 1024.543046951294,
+    "recommendations": [
+      "\u26a0\ufe0f UIComponents: No active UI components detected"
+    ]
+  },
+  {
+    "overall_status": "warning",
+    "components": [
+      {
+        "component_name": "UIComponents",
+        "status": "warning",
+        "last_check": "2025-09-21T10:28:26.665834",
+        "response_time_ms": 0.17333030700683594,
+        "memory_usage_mb": 168.62890625,
+        "cpu_usage_percent": 0.0,
+        "error_count": 0,
+        "warning_count": 0,
+        "uptime_seconds": 0.000498,
+        "custom_metrics": {
+          "dashboard_instance_available": true,
+          "ui_components_count": 0,
+          "active_tabs": 0,
+          "widget_count": 0,
+          "layout_status": "unknown",
+          "rendering_issues": 0
+        },
+        "details": "No active UI components detected"
+      }
+    ],
+    "system_metrics": {
+      "memory": {
+        "total_mb": 16014.0703125,
+        "used_mb": 12638.61328125,
+        "available_mb": 3375.45703125,
+        "percent_used": 78.9
+      },
+      "cpu": {
+        "percent_used": 6.6,
+        "count": 20
+      },
+      "disk": {
+        "total_gb": 953.0283164978027,
+        "used_gb": 373.53355407714844,
+        "free_gb": 579.4947624206543,
+        "percent_used": 39.19438149013379
+      },
+      "network": {
+        "bytes_sent": 6812337544,
+        "bytes_received": 8737086275,
+        "packets_sent": 8446747,
+        "packets_received": 13208424
+      },
+      "processes": 332,
+      "boot_time": "2025-09-14T08:16:42.680115"
+    },
+    "check_timestamp": "2025-09-21T10:28:27.680176",
+    "check_duration_ms": 1014.6329402923584,
+    "recommendations": [
+      "\u26a0\ufe0f UIComponents: No active UI components detected"
+    ]
+  },
+  {
+    "overall_status": "warning",
+    "components": [
+      {
+        "component_name": "UIComponents",
+        "status": "warning",
+        "last_check": "2025-09-21T10:43:17.721358",
+        "response_time_ms": 0.2353191375732422,
+        "memory_usage_mb": 169.5546875,
+        "cpu_usage_percent": 0.0,
+        "error_count": 0,
+        "warning_count": 0,
+        "uptime_seconds": 0.254868,
+        "custom_metrics": {
+          "dashboard_instance_available": true,
+          "ui_components_count": 0,
+          "active_tabs": 0,
+          "widget_count": 0,
+          "layout_status": "unknown",
+          "rendering_issues": 0
+        },
+        "details": "No active UI components detected"
+      }
+    ],
+    "system_metrics": {
+      "memory": {
+        "total_mb": 16014.0703125,
+        "used_mb": 12058.66015625,
+        "available_mb": 3955.41015625,
+        "percent_used": 75.3
+      },
+      "cpu": {
+        "percent_used": 12.7,
+        "count": 20
+      },
+      "disk": {
+        "total_gb": 953.0283164978027,
+        "used_gb": 373.53457260131836,
+        "free_gb": 579.4937438964844,
+        "percent_used": 39.19448836252701
+      },
+      "network": {
+        "bytes_sent": 6824483237,
+        "bytes_received": 8743863636,
+        "packets_sent": 8460771,
+        "packets_received": 13230868
+      },
+      "processes": 331,
+      "boot_time": "2025-09-14T08:16:42.738475"
+    },
+    "check_timestamp": "2025-09-21T10:43:18.739847",
+    "check_duration_ms": 1019.4182395935059,
+    "recommendations": [
+      "\u26a0\ufe0f UIComponents: No active UI components detected"
+    ]
+  },
+  {
+    "overall_status": "warning",
+    "components": [
+      {
+        "component_name": "UIComponents",
+        "status": "warning",
+        "last_check": "2025-09-21T10:53:33.477815",
+        "response_time_ms": 0.14162063598632812,
+        "memory_usage_mb": 171.1484375,
+        "cpu_usage_percent": 0.0,
+        "error_count": 0,
+        "warning_count": 0,
+        "uptime_seconds": 0.000451,
+        "custom_metrics": {
+          "dashboard_instance_available": true,
+          "ui_components_count": 0,
+          "active_tabs": 0,
+          "widget_count": 0,
+          "layout_status": "unknown",
+          "rendering_issues": 0
+        },
+        "details": "No active UI components detected"
+      }
+    ],
+    "system_metrics": {
+      "memory": {
+        "total_mb": 16014.0703125,
+        "used_mb": 12530.46875,
+        "available_mb": 3483.6015625,
+        "percent_used": 78.2
+      },
+      "cpu": {
+        "percent_used": 13.2,
+        "count": 20
+      },
+      "disk": {
+        "total_gb": 953.0283164978027,
+        "used_gb": 373.5471534729004,
+        "free_gb": 579.4811630249023,
+        "percent_used": 39.19580845673242
+      },
+      "network": {
+        "bytes_sent": 6834858267,
+        "bytes_received": 8749871629,
+        "packets_sent": 8470826,
+        "packets_received": 13249049
+      },
+      "processes": 338,
+      "boot_time": "2025-09-14T08:16:42.497845"
+    },
+    "check_timestamp": "2025-09-21T10:53:34.501702",
+    "check_duration_ms": 1024.1889953613281,
+    "recommendations": [
+      "\u26a0\ufe0f UIComponents: No active UI components detected"
+    ]
   }
 ]

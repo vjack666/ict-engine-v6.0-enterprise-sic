@@ -45,6 +45,13 @@ sys.path.extend([
     str(dashboard_dir / "components"),
     str(dashboard_dir / "bridge")
 ])
+
+# Cargar configuración central de logging del proyecto (root y módulos)
+try:
+    from protocols.unified_logging import load_unified_logging_config as _load_logging_cfg
+    _load_logging_cfg()
+except Exception:
+    pass
 # Logging modes utility (loaded after sys.path setup)
 try:
     from utils.logging_modes import apply_logging_mode, silence_stdout_stderr

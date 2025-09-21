@@ -38,9 +38,42 @@ try:
     ))
 except Exception:
     class _StubLogger:
-        def info(self, msg: str, *_, **__): print(f"[INFO][RISK] {msg}")
-        def warning(self, msg: str, *_, **__): print(f"[WARN][RISK] {msg}")
-        def error(self, msg: str, *_, **__): print(f"[ERROR][RISK] {msg}")
+        def info(self, msg: str, *_, **__):
+            try:
+                from protocols.unified_logging import get_unified_logger
+                logger = get_unified_logger("RiskTracking")
+                logger.info(str(msg), "RISK")
+                try:
+                    from utils.black_box_logs import get_black_box_logger
+                    get_black_box_logger("RiskTracking", "risk").info(str(msg))
+                except Exception:
+                    pass
+            except Exception:
+                pass
+        def warning(self, msg: str, *_, **__):
+            try:
+                from protocols.unified_logging import get_unified_logger
+                logger = get_unified_logger("RiskTracking")
+                logger.warning(str(msg), "RISK")
+                try:
+                    from utils.black_box_logs import get_black_box_logger
+                    get_black_box_logger("RiskTracking", "risk").warning(str(msg))
+                except Exception:
+                    pass
+            except Exception:
+                pass
+        def error(self, msg: str, *_, **__):
+            try:
+                from protocols.unified_logging import get_unified_logger
+                logger = get_unified_logger("RiskTracking")
+                logger.error(str(msg), "RISK")
+                try:
+                    from utils.black_box_logs import get_black_box_logger
+                    get_black_box_logger("RiskTracking", "risk").error(str(msg))
+                except Exception:
+                    pass
+            except Exception:
+                pass
         def debug(self, msg: str, *_, **__): pass
     _make_logger = lambda: _StubLogger()
 

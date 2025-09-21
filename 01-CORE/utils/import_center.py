@@ -12,6 +12,7 @@ Fecha: 1 Septiembre 2025
 """
 
 from protocols.unified_logging import get_unified_logger
+from utils.black_box_logs import get_black_box_logger
 import sys
 import threading
 import datetime
@@ -27,32 +28,22 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-# Importar logging central
-try:
-    from smart_trading_logger import get_smart_logger, log_info, log_warning, log_error, log_debug
-    _logger = get_smart_logger("ImportCenter")
-    LOGGING_AVAILABLE = True
-except ImportError:
-    # Fallback básico si no hay logger
-    LOGGING_AVAILABLE = False
-    def _log_info(msg): print(f"[INFO] {msg}")
-    def _log_warning(msg): print(f"[WARNING] {msg}")
-    def _log_error(msg): print(f"[ERROR] {msg}")
-    def _log_debug(msg): print(f"[DEBUG] {msg}")
+_uc_logger = get_unified_logger("ImportCenter")
+_bb_logger = get_black_box_logger("ImportCenter", "system")
 
 def _log(level: str, message: str, component: str = "IMPORT_CENTER"):
-    """🔧 Log centralizado con fallback"""
-    if LOGGING_AVAILABLE:
-        if level == "info":
-            _logger.info(message, component)
-        elif level == "warning":
-            _logger.warning(message, component)
-        elif level == "error":
-            _logger.error(message, component)
-        elif level == "debug":
-            _logger.debug(message, component)
-    else:
-        print(f"[{level.upper()}] [{component}] {message}")
+    if level == "info":
+        _uc_logger.info(message, component)
+        _bb_logger.info(message, {"component": component})
+    elif level == "warning":
+        _uc_logger.warning(message, component)
+        _bb_logger.warning(message, {"component": component})
+    elif level == "error":
+        _uc_logger.error(message, component)
+        _bb_logger.error(message, {"component": component})
+    elif level == "debug":
+        _uc_logger.debug(message, component)
+        _bb_logger.debug(message, {"component": component})
 
 class ImportCenter:
     """🔧 Centro de imports centralizado con thread-safety"""
