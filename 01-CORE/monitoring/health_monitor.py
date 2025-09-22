@@ -249,8 +249,8 @@ class MetricsCollector:
                         value=avg_memory,
                         unit='percent',
                         timestamp=current_time,
-                        threshold_warning=85.0,
-                        threshold_critical=95.0,
+                        threshold_warning=60.0,
+                        threshold_critical=80.0,
                         higher_is_better=False
                     )
             
@@ -585,11 +585,23 @@ class HealthPerformanceMonitor:
             try:
                 process = psutil.Process()
                 memory_mb = process.memory_info().rss / (1024 * 1024)
-                if memory_mb > 500:  # 500MB threshold
-                    return False, f"High memory usage: {memory_mb:.1f} MB"
-                return True, f"Memory usage OK: {memory_mb:.1f} MB"
-            except:
-                return False, "Cannot check memory usage"
+                cpu_percent = process.cpu_percent(interval=0.2)
+                # Nuevos thresholds
+                memory_limit_mb = 200
+                memory_threshold_pct = 60.0
+                cpu_threshold_pct = 80.0
+                # Obtener porcentaje de RAM usada respecto al total
+                import psutil as _psutil
+                ram_percent = _psutil.virtual_memory().percent
+                # Lógica de alerta combinada
+                if memory_mb > memory_limit_mb or ram_percent > memory_threshold_pct:
+                    if cpu_percent < cpu_threshold_pct:
+                        return False, f"MEMORY OPTIMIZATION: High RAM ({memory_mb:.1f}MB, {ram_percent:.1f}%), optimizing via CPU ({cpu_percent:.1f}%)"
+                    else:
+                        return False, f"CRITICAL: High RAM ({memory_mb:.1f}MB, {ram_percent:.1f}%) and High CPU ({cpu_percent:.1f}%)"
+                return True, f"Memory usage OK: {memory_mb:.1f} MB, RAM {ram_percent:.1f}%, CPU {cpu_percent:.1f}%"
+            except Exception as e:
+                return False, f"Cannot check memory/cpu usage: {e}"
         
         # Register checks
         self.health_manager.register_health_check(HealthCheck(
@@ -609,7 +621,7 @@ class HealthPerformanceMonitor:
         self.health_manager.register_health_check(HealthCheck(
             name="memory_usage",
             check_function=check_memory_usage,
-            interval_seconds=30.0,
+            interval_seconds=10.0,  # Más frecuente para respuesta rápida
             critical=False
         ))
     
