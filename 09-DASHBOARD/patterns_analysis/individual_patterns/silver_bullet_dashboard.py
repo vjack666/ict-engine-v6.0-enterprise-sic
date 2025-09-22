@@ -1,3 +1,29 @@
+# ========== PUNTO DE ENTRADA ROBUSTO ========== #
+if __name__ == "__main__":
+    import time
+    from datetime import datetime
+    try:
+        print("🎯 Iniciando Silver Bullet Enterprise Dashboard...")
+        dashboard = SilverBulletDashboard()
+        print("✅ Dashboard inicializado")
+        print("📊 Ejecutando análisis...")
+        while True:
+            try:
+                result = dashboard.analyze_pattern("EURUSD", "M15", force_refresh=True)
+                layout = dashboard.create_dashboard_layout(result)
+                print("\033c", end="")  # Limpiar pantalla (ANSI)
+                print(layout)
+                print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Análisis completado. Próxima actualización en 30s. (Ctrl+C para salir)")
+                time.sleep(30)
+            except KeyboardInterrupt:
+                print("\n🛑 Dashboard cerrado por usuario")
+                break
+            except Exception as e:
+                print(f"⚠️ Error en análisis: {e}")
+                time.sleep(5)
+    except Exception as e:
+        print(f"❌ Error iniciando dashboard: {e}")
+        input("Presiona ENTER para salir...")
 
 # ========== PUNTO DE ENTRADA PRINCIPAL ========== #
 import time
@@ -17,9 +43,13 @@ def run_analysis_loop(dashboard, symbol: str = "EURUSD", timeframe: str = "M15",
     except KeyboardInterrupt:
         print("\n[EXIT] Dashboard cerrado por el usuario.")
 
-if __name__ == "__main__":
-    dashboard = SilverBulletDashboard()
-    run_analysis_loop(dashboard)
+
+
+# ========== PUNTO DE ENTRADA ROBUSTO ========== #
+
+
+# (Mover este bloque al final del archivo para asegurar que SilverBulletDashboard esté definido)
+
 #!/usr/bin/env python3
 """
 🎯 PATTERN TEMPLATE - CONEXIÓN DIRECTA CON SISTEMA REAL
