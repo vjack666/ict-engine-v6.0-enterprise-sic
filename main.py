@@ -1993,48 +1993,37 @@ if __name__ == "__main__":
             self.logger.info(f"Silver Bullet trader ya existe: {silver_bullet_path}")
 
     def main_menu(self):
-        """Menú principal del sistema - interfaz limpia"""
-        # Pausar logs temporalmente para interfaz limpia
+        """Menú principal simplificado - Silver Bullet directo"""
         print("\n" + "🔇 Silenciando logs para interfaz limpia..." + "\n")
         time.sleep(1)
-        
-        # Limpiar pantalla si es posible
         try:
             import os
-            if os.name == 'nt':  # Windows
+            if os.name == 'nt':
                 os.system('cls')
-            else:  # Unix/Linux/Mac
+            else:
                 os.system('clear')
         except:
-            print("\n" * 50)  # Fallback - múltiples líneas en blanco
-        
+            print("\n" * 50)
         print("=" * 70)
         print("🚀 ICT ENGINE v6.0 ENTERPRISE - SISTEMA DE TRADING")
         print("=" * 70)
         print("")
-        print("   1. 🖥️  Dashboard Terminal - Dashboard Convencional")
-        print("   2. 🔫 Silver Bullet - Trading Automático") 
-        print("   3. 📊 Monitoreo - Sistema de Producción")
+        print("   1. 🎯 Silver Bullet Enterprise Dashboard")
+        print("   2. 📊 Monitoreo - Sistema de Producción")
         print("   q. ❌ Salir del Sistema")
         print("")
         print("=" * 70)
         print("💡 Los componentes están ejecutándose en segundo plano")
         print("🔄 Selecciona tu opción y presiona ENTER")
         print("-" * 70)
-        
         try:
-            choice = input("\n👉 [SELECCIÓN] Tu opción (1-3, q): ").strip().lower()
+            choice = input("\n👉 [SELECCIÓN] Tu opción (1-2, q): ").strip().lower()
             print(f"\n✅ Procesando opción: '{choice}'...")
-            
             if choice == "1":
-                print("🖥️ Iniciando Dashboard Terminal...")
+                print("🎯 Iniciando Silver Bullet Enterprise Dashboard...")
                 self._handle_dashboard_option()
-                print("\n🏁 [SISTEMA] Dashboard finalizado - cerrando sistema...")
+                print("\n🏁 [SISTEMA] Silver Bullet Dashboard finalizado - cerrando sistema...")
             elif choice == "2":
-                print("🔫 Iniciando Silver Bullet Trading...")
-                self._handle_silver_bullet_option()
-                print("\n🏁 [SISTEMA] Silver Bullet finalizado - cerrando sistema...")
-            elif choice == "3":
                 print("📊 Iniciando Sistema de Monitoreo...")
                 self._handle_monitoring_option()
                 print("\n🏁 [SISTEMA] Monitoreo finalizado - cerrando sistema...")
@@ -2042,30 +2031,47 @@ if __name__ == "__main__":
                 print("🛑 Iniciando cierre del sistema...")
             else:
                 print(f"❌ Opción '{choice}' no válida - cerrando sistema...")
-                
         except (KeyboardInterrupt, EOFError):
             print("\n\n🛑 [INTERRUPCIÓN] Usuario canceló operación - cerrando sistema...")
         except Exception as e:
             print(f"\n❌ [ERROR] Error inesperado: {e} - cerrando sistema...")
-    
+
     def _handle_dashboard_option(self):
-        """Manejar opción de dashboard"""
-        if not self.real_components_loaded:
-            print("[INFO] Inicializando componentes reales...")
-            self.initialize_real_components()
-        
-        print("🖥️ [DASHBOARD] Cargando dashboard convencional...")
-        print("[INFO] 📊 Componentes reales listos")
-        
-        time.sleep(1)
-        self.run_dashboard_with_real_data()
-        print("[INFO] 🏁 Dashboard completado exitosamente")
-    
-    def _handle_silver_bullet_option(self):
-        """Manejar opción de Silver Bullet trading"""
-        print("🔫 [SILVER BULLET] Cargando sistema de auto trading...")
-        self.run_silver_bullet_trading()
-        print("[INFO] 🏁 Silver Bullet completado exitosamente")
+        """Lanzar Silver Bullet Dashboard directamente"""
+        self._run_silver_bullet_dashboard()
+
+    def _run_silver_bullet_dashboard(self):
+        """Ejecuta silver_bullet_dashboard.py en ventana separada"""
+        dashboard_script = (DASHBOARD_PATH / "patterns_analysis" / "individual_patterns" / "silver_bullet_dashboard.py")
+        if not dashboard_script.exists():
+            print(f"[X] No se encontró Silver Bullet Dashboard: {dashboard_script}")
+            return
+        env = os.environ.copy()
+        env['PYTHONPATH'] = os.pathsep.join([
+            str(SYSTEM_ROOT),
+            str(CORE_PATH),
+            str(DASHBOARD_PATH)
+        ])
+        env['ICT_DASHBOARD_MODE'] = 'subprocess'
+        env['ICT_REAL_MODE'] = '1'
+        env['ICT_ENTERPRISE_MODE'] = '1'
+        env['PYTHONUTF8'] = '1'
+        print("[SUBPROCESS] 🚀 Iniciando Silver Bullet Dashboard en proceso separado...")
+        try:
+            process = subprocess.Popen(
+                [sys.executable, str(dashboard_script)],
+                cwd=str(dashboard_script.parent),
+                env=env,
+                text=True,
+                bufsize=1,
+                universal_newlines=True,
+                creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == 'nt' else 0
+            )
+            print(f"[SUBPROCESS] 📊 Silver Bullet Dashboard iniciado con PID: {process.pid}")
+            process.wait()
+            print("[SUBPROCESS] ✅ Silver Bullet Dashboard cerrado")
+        except Exception as e:
+            print(f"[X] Error ejecutando Silver Bullet Dashboard: {e}")
     
     def _handle_monitoring_option(self):
         """Manejar opción de monitoreo"""

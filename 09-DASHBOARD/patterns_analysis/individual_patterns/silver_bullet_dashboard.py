@@ -1,3 +1,25 @@
+
+# ========== PUNTO DE ENTRADA PRINCIPAL ========== #
+import time
+
+def run_analysis_loop(dashboard, symbol: str = "EURUSD", timeframe: str = "M15", interval: int = 10):
+    """Loop de análisis continuo para mantener el dashboard activo y actualizado."""
+    print("\n=== SILVER BULLET DASHBOARD (LIVE) ===\n")
+    print("Presiona Ctrl+C para salir.\n")
+    try:
+        while True:
+            result = dashboard.analyze_pattern(symbol, timeframe, force_refresh=True)
+            layout = dashboard.create_dashboard_layout(result)
+            print("\033c", end="")  # Limpiar pantalla (ANSI)
+            print(layout)
+            print(f"\n[Actualizando en {interval} segundos...]")
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        print("\n[EXIT] Dashboard cerrado por el usuario.")
+
+if __name__ == "__main__":
+    dashboard = SilverBulletDashboard()
+    run_analysis_loop(dashboard)
 #!/usr/bin/env python3
 """
 🎯 PATTERN TEMPLATE - CONEXIÓN DIRECTA CON SISTEMA REAL
