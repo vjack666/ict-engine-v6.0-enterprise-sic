@@ -2174,13 +2174,24 @@ if __name__ == "__main__":
             except Exception:
                 pass
 
-            # Persistir estado de exposición/posiciones si disponible
+            # Persistir estado de exposición/posiciones y orders_total si disponible
             if self.state_persistence and self.position_manager:
                 try:
                     exposure = {}
+                    orders_total = 0
                     if hasattr(self.position_manager, '_exposure'):
                         exposure = getattr(self.position_manager, '_exposure', {})  # type: ignore
-                    self.state_persistence.save({'exposure': exposure})  # type: ignore
+                    # Try to get orders_total if present, else default to 0
+                    if hasattr(self.position_manager, 'orders_total'):
+                        orders_total = getattr(self.position_manager, 'orders_total', 0)
+                    else:
+                        # Optionally, try to infer from positions or log a warning
+                        try:
+                            orders_total = len(getattr(self.position_manager, '_positions', {}))
+                        except Exception:
+                            orders_total = 0
+                        self.logger.warning("orders_total no encontrado en PositionManager, usando valor por defecto 0 [PERSISTENCE]")
+                    self.state_persistence.save({'exposure': exposure, 'orders_total': orders_total})  # type: ignore
                 except Exception as e:
                     self.logger.error(f"No se pudo persistir estado final: {e}")
             

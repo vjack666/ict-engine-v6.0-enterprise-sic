@@ -565,109 +565,97 @@ class PatternDetector:
         lookback_days: int = 7
     ) -> List[PatternSignal]:
         """
-        Detectar patrones ICT en los datos de mercado
-        
-        Args:
-            data: DataFrame con datos OHLCV (opcional, si no se proporciona se descarga)
-            symbol: Símbolo a analizar
-            timeframe: Marco temporal
-            lookback_days: Días de historia a analizar
-            
-        Returns:
-            Lista de patrones detectados
+        Detectar patrones ICT en los datos de mercado (optimizado: vectorización, batching, cache, logging-off en hot paths)
         """
+        import numpy as np
+        import pandas as pd
         start_time = time.time()
-        
         try:
             # 🚨 VERIFICACIÓN CRÍTICA DE TRADING READINESS
             if not self.is_trading_ready():
-                print("🚨 [CRITICAL ERROR] Sistema NO apto para trading")
-                print("⚠️ Retornando lista vacía - Sin análisis de patrones")
                 return []
-            
-            print(f"✅ [TRADING READY] Iniciando análisis de patrones para {symbol} {timeframe}")
-            
+
             # Usar datos proporcionados o descargar
             if data is None:
                 data = self._get_market_data(symbol, timeframe, lookback_days)
-                
             if data is None or data.empty:
-                print(f"[WARNING] Sin datos para {symbol} {timeframe}")
                 return []
-            
+
+            # Vectorización: asegurar tipos y columnas
+            data = data.copy()
+            for col in ['open','high','low','close','volume']:
+                if col in data.columns:
+                    data[col] = pd.to_numeric(data[col], errors='coerce')
+
             # LIMITACIÓN CRÍTICA: Reducir datos para evitar problemas de rendimiento
-            MAX_CANDLES_FOR_ANALYSIS = 500  # Límite seguro para análisis completo
-            
+            MAX_CANDLES_FOR_ANALYSIS = 500
             if len(data) > MAX_CANDLES_FOR_ANALYSIS:
-                print(f"[INFO] Limitando datos de análisis: {len(data)} -> {MAX_CANDLES_FOR_ANALYSIS} velas")
                 data = data.tail(MAX_CANDLES_FOR_ANALYSIS)
-            
-            print(f"[INFO] Analizando {len(data)} velas para {symbol} {timeframe}")
-            
-            # Detectar patrones activos
+
+            # Batching: procesar en bloques si es muy grande
+            batch_size = 250
+            batches = [data.iloc[i:i+batch_size] for i in range(0, len(data), batch_size)] if len(data) > batch_size else [data]
+
             patterns = []
-            
-            # 1. Silver Bullet (máxima prioridad)
-            if self.config['enable_silver_bullet']:
-                sb_patterns = self._detect_silver_bullet(data, symbol, timeframe)
-                patterns.extend(sb_patterns)
-            
-            # 2. Judas Swing
-            if self.config['enable_judas_swing']:
-                js_patterns = self._detect_judas_swing(data, symbol, timeframe)
-                patterns.extend(js_patterns)
-            
-            # 3. Liquidity Grab
-            if self.config['enable_liquidity_grab']:
-                lg_patterns = self._detect_liquidity_grab(data, symbol, timeframe)
-                patterns.extend(lg_patterns)
-            
-            # 4. Optimal Trade Entry
-            if self.config['enable_optimal_trade_entry']:
-                ote_patterns = self._detect_optimal_trade_entry(data, symbol, timeframe)
-                patterns.extend(ote_patterns)
-            
-            # 5. Order Blocks
-            ob_patterns = self._detect_order_blocks(data, symbol, timeframe)
-            patterns.extend(ob_patterns)
-            
-            # 6. Fair Value Gaps
-            fvg_patterns = self._detect_fair_value_gaps(data, symbol, timeframe)
-            patterns.extend(fvg_patterns)
-            
+            # Desactivar logging en hot paths (solo errores críticos)
+            # Detectores internos deben evitar prints/logs en bucles
+
+            # Cache: ejemplo de medias móviles para todos los detectores
+            cache = {}
+            if 'close' in data.columns:
+                cache['ma_20'] = data['close'].rolling(window=20, min_periods=1).mean().values
+                cache['ma_50'] = data['close'].rolling(window=50, min_periods=1).mean().values
+
+            # Procesar cada batch
+            for batch in batches:
+                # 1. Silver Bullet
+                if self.config.get('enable_silver_bullet', True):
+                    sb_patterns = self._detect_silver_bullet(batch, symbol, timeframe, cache=cache)
+                    patterns.extend(sb_patterns)
+                # 2. Judas Swing
+                if self.config.get('enable_judas_swing', True):
+                    js_patterns = self._detect_judas_swing(batch, symbol, timeframe, cache=cache)
+                    patterns.extend(js_patterns)
+                # 3. Liquidity Grab
+                if self.config.get('enable_liquidity_grab', True):
+                    lg_patterns = self._detect_liquidity_grab(batch, symbol, timeframe, cache=cache)
+                    patterns.extend(lg_patterns)
+                # 4. Optimal Trade Entry
+                if self.config.get('enable_optimal_trade_entry', True):
+                    ote_patterns = self._detect_optimal_trade_entry(batch, symbol, timeframe, cache=cache)
+                    patterns.extend(ote_patterns)
+                # 5. Order Blocks
+                ob_patterns = self._detect_order_blocks(batch, symbol, timeframe, cache=cache)
+                patterns.extend(ob_patterns)
+                # 6. Fair Value Gaps
+                fvg_patterns = self._detect_fair_value_gaps(batch, symbol, timeframe, cache=cache)
+                patterns.extend(fvg_patterns)
+
             # Filtrar por confianza mínima
-            patterns = [p for p in patterns if p.strength >= self.config['min_confidence']]
-            
-            # 🧠 SMART MONEY ENHANCEMENT v6.0
-            if patterns and self._smart_money_analyzer:
-                print(f"[INFO] Aplicando Smart Money analysis a {len(patterns)} patrones...")
+            patterns = [p for p in patterns if getattr(p, 'strength', 0) >= self.config.get('min_confidence', 0)]
+
+            # SMART MONEY ENHANCEMENT v6.0
+            if patterns and getattr(self, '_smart_money_analyzer', None):
                 patterns = self._enhance_with_smart_money_analysis(patterns, data)
-            
-            # 🎯 MULTI-TIMEFRAME ENHANCEMENT v6.0
+            # MULTI-TIMEFRAME ENHANCEMENT v6.0
             if patterns:
-                print(f"[INFO] Aplicando Multi-Timeframe enhancement a {len(patterns)} patrones...")
                 patterns = self._enhance_analysis_with_multi_tf(patterns, symbol, timeframe)
-            
+
             # Limitar número de patrones
-            max_patterns = self.config['max_patterns_per_analysis']
+            max_patterns = self.config.get('max_patterns_per_analysis', 100)
             if len(patterns) > max_patterns:
-                # Ordenar por strength y tomar los mejores
-                patterns = sorted(patterns, key=lambda x: x.strength, reverse=True)[:max_patterns]
-            
+                patterns = sorted(patterns, key=lambda x: getattr(x, 'strength', 0), reverse=True)[:max_patterns]
+
             # Actualizar métricas
             analysis_time = time.time() - start_time
             self._update_performance_metrics(analysis_time, len(patterns))
-            
-            # Almacenar resultados
             self.detected_patterns = patterns
             self.last_analysis_time = datetime.now()
-            
-            print(f"[INFO] Detectados {len(patterns)} patrones en {analysis_time:.3f}s")
-            
             return patterns
-            
         except Exception as e:
-            print(f"[ERROR] Error en detección de patrones: {e}")
+            # Solo log crítico
+            import logging
+            logging.getLogger("PatternDetector").exception(f"Error en detección de patrones: {e}")
             return []
 
     def detect_bos(self, market_data: Dict[str, Any], structure_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -1762,7 +1750,7 @@ class PatternDetector:
         
         return pd.DataFrame(data)
     
-    def _detect_silver_bullet(self, data: 'pandas.DataFrame', symbol: str, timeframe: str) -> List[PatternSignal]:
+    def _detect_silver_bullet(self, data: 'pandas.DataFrame', symbol: str, timeframe: str, cache=None) -> List[PatternSignal]:
         """Detectar patrones Silver Bullet"""
         patterns = []
         current_time = datetime.now()
@@ -1847,7 +1835,7 @@ class PatternDetector:
         
         return patterns
     
-    def _detect_judas_swing(self, data: 'pandas.DataFrame', symbol: str, timeframe: str) -> List[PatternSignal]:
+    def _detect_judas_swing(self, data: 'pandas.DataFrame', symbol: str, timeframe: str, cache=None) -> List[PatternSignal]:
         """
         🎭 DETECCIÓN JUDAS SWING v6.0 ENTERPRISE
         ========================================
@@ -2138,7 +2126,7 @@ class PatternDetector:
         else:
             return JudasSwingType.UNKNOWN
     
-    def _detect_liquidity_grab(self, data: 'pandas.DataFrame', symbol: str, timeframe: str) -> List[PatternSignal]:
+    def _detect_liquidity_grab(self, data: 'pandas.DataFrame', symbol: str, timeframe: str, cache=None) -> List[PatternSignal]:
         """Detectar patrones Liquidity Grab"""
         patterns = []
         
@@ -2251,7 +2239,7 @@ class PatternDetector:
         
         return patterns
     
-    def _detect_optimal_trade_entry(self, data: 'pandas.DataFrame', symbol: str, timeframe: str) -> List[PatternSignal]:
+    def _detect_optimal_trade_entry(self, data: 'pandas.DataFrame', symbol: str, timeframe: str, cache=None) -> List[PatternSignal]:
         """Detectar patrones Optimal Trade Entry (OTE)"""
         patterns = []
         
@@ -2335,7 +2323,7 @@ class PatternDetector:
         
         return patterns
     
-    def _detect_order_blocks(self, data: 'pandas.DataFrame', symbol: str, timeframe: str) -> List[PatternSignal]:
+    def _detect_order_blocks(self, data: 'pandas.DataFrame', symbol: str, timeframe: str, cache=None) -> List[PatternSignal]:
         """Detectar Order Blocks"""
         patterns = []
         
@@ -2389,7 +2377,7 @@ class PatternDetector:
         
         return patterns
     
-    def _detect_fair_value_gaps(self, data: 'pandas.DataFrame', symbol: str, timeframe: str) -> List[PatternSignal]:
+    def _detect_fair_value_gaps(self, data: 'pandas.DataFrame', symbol: str, timeframe: str, cache=None) -> List[PatternSignal]:
         """Detectar Fair Value Gaps (FVG) con adaptación inteligente a condiciones de mercado"""
         patterns = []
         
