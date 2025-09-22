@@ -183,31 +183,43 @@ class FairValueGapDetector:
         
         # 🚀 LOW-MEM MODE: Detect environment signal
         self.low_mem_mode = bool(config and config.get('low_mem', False)) or bool(os.environ.get('ICT_LOW_MEM'))
-        if self.low_mem_mode:
-            self.logger.info("🧠 FVG Detector: Low-memory mode enabled")
         
-        # Black box logging
-        self.black_box = get_black_box_logger() if BLACK_BOX_AVAILABLE else None
+        # 🧪 Test optimization modes from validation tests
+        self.quick_test_mode = bool(os.environ.get('ICT_QUICK_TEST_MODE', '0') == '1')
+        self.disable_heavy_init = bool(os.environ.get('ICT_DISABLE_HEAVY_INIT', '0') == '1')
         
-        # Health monitor integration
-        self.health_monitor = get_health_monitor() if HEALTH_MONITOR_AVAILABLE else None
+        if self.low_mem_mode or self.quick_test_mode:
+            self.logger.info("🧠 FVG Detector: Optimized mode enabled (low-mem or quick-test)")
         
-        # Memory system integration (disable in low-mem mode)
-        if not self.low_mem_mode:
+        # Black box logging (skip in test mode)
+        self.black_box = get_black_box_logger() if BLACK_BOX_AVAILABLE and not self.quick_test_mode else None
+        
+        # Health monitor integration (skip in test mode)
+        self.health_monitor = get_health_monitor() if HEALTH_MONITOR_AVAILABLE and not self.disable_heavy_init else None
+        
+        # Memory system integration (disable in low-mem or test mode)
+        if not (self.low_mem_mode or self.disable_heavy_init):
             self.memory_system = get_unified_memory_system() if MEMORY_SYSTEM_AVAILABLE else None
         else:
             self.memory_system = None
-            self.logger.info("🧠 FVG: Memory system disabled for low-mem mode")
+            if self.low_mem_mode or self.disable_heavy_init:
+                self.logger.info("🧠 FVG: Memory system disabled for optimized mode")
         
-        # Performance tracking
+        # Performance tracking (simplified in test mode)
         self.lock = threading.Lock()
         self.detection_count = 0
         self.total_processing_time = 0.0
         
-        # Multi-symbol tracking (reduced in low-mem mode)
-        max_symbols = 5 if self.low_mem_mode else 20
+        # Multi-symbol tracking (reduced in low-mem or test mode)
+        if self.quick_test_mode:
+            max_symbols = 2  # Minimal para tests rápidos
+        elif self.low_mem_mode:
+            max_symbols = 5  # Reducido para low-mem
+        else:
+            max_symbols = 20  # Completo para producción
+            
         self.symbol_sessions = {}  # Track per-symbol detection sessions
-        self.symbol_stats = {}     # Per-symbol statistics
+        self.symbol_stats = {} if not self.quick_test_mode else None  # Skip stats en test rápido
         
         # Legacy configuration migrated (optimized for low-mem)
         self.config = {

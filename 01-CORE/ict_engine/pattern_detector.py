@@ -149,14 +149,19 @@ class ICTPatternDetector:
         # 🚀 Use centralized CHoCH configuration
         detector_type = 'DEFAULT'  # Can be overridden by subclasses
         low_memory_mode = bool(os.environ.get('ICT_LOW_MEM', '0') == '1')
-        self.choch_config = get_choch_config(detector_type, low_memory_mode) if _choch_memory_available else {
-            'enabled': False,
-            'min_historical_periods': 20,
-            'confidence_boost_factor': 0.15
+        
+        # 🧪 Test optimization modes from validation tests
+        quick_test_mode = bool(os.environ.get('ICT_QUICK_TEST_MODE', '0') == '1')
+        disable_heavy_init = bool(os.environ.get('ICT_DISABLE_HEAVY_INIT', '0') == '1')
+        
+        self.choch_config = get_choch_config(detector_type, low_memory_mode) if _choch_memory_available and not disable_heavy_init else {
+            'enabled': False if disable_heavy_init else True,
+            'min_historical_periods': 5 if quick_test_mode else 20,
+            'confidence_boost_factor': 0.10 if quick_test_mode else 0.15
         }
         
-        # Inicializar CHoCH Memory si está habilitado
-        if self.choch_config.get('enabled', True) and _choch_memory_available:
+        # Inicializar CHoCH Memory si está habilitado (skip en modo test rápido)
+        if self.choch_config.get('enabled', True) and _choch_memory_available and not disable_heavy_init:
             try:
                 # singleton seguro
                 self.choch_memory = get_choch_historical_memory()
@@ -166,38 +171,43 @@ class ICTPatternDetector:
                 logger = get_unified_logger("PatternDetector")
                 logger.warning(f"No se pudo inicializar CHoCH Memory: {e}", "CHOCH")
                 self.choch_memory = None
+        else:
+            self.choch_memory = None
 
         # Placeholder control for tests only (default False for prod)
         self.allow_fvg_placeholder_for_tests = bool(self.config.get('allow_fvg_placeholder_for_tests', False))
 
-        # Optional: integrate persistent FVG memory
-        self.enable_fvg_memory_persistence = bool(self.config.get('enable_fvg_memory_persistence', False))
+        # Optional: integrate persistent FVG memory (skip en test mode)
+        self.enable_fvg_memory_persistence = bool(self.config.get('enable_fvg_memory_persistence', False)) and not quick_test_mode
         self._fvg_memory_manager = None
-        if self.enable_fvg_memory_persistence:
+        if self.enable_fvg_memory_persistence and not disable_heavy_init:
             try:
                 from analysis.fvg_memory_manager import FVGMemoryManager  # type: ignore
                 self._fvg_memory_manager = FVGMemoryManager()
             except Exception as e:
-                log_trading_decision_smart_v6("FVG_MEMORY_INIT_ERROR", {"error": str(e)})
+                if not quick_test_mode:  # Solo loguear si no es test rápido
+                    log_trading_decision_smart_v6("FVG_MEMORY_INIT_ERROR", {"error": str(e)})
 
-        # 📝 INICIALIZAR LOGGER ICT_SIGNALS para guardar copias de patrones
+        # 📝 INICIALIZAR LOGGER ICT_SIGNALS para guardar copias de patrones (skip en test mode)
         self.ict_signals_logger = None
         self.use_signals_logging = False
         
-        if SmartTradingLogger is not None:
+        if SmartTradingLogger is not None and not quick_test_mode:
             try:
                 self.ict_signals_logger = SmartTradingLogger("ICT_SIGNALS")
                 self.use_signals_logging = True
-                log_trading_decision_smart_v6("ICT_SIGNALS_LOGGER_INITIALIZED", {
-                    "component": "ICTPatternDetector",
-                    "logger": "ICT_SIGNALS",
-                    "auto_cleanup": "30_days",
-                    "status": "ready"
-                })
+                if not disable_heavy_init:  # Solo loguear init si no está deshabilitado
+                    log_trading_decision_smart_v6("ICT_SIGNALS_LOGGER_INITIALIZED", {
+                        "component": "ICTPatternDetector",
+                        "logger": "ICT_SIGNALS",
+                        "auto_cleanup": "30_days",
+                        "status": "ready"
+                    })
             except Exception as e:
-                logger = get_unified_logger("PatternDetector")
-                logger.error(f"Error inicializando ICT_SIGNALS logger: {e}", "INIT")
-                if _bb: _bb.error("Error inicializando ICT_SIGNALS logger", {"error": str(e)})
+                if not disable_heavy_init:  # Solo loguear errores si no está en modo test
+                    logger = get_unified_logger("PatternDetector")
+                    logger.error(f"Error inicializando ICT_SIGNALS logger: {e}", "INIT")
+                    if _bb: _bb.error("Error inicializando ICT_SIGNALS logger", {"error": str(e)})
                 self.use_signals_logging = False
         else:
             logger = get_unified_logger("PatternDetector")

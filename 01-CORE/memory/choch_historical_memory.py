@@ -54,11 +54,20 @@ class CHoCHHistoricalMemory:
         
         # 🧠 LOW-MEM MODE: Reduce memory footprint when ICT_LOW_MEM is set
         self.low_mem_mode = bool(os.environ.get('ICT_LOW_MEM'))
-        if self.low_mem_mode:
-            # Reduce max records and retention for memory optimization
-            self.max_records = min(max_records, 200)
-            self.retention_days = min(retention_days, 30)
-            print(f"[INFO] 🧠 CHoCH Memory: Low-mem mode - {self.max_records} max records, {self.retention_days} day retention")
+        
+        # 🧪 Test optimization modes from validation tests
+        self.quick_test_mode = bool(os.environ.get('ICT_QUICK_TEST_MODE', '0') == '1')
+        self.disable_heavy_init = bool(os.environ.get('ICT_DISABLE_HEAVY_INIT', '0') == '1')
+        
+        if self.low_mem_mode or self.quick_test_mode:
+            # Reduce max records and retention for memory/speed optimization
+            if self.quick_test_mode:
+                self.max_records = min(max_records, 50)  # Mínimo para tests rápidos
+                self.retention_days = min(retention_days, 7)  # Una semana para tests
+            else:
+                self.max_records = min(max_records, 200)  # Low-mem standard
+                self.retention_days = min(retention_days, 30)  # Un mes para low-mem
+            print(f"[INFO] 🧠 CHoCH Memory: Optimized mode - {self.max_records} max records, {self.retention_days} day retention")
         else:
             self.max_records = max_records
             
@@ -69,10 +78,18 @@ class CHoCHHistoricalMemory:
                 'retention_days': self.retention_days,
                 'max_records': self.max_records,
                 'low_mem_mode': self.low_mem_mode,
+                'quick_test_mode': self.quick_test_mode,
+                'disable_heavy_init': self.disable_heavy_init,
             },
             'records': []  # List[CHoCHEvent dicts]
         }
-        self._load()
+        
+        # Skip loading/saving in quick test mode for speed
+        if not self.quick_test_mode:
+            self._load()
+        else:
+            # En test rápido, solo crear directorios si no existen
+            self.storage_path.parent.mkdir(parents=True, exist_ok=True)
 
     # ---------- Core persistence ----------
     def _load(self) -> None:
@@ -85,16 +102,22 @@ class CHoCHHistoricalMemory:
             self.storage_path.parent.mkdir(parents=True, exist_ok=True)
 
     def _save(self) -> None:
+        # Skip saving in quick test mode for speed
+        if self.quick_test_mode:
+            return
+            
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         with open(self.storage_path, 'w', encoding='utf-8') as f:
             json.dump(self._db, f, indent=2)
-        # best-effort backup
-        try:
-            self.backup_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.backup_path, 'w', encoding='utf-8') as b:
-                json.dump(self._db, b, indent=2)
-        except Exception:
-            pass
+        
+        # best-effort backup (skip in test modes)
+        if not (self.disable_heavy_init or self.low_mem_mode):
+            try:
+                self.backup_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(self.backup_path, 'w', encoding='utf-8') as b:
+                    json.dump(self._db, b, indent=2)
+            except Exception:
+                pass
 
     # ---------- Helpers ----------
     def _now(self) -> datetime:
