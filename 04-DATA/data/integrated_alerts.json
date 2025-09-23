@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-09-22T18:09:06.063089",
+  "timestamp": "2025-09-23T08:48:25.684506",
   "active_alerts": [
     {
       "id": "system_1facfe9d",
@@ -381,7 +381,7 @@
       ],
       "acknowledged": false,
       "resolved": false,
-      "escalated": false,
+      "escalated": true,
       "channels": [],
       "notified_at": null,
       "correlation_id": null,
@@ -407,7 +407,7 @@
       ],
       "acknowledged": false,
       "resolved": false,
-      "escalated": false,
+      "escalated": true,
       "channels": [],
       "notified_at": null,
       "correlation_id": null,
@@ -433,7 +433,7 @@
       ],
       "acknowledged": false,
       "resolved": false,
-      "escalated": false,
+      "escalated": true,
       "channels": [],
       "notified_at": null,
       "correlation_id": null,
@@ -459,7 +459,7 @@
       ],
       "acknowledged": false,
       "resolved": false,
-      "escalated": false,
+      "escalated": true,
       "channels": [],
       "notified_at": null,
       "correlation_id": null,
@@ -470,32 +470,5 @@
       "auto_resolved": false
     }
   ],
-  "recent_history": [
-    {
-      "id": "system_6e5b6bea",
-      "timestamp": "2025-09-22T18:07:42.664379",
-      "level": "warning",
-      "source": "system_monitor",
-      "category": "system_resources",
-      "title": "System Alert: Memory",
-      "message": "Uso de memoria elevado: 83.7%",
-      "component": "Memory",
-      "metadata": {},
-      "tags": [
-        "system_monitor",
-        "memory"
-      ],
-      "acknowledged": false,
-      "resolved": false,
-      "escalated": false,
-      "channels": [],
-      "notified_at": null,
-      "correlation_id": null,
-      "parent_alert_id": null,
-      "related_alerts": [],
-      "resolved_at": null,
-      "resolution_message": null,
-      "auto_resolved": false
-    }
-  ]
+  "recent_history": []
 }
