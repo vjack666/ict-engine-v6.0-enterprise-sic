@@ -374,17 +374,17 @@ class MarketStructureAnalyzer:
         self._enable_cache = self._config.get('enable_cache', True)
         
         # Configuración de detección ICT
-        self.min_confidence = self._config.get('min_confidence', 70.0)
+        self.min_confidence = self._config.get('min_confidence', 55.0)  # Más bajo para mayor sensibilidad
         self.structure_lookback = self._config.get('structure_lookback', 50)
         self.swing_window = self._config.get('swing_window', 5)
-        self.fvg_min_gap = self._config.get('fvg_min_gap', 0.0005)  # 5 pips
+        self.fvg_min_gap = self._config.get('fvg_min_gap', 0.0003)  # Detectar más FVGs
         self.ob_reaction_threshold = self._config.get('ob_reaction_threshold', 0.001)
-        
-        # Pesos de scoring ICT
-        self.structure_weight = self._config.get('structure_weight', 0.40)
-        self.momentum_weight = self._config.get('momentum_weight', 0.25)
-        self.volume_weight = self._config.get('volume_weight', 0.20)
-        self.confluence_weight = self._config.get('confluence_weight', 0.15)
+
+        # Pesos de scoring ICT (más peso a estructura)
+        self.structure_weight = self._config.get('structure_weight', 0.60)
+        self.momentum_weight = self._config.get('momentum_weight', 0.15)
+        self.volume_weight = self._config.get('volume_weight', 0.15)
+        self.confluence_weight = self._config.get('confluence_weight', 0.10)
         
         # Estado interno
         self.detected_fvgs: List[FairValueGap] = []

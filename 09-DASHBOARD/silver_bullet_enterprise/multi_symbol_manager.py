@@ -114,6 +114,61 @@ class MultiSymbolManager:
     
     def analyze_all_symbols(self) -> Dict[str, Any]:
         """
+        📊 Realizar análisis simultáneo de todos los símbolos manteniendo la conexión MT5 abierta
+        """
+        if not MT5_AVAILABLE:
+            return {"error": "Componentes MT5 no disponibles"}
+
+        # Conectar a MT5 antes de analizar todos los símbolos
+        mt5_connected = False
+        if self.mt5_manager:
+            try:
+                mt5_connected = self.mt5_manager.connect()
+            except Exception as e:
+                print(f"❌ Error conectando a MT5 antes del análisis multi-símbolo: {e}")
+        if not mt5_connected:
+            print("❌ No se pudo conectar a MT5 para análisis multi-símbolo")
+            return {"error": "No se pudo conectar a MT5"}
+
+        start_time = time.time()
+        results = {}
+
+        print(f"🔍 Iniciando análisis multi-símbolo para {len(self.all_symbols)} pares...")
+
+        for symbol in self.all_symbols:
+            try:
+                # Análisis por símbolo con timeframes múltiples
+                symbol_analysis = self._analyze_single_symbol(symbol)
+                results[symbol] = symbol_analysis
+
+                # Actualizar timestamp
+                self.last_update[symbol] = datetime.now()
+
+            except Exception as e:
+                print(f"⚠️ Error analizando {symbol}: {e}")
+                results[symbol] = {"error": str(e)}
+
+        # Desconectar MT5 al finalizar el análisis
+        if self.mt5_manager:
+            try:
+                self.mt5_manager.disconnect()
+            except Exception as e:
+                print(f"⚠️ Error desconectando MT5 tras análisis multi-símbolo: {e}")
+
+        # Estadísticas del análisis
+        analysis_time = time.time() - start_time
+        results["_metadata"] = {
+            "analysis_time": analysis_time,
+            "symbols_analyzed": len([s for s in results if "error" not in results[s]]),
+            "timestamp": datetime.now(),
+            "active_session": self.get_current_session()
+        }
+
+        self.active_analyses = results
+        print(f"✅ Análisis multi-símbolo completado en {analysis_time:.2f}s")
+
+        return results
+        """
         📊 Realizar análisis simultáneo de todos los símbolos
         
         Returns:
