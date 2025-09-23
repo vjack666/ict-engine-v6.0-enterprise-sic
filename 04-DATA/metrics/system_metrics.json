@@ -1,11 +1,11 @@
 {
-  "timestamp": "2025-09-22T17:55:26.517813",
-  "cpu_percent": 28.1,
-  "memory_percent": 83.0,
-  "memory_available_gb": 2.6554641723632812,
+  "timestamp": "2025-09-22T18:09:03.873819",
+  "cpu_percent": 7.7,
+  "memory_percent": 87.5,
+  "memory_available_gb": 1.9515495300292969,
   "disk_usage_percent": 39.2,
-  "network_connections": 139,
-  "process_count": 326,
-  "uptime_seconds": 31.984957,
+  "network_connections": 134,
+  "process_count": 337,
+  "uptime_seconds": 82.429138,
   "health_status": "good"
 }

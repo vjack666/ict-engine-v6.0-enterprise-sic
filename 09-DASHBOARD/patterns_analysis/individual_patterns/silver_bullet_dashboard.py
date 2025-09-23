@@ -1,29 +1,5 @@
 # ========== PUNTO DE ENTRADA ROBUSTO ========== #
-if __name__ == "__main__":
-    import time
-    from datetime import datetime
-    try:
-        print("🎯 Iniciando Silver Bullet Enterprise Dashboard...")
-        dashboard = SilverBulletDashboard()
-        print("✅ Dashboard inicializado")
-        print("📊 Ejecutando análisis...")
-        while True:
-            try:
-                result = dashboard.analyze_pattern("EURUSD", "M15", force_refresh=True)
-                layout = dashboard.create_dashboard_layout(result)
-                print("\033c", end="")  # Limpiar pantalla (ANSI)
-                print(layout)
-                print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Análisis completado. Próxima actualización en 30s. (Ctrl+C para salir)")
-                time.sleep(30)
-            except KeyboardInterrupt:
-                print("\n🛑 Dashboard cerrado por usuario")
-                break
-            except Exception as e:
-                print(f"⚠️ Error en análisis: {e}")
-                time.sleep(5)
-    except Exception as e:
-        print(f"❌ Error iniciando dashboard: {e}")
-        input("Presiona ENTER para salir...")
+# (Este bloque se mueve al final del archivo para asegurar que SilverBulletDashboard esté definido)
 
 # ========== PUNTO DE ENTRADA PRINCIPAL ========== #
 import time
@@ -64,6 +40,8 @@ Auto-generado por PatternFactory
 import sys
 from pathlib import Path
 from typing import Dict, Any, List, Optional
+
+from analysis.premium_discount.premium_discount_analyzer import PremiumDiscountAnalyzer
 from datetime import datetime
 
 # Configurar rutas para acceso a módulos reales del core
@@ -83,18 +61,18 @@ class SilverBulletDashboard(BasePatternDashboard):
     PRINCIPIO: NUNCA datos hardcodeados - SIEMPRE sistema real
     """
     
+
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         super().__init__("silver_bullet", config)
-        
         # Variables para conexión con sistema real
         self.real_pattern_detector = None
         self.real_data_manager = None
         self.real_config = None
         self.advanced_pattern_module = None
-        
+        # Instanciar el analizador premium/discount centralizado
+        self.premium_discount_analyzer = PremiumDiscountAnalyzer()
         # Configurar rutas del proyecto
         self.project_root = project_root
-        
         # Conectar con sistema real
         self._connect_to_real_system()
         
@@ -168,10 +146,9 @@ class SilverBulletDashboard(BasePatternDashboard):
             print(f"⚠️ {self.pattern_name}: Error cargando configuración real: {e}")
             self.real_config = {}
     
+
     def _perform_pattern_analysis(self, symbol: str, timeframe: str) -> PatternAnalysisResult:
-        """Análisis REAL del patrón usando sistema ICT Engine"""
-        
-        # Crear resultado base
+        """Análisis REAL del patrón usando sistema ICT Engine y filtro premium/discount"""
         result = PatternAnalysisResult(
             pattern_name=self.pattern_name,
             symbol=symbol,
@@ -185,57 +162,62 @@ class SilverBulletDashboard(BasePatternDashboard):
             take_profit_1=0.0,
             analysis_id=f"{self.pattern_name}_{symbol}_{timeframe}_{int(datetime.now().timestamp())}"
         )
-        
         try:
             # 1. Obtener datos reales del mercado
             market_data = self._get_real_market_data(symbol, timeframe)
             if not market_data:
                 result.narrative = "Datos de mercado no disponibles en el sistema real"
                 return result
-            
-            # 2. Usar detector real del patrón
+
+            # 2. Calcular estado premium/discount usando el módulo centralizado
+            last_candle = market_data[-1] if isinstance(market_data, list) and market_data else market_data
+            if isinstance(last_candle, dict):
+                pd_state = self.premium_discount_analyzer.analyze_market_state(last_candle)
+            else:
+                pd_state = {'state': 'unknown', 'reason': 'invalid_candle'}
+            result.raw_data = {}
+            result.raw_data['premium_discount_state'] = pd_state
+            result.narrative = f"Market state: {pd_state.get('state','unknown').upper()} | Equilibrium: {pd_state.get('equilibrium','?'):.5f}"
+
+            # 3. Usar detector real del patrón
             pattern_signals = self._detect_with_real_system(market_data, symbol, timeframe)
-            
-            if pattern_signals:
-                # Procesar señal real (NO inventar datos)
-                best_signal = max(pattern_signals, key=lambda x: x.get('confidence', 0))
-                
+
+            # 4. Filtrar setups según premium/discount (solo setups long en discount, short en premium)
+            valid_signals = []
+            for sig in pattern_signals:
+                direction = str(sig.get('direction','NEUTRAL')).upper()
+                if direction == 'LONG' and pd_state.get('state') == 'discount':
+                    valid_signals.append(sig)
+                elif direction == 'SHORT' and pd_state.get('state') == 'premium':
+                    valid_signals.append(sig)
+
+            if valid_signals:
+                best_signal = max(valid_signals, key=lambda x: x.get('confidence', 0))
                 # Extraer datos REALES de la señal
                 result.confidence = float(best_signal.get('confidence', 0.0))
                 result.strength = float(best_signal.get('strength', 0.0))
                 result.direction = str(best_signal.get('direction', 'NEUTRAL')).upper()
-                
-                # Niveles reales (NO hardcodeados)
                 entry_zone = best_signal.get('entry_zone', (0.0, 0.0))
                 if isinstance(entry_zone, (list, tuple)) and len(entry_zone) >= 2:
                     result.entry_zone = (float(entry_zone[0]), float(entry_zone[1]))
-                
                 result.stop_loss = float(best_signal.get('stop_loss', 0.0))
                 result.take_profit_1 = float(best_signal.get('take_profit_1', 0.0))
                 result.take_profit_2 = best_signal.get('take_profit_2')
                 if result.take_profit_2:
                     result.take_profit_2 = float(result.take_profit_2)
-                
-                # Métricas reales
                 result.risk_reward_ratio = float(best_signal.get('risk_reward_ratio', 0.0))
                 result.probability = float(best_signal.get('probability', 0.0))
-                
-                # Contexto real
                 result.session = str(best_signal.get('session', 'UNKNOWN'))
                 result.confluences = best_signal.get('confluences', [])
                 result.invalidation_criteria = str(best_signal.get('invalidation_criteria', ''))
-                result.narrative = str(best_signal.get('narrative', f'Patrón {self.pattern_name} detectado por sistema real'))
-                
-                # Guardar datos brutos para debugging
+                result.narrative += f"\nPatrón {self.pattern_name} detectado por sistema real"
                 result.raw_data = best_signal
-                
+                result.raw_data['premium_discount_state'] = pd_state
             else:
-                result.narrative = f"No se detectaron señales de {self.pattern_name} en el sistema real"
-        
+                result.narrative += f"\nNo setups válidos según market state (solo LONG en discount, SHORT en premium)"
         except Exception as e:
             result.narrative = f"Error en análisis real: {str(e)}"
             print(f"⚠️ Error analizando {self.pattern_name} con sistema real: {e}")
-        
         return result
     
     def _get_real_market_data(self, symbol: str, timeframe: str) -> Optional[Any]:
@@ -379,24 +361,18 @@ class SilverBulletDashboard(BasePatternDashboard):
                 'source': 'real_system_error'
             }
     
+
     def create_dashboard_layout(self, result: PatternAnalysisResult) -> str:
-        """Crear layout del dashboard mostrando datos REALES"""
-        
-        # Utilidades para formateo
+        """Crear layout del dashboard mostrando datos REALES y estado premium/discount"""
         utils = PatternDashboardUtils()
-        
-        # Verificar si tenemos datos reales
         has_real_data = result.confidence > 0 or result.raw_data.get('source') == 'real_system'
-        
-        # Colores y emojis basados en datos reales
         conf_color = utils.get_confidence_color(result.confidence)
         direction_emoji = utils.get_direction_emoji(result.direction)
         tf_display = utils.format_timeframe_display(result.timeframe)
-        
-        # Status del sistema real
         system_status = "🔌 SISTEMA REAL" if has_real_data else "⚠️ DATOS NO DISPONIBLES"
-        
-        # Construir layout con datos reales
+        # Mostrar estado premium/discount
+        pd_state = result.raw_data.get('premium_discount_state', {})
+        pd_str = f"{pd_state.get('state','?').upper()} | Eq: {pd_state.get('equilibrium','?'):.5f}" if pd_state else "-"
         layout = f"""
 [bold cyan]🎯 {self.pattern_name.upper().replace('_', ' ')} - {result.symbol}[/bold cyan]
 [cyan]{'─' * 50}[/cyan]
@@ -406,7 +382,8 @@ class SilverBulletDashboard(BasePatternDashboard):
 • Timeframe: [bold]{tf_display}[/bold]
 • Dirección: {direction_emoji} [bold]{result.direction}[/bold]
 • Confianza: [{conf_color}]{result.confidence:.1f}%[/{conf_color}]
-• Fuerza: [bold]{result.strength:.1f}%[/bold]"""
+• Fuerza: [bold]{result.strength:.1f}%[/bold]
+• Market State: [bold]{pd_str}[/bold]"""
 
         if has_real_data and result.entry_zone != (0.0, 0.0):
             layout += f"""

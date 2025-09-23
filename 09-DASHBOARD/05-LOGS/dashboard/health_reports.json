@@ -1302,5 +1302,119 @@
       "\u26a0\ufe0f UIComponents: No active UI components detected",
       "\ud83e\udde0 System: High memory usage detected, consider reducing dashboard components"
     ]
+  },
+  {
+    "overall_status": "warning",
+    "components": [
+      {
+        "component_name": "UIComponents",
+        "status": "warning",
+        "last_check": "2025-09-22T18:06:27.366522",
+        "response_time_ms": 0.15306472778320312,
+        "memory_usage_mb": 168.4453125,
+        "cpu_usage_percent": 0.0,
+        "error_count": 0,
+        "warning_count": 0,
+        "uptime_seconds": 0.000394,
+        "custom_metrics": {
+          "dashboard_instance_available": true,
+          "ui_components_count": 0,
+          "active_tabs": 0,
+          "widget_count": 0,
+          "layout_status": "unknown",
+          "rendering_issues": 0
+        },
+        "details": "No active UI components detected"
+      }
+    ],
+    "system_metrics": {
+      "memory": {
+        "total_mb": 16014.0703125,
+        "used_mb": 13426.28515625,
+        "available_mb": 2587.78515625,
+        "percent_used": 83.8
+      },
+      "cpu": {
+        "percent_used": 5.0,
+        "count": 20
+      },
+      "disk": {
+        "total_gb": 953.0283164978027,
+        "used_gb": 373.59656524658203,
+        "free_gb": 579.4317512512207,
+        "percent_used": 39.20099316875265
+      },
+      "network": {
+        "bytes_sent": 8006746093,
+        "bytes_received": 9749830297,
+        "packets_sent": 9739215,
+        "packets_received": 15213905
+      },
+      "processes": 334,
+      "boot_time": "2025-09-14T08:16:45.384960"
+    },
+    "check_timestamp": "2025-09-22T18:06:28.385894",
+    "check_duration_ms": 1019.6397304534912,
+    "recommendations": [
+      "\u26a0\ufe0f UIComponents: No active UI components detected",
+      "\ud83e\udde0 System: High memory usage detected, consider reducing dashboard components"
+    ]
+  },
+  {
+    "overall_status": "warning",
+    "components": [
+      {
+        "component_name": "UIComponents",
+        "status": "warning",
+        "last_check": "2025-09-22T18:09:04.627097",
+        "response_time_ms": 0.41604042053222656,
+        "memory_usage_mb": 172.32421875,
+        "cpu_usage_percent": 0.0,
+        "error_count": 0,
+        "warning_count": 0,
+        "uptime_seconds": 0.00072,
+        "custom_metrics": {
+          "dashboard_instance_available": true,
+          "ui_components_count": 0,
+          "active_tabs": 0,
+          "widget_count": 0,
+          "layout_status": "unknown",
+          "rendering_issues": 0
+        },
+        "details": "No active UI components detected"
+      }
+    ],
+    "system_metrics": {
+      "memory": {
+        "total_mb": 16014.0703125,
+        "used_mb": 14012.5,
+        "available_mb": 2001.5703125,
+        "percent_used": 87.5
+      },
+      "cpu": {
+        "percent_used": 5.2,
+        "count": 20
+      },
+      "disk": {
+        "total_gb": 953.0283164978027,
+        "used_gb": 373.6036682128906,
+        "free_gb": 579.4246482849121,
+        "percent_used": 39.20173847360725
+      },
+      "network": {
+        "bytes_sent": 8007799859,
+        "bytes_received": 9750897782,
+        "packets_sent": 9742169,
+        "packets_received": 15217066
+      },
+      "processes": 337,
+      "boot_time": "2025-09-14T08:16:44.636782"
+    },
+    "check_timestamp": "2025-09-22T18:09:05.641968",
+    "check_duration_ms": 1015.4242515563965,
+    "recommendations": [
+      "\u26a0\ufe0f UIComponents: No active UI components detected",
+      "\ud83e\udde0 System: High memory usage detected, consider reducing dashboard components"
+    ]
   }
 ]
