@@ -2081,6 +2081,30 @@ if __name__ == "__main__":
         try:
             self.shutdown_requested = True
 
+            # Detener Health & Performance Monitor (detiene todos los threads internos)
+            if hasattr(self, 'health_performance_monitor') and self.health_performance_monitor:
+                try:
+                    self.health_performance_monitor.stop()
+                    self.logger.info("✅ HealthPerformanceMonitor detenido correctamente")
+                except Exception as e:
+                    self.logger.error(f"Error deteniendo HealthPerformanceMonitor: {e}")
+
+                # Detener ProductionSystemMonitor (detiene todos los threads internos)
+                if hasattr(self, 'production_system_monitor') and self.production_system_monitor:
+                    try:
+                        self.production_system_monitor.stop_monitoring()
+                        self.logger.info("✅ ProductionSystemMonitor detenido correctamente")
+                    except Exception as e:
+                        self.logger.error(f"Error deteniendo ProductionSystemMonitor: {e}")
+
+                # Detener ICT Memory Manager (detiene el hilo de monitoreo de memoria)
+                try:
+                    if 'MEMORY_MANAGER' in globals() and MEMORY_MANAGER:
+                        MEMORY_MANAGER.stop_monitoring()
+                        self.logger.info("✅ ICTMemoryManager detenido correctamente")
+                except Exception as e:
+                    self.logger.error(f"Error deteniendo ICTMemoryManager: {e}")
+
             # Detener exportador de métricas si existe
             if hasattr(self, 'metrics_exporter') and self.metrics_exporter:
                 try:
@@ -2571,6 +2595,17 @@ def main():
             print(f"Directorio restaurado: {original_dir}")
         except Exception as e:
             print(f"No se pudo restaurar directorio: {e}")
+
+        # Cierre global de threads
+        import threading
+        main_thread = threading.current_thread()
+        for t in threading.enumerate():
+            if t is not main_thread and t.is_alive():
+                print(f"🛑 Esperando cierre de thread: {t.name}")
+                t.join(timeout=5)
+                if t.is_alive():
+                    print(f"⚠️ Thread {t.name} no cerró correctamente.")
+
         print("Adiós 👋")
         # Asegurar flush
         sys.stdout.flush(); sys.stderr.flush()

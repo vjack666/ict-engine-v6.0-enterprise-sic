@@ -1,0 +1,13 @@
+{
+  "timestamp": "2025-09-23T23:59:03.003461+00:00",
+  "status": "ok",
+  "journal_available": true,
+  "positions_available": true,
+  "discrepancies": [],
+  "summary": {
+    "journal_open_count": 0,
+    "broker_position_count": 0,
+    "missing_in_journal": 0,
+    "missing_in_broker": 0
+  }
+}

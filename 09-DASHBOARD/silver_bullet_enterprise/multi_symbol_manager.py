@@ -368,13 +368,13 @@ class MultiSymbolManager:
         return timezone_analysis
     
     def get_current_session(self) -> str:
-        """Determinar la sesión de trading actual"""
-        current_time = datetime.now().time()
-        
+        """Determinar la sesión de trading actual usando hora GMT (UTC)"""
+        from datetime import timezone
+        current_time = datetime.utcnow().time()
+        # current_time es hora UTC, igual que las sesiones
         for session_name, config in self.trading_sessions.items():
             if self._is_time_in_session(current_time, config["start"], config["end"]):
                 return session_name
-        
         return "OFF_HOURS"
     
     def _is_session_active(self, session_name: str) -> bool:
@@ -543,5 +543,3 @@ def test_multi_symbol_manager():
         print("⚠️ MT5 no disponible - testing limitado")
 
 
-if __name__ == "__main__":
-    test_multi_symbol_manager()

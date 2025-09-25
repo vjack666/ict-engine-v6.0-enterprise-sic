@@ -199,11 +199,95 @@ class ICTDashboardApp(App):
             with TabPane("Fair Value Gaps", id="fvg"):
                 yield self.create_fvg_tab()
             
+            # Pestaña 4: Silver Bullet (restaurada)
+            with TabPane("Silver Bullet", id="silver_bullet"):
+                yield self.create_silver_bullet_tab()
+
             # Pestaña 4: System Status
             with TabPane("System Status", id="system"):
                 yield self.create_system_status_tab()
         
         yield Footer()
+    def create_silver_bullet_tab(self) -> Vertical:
+        """🏆 Crear pestaña Silver Bullet con setups reales enterprise"""
+        setups_text = ""
+        alert_text = ""
+        session_text = ""
+        try:
+            # Intentar importar el MultiSymbolManager enterprise
+            import importlib.util
+            import sys
+            import os
+            base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'silver_bullet_enterprise'))
+            sys.path.insert(0, base_path)
+            spec = importlib.util.spec_from_file_location("multi_symbol_manager", os.path.join(base_path, "multi_symbol_manager.py"))
+            if spec and spec.loader:
+                multi_symbol_manager = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(multi_symbol_manager)
+                MultiSymbolManager = getattr(multi_symbol_manager, "MultiSymbolManager")
+                manager = MultiSymbolManager()
+                setups = manager.get_best_setups(3)
+                # Obtener sesión y pares analizados actualmente
+                session = manager.get_current_session()
+                tz_analysis = manager.analyze_by_timezone()
+                pairs = tz_analysis.get("priority_symbols", [])
+                session_text = f"🕒 Sesión actual: [metric_value]{session}[/metric_value]\nPares analizados: [metric_value]{', '.join(pairs)}[/metric_value]"
+                if setups:
+                    setups_text = "\n".join([
+                        f"{i+1}. {s['symbol']} | Score: {s['total_score']:.2f} | {s['recommendation']}"
+                        for i, s in enumerate(setups)
+                    ])
+                    # Sistema de alertas: mostrar hora y oportunidad
+                    now = datetime.now().strftime('%H:%M:%S')
+                    best_opportunity = setups[0] if setups else None
+                    if best_opportunity and best_opportunity['total_score'] > 0:
+                        alert_text = f"🟢 Oportunidad de trade detectada en {best_opportunity['symbol']} a las {now}"
+                    else:
+                        alert_text = f"🔴 Sin oportunidad de trade a las {now}"
+                else:
+                    setups_text = "No setups detected."
+                    now = datetime.now().strftime('%H:%M:%S')
+                    alert_text = f"🔴 Sin oportunidad de trade a las {now}"
+            else:
+                setups_text = "Error loading MultiSymbolManager module."
+                now = datetime.now().strftime('%H:%M:%S')
+                alert_text = f"🔴 Sin oportunidad de trade a las {now}"
+        except Exception as e:
+            setups_text = f"Error loading setups: {e}"
+            now = datetime.now().strftime('%H:%M:%S')
+            alert_text = f"🔴 Sin oportunidad de trade a las {now}"
+            session_text = "No se pudo obtener la sesión actual."
+        return Vertical(
+            Static(
+                "🏆 SILVER BULLET SETUPS - ENTERPRISE",
+                classes="metric-label"
+            ),
+            Static(
+                session_text,
+                id="silver_bullet_session",
+                classes="metric-label"
+            ),
+            Static(
+                f"🔍 Status: [status_connected]LIVE ANALYSIS[/status_connected]\n" +
+                f"📊 Last Update: [metric_value]{self.last_update.strftime('%H:%M:%S')}[/metric_value]\n" +
+                "🎯 Symbols: [metric_value]XAUUSD, EURUSD, USDCAD[/metric_value]\n" +
+                "⏰ Update Interval: [metric_value]0.5s[/metric_value]",
+                id="silver_bullet_metrics",
+                markup=True
+            ),
+            Static(
+                alert_text,
+                id="silver_bullet_alert",
+                classes="metric-label"
+            ),
+            Static(
+                "🏆 SILVER BULLET SETUPS DETECTED:\n\n" + setups_text,
+                id="silver_bullet_setups",
+                classes="metrics-container"
+            ),
+            Button("🔄 Refresh Silver Bullet", id="refresh_silver_bullet", classes="refresh-btn"),
+            classes="metrics-container"
+        )
     
     def create_smart_money_tab(self) -> Vertical:
         """📊 Crear pestaña de Smart Money Analysis con datos reales"""

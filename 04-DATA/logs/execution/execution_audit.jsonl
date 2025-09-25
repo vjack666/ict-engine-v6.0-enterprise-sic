@@ -13,3 +13,6 @@
 {"ts": "2025-09-22T23:06:30.773828+00:00", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}
 {"ts": "2025-09-22T23:09:11.157651+00:00", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}
 {"ts": "2025-09-23T13:48:30.779748+00:00", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}
+{"ts": "2025-09-23T23:59:03.044795+00:00", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}
+{"ts": "2025-09-24T00:04:25.504363+00:00", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}
+{"ts": "2025-09-24T00:10:33.244555+00:00", "event": "SHUTDOWN", "order_id": null, "symbol": null, "status": "OK", "latency_ms": null, "extra": {}}
